@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Books — Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="portal.css">
+</head>
+<body>
+<div class="portal-layout">
+
+  <!-- TOPBAR -->
+  <header class="portal-topbar">
+    <div class="topbar-logo">Phelim Ekwebe <span>Content Portal</span></div>
+    <div class="topbar-right">
+      <a href="../index.html" class="topbar-view" target="_blank">View Site ↗</a>
+      <span class="topbar-user">Phelim Ekwebe</span>
+      <button class="topbar-btn" onclick="logout()">Sign Out</button>
+    </div>
+  </header>
+
+  <!-- SIDEBAR -->
+  <aside class="portal-sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Overview</div>
+      <a class="sidebar-link " href="dashboard.html"><span class="sidebar-icon">◈</span> Dashboard</a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Content</div>
+      <a class="sidebar-link " href="episodes.html"><span class="sidebar-icon">◎</span> Episodes</a>
+      <a class="sidebar-link " href="articles.html"><span class="sidebar-icon">◉</span> Articles</a>
+      <a class="sidebar-link active" href="books.html"><span class="sidebar-icon">▣</span> Books</a>
+      <a class="sidebar-link " href="content.html"><span class="sidebar-icon">◇</span> Site Content</a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Inbox</div>
+      <a class="sidebar-link " href="contacts.html"><span class="sidebar-icon">✉</span> Enquiries <span class="sidebar-badge" id="unread-badge">4</span></a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Settings</div>
+      <a class="sidebar-link" href="#"><span class="sidebar-icon">⚙</span> Site Settings</a>
+      <a class="sidebar-link" href="#"><span class="sidebar-icon">🔗</span> Integrations</a>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="portal-main">
+    <div class="page-header">
+      <div class="page-header-left">
+        <h1>Books</h1>
+        <p>Manage book listings, pre-order links, publication dates, and countdown targets.</p>
+      </div>
+      <div class="page-actions">
+        <button class="btn btn-primary">+ Add Book</button>
+      </div>
+    </div>
+
+    <div class="alert alert-warn">
+      <span>⚠</span>
+      <span>Stripe is not yet connected. Pre-order buttons on the site currently show the checkout UI but no payment is processed. <a href="#" style="color:var(--amber);text-decoration:underline;">Connect Stripe →</a></span>
+    </div>
+
+    <!-- Book 1: Built to Last -->
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-header">
+        <div style="display:flex;align-items:center;gap:14px;">
+          <div style="width:44px;aspect-ratio:2/3;background:var(--forest);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span style="font-size:.5rem;color:rgba(248,246,241,.6);text-align:center;padding:3px;">BTL</span></div>
+          <div>
+            <div style="font-family:var(--serif);font-size:1.05rem;color:var(--ink);">Built to Last</div>
+            <div style="font-size:.72rem;color:var(--ink30);">Book 2 · Pre-order open</div>
+          </div>
+        </div>
+        <span class="badge badge-preorder">Pre-order</span>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Full Title</label>
+          <input class="form-input" value="Built to Last">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Subtitle</label>
+          <input class="form-input" value="The Modern Guide to Wealth, Freedom, and Legacy">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Publication Date</label>
+          <input class="form-input" type="date" value="2027-02-01">
+          <div class="form-hint">Used for the countdown timer.</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Pre-order Price (€)</label>
+          <input class="form-input" type="number" value="24.99">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Stripe Payment Link — Hardcover</label>
+        <input class="form-input" type="url" placeholder="https://buy.stripe.com/...">
+        <div class="form-hint">Paste the Stripe Payment Link URL here to activate checkout.</div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Stripe Link — eBook</label>
+          <input class="form-input" type="url" placeholder="https://buy.stripe.com/...">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Stripe Link — Audiobook</label>
+          <input class="form-input" type="url" placeholder="https://buy.stripe.com/...">
+        </div>
+      </div>
+      <div style="display:flex;gap:9px;margin-top:4px;">
+        <button class="btn btn-primary btn-sm">Save Changes</button>
+        <button class="btn btn-secondary btn-sm">Preview on Site →</button>
+      </div>
+    </div>
+
+    <!-- Book 2: Beyond Survival -->
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-header">
+        <div style="display:flex;align-items:center;gap:14px;">
+          <div style="width:44px;aspect-ratio:2/3;background:#1a2d24;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span style="font-size:.5rem;color:rgba(248,246,241,.5);text-align:center;padding:3px;">BS</span></div>
+          <div>
+            <div style="font-family:var(--serif);font-size:1.05rem;color:var(--ink);">Beyond Survival</div>
+            <div style="font-size:.72rem;color:var(--ink30);">Book 1 · Pre-order open</div>
+          </div>
+        </div>
+        <span class="badge badge-preorder">Pre-order</span>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Publication Date</label>
+          <input class="form-input" type="date" value="2027-01-01">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Pre-order Price (€)</label>
+          <input class="form-input" type="number" value="22.99">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Stripe Payment Link — Hardcover</label>
+        <input class="form-input" type="url" placeholder="https://buy.stripe.com/...">
+      </div>
+      <div style="margin-top:4px;">
+        <button class="btn btn-primary btn-sm">Save Changes</button>
+      </div>
+    </div>
+  </main>
+
+</div>
+<script src="portal.js"></script>
+<script>
+  // Auth guard (demo)
+  if (!sessionStorage.getItem('portal-auth')) window.location.href = 'index.html';
+  function logout() { sessionStorage.removeItem('portal-auth'); window.location.href = 'index.html'; }
+</script>
+</body>
+</html>

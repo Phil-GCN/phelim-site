@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Site Settings — Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="portal.css">
+</head>
+<body>
+<div class="portal-layout">
+
+  <header class="portal-topbar">
+    <div class="topbar-logo">Phelim Ekwebe <span>Content Portal</span></div>
+    <div class="topbar-right">
+      <a href="../index.html" class="topbar-view" target="_blank">View Site ↗</a>
+      <span class="topbar-user">Phelim Ekwebe</span>
+      <button class="topbar-btn" onclick="logout()">Sign Out</button>
+    </div>
+  </header>
+
+  <aside class="portal-sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Overview</div>
+      <a class="sidebar-link" href="index.html"><span class="sidebar-icon">◈</span> Dashboard</a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Content</div>
+      <a class="sidebar-link" href="episodes.html"><span class="sidebar-icon">◎</span> Episodes</a>
+      <a class="sidebar-link" href="articles.html"><span class="sidebar-icon">◉</span> Articles</a>
+      <a class="sidebar-link" href="books.html"><span class="sidebar-icon">▣</span> Books</a>
+      <a class="sidebar-link" href="content.html"><span class="sidebar-icon">◇</span> Site Content</a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Inbox</div>
+      <a class="sidebar-link" href="contacts.html"><span class="sidebar-icon">✉</span> Enquiries</a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Settings</div>
+      <a class="sidebar-link active" href="settings.html"><span class="sidebar-icon">⚙</span> Site Settings</a>
+      <a class="sidebar-link" href="integrations.html"><span class="sidebar-icon">🔗</span> Integrations</a>
+    </div>
+  </aside>
+
+  <main class="portal-main">
+    <div class="page-header">
+      <div class="page-title">Site Settings</div>
+      <div class="page-subtitle">General configuration for your site</div>
+    </div>
+
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header"><div class="card-title">Site Identity</div></div>
+      <div class="form-group">
+        <label class="form-label">Site name</label>
+        <input class="form-input" value="Phelim Ekwebe">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Tagline</label>
+        <input class="form-input" value="Life Strategist · Systems Thinker · Author">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Meta description</label>
+        <textarea class="form-textarea" style="min-height:70px;">Life strategist, systems thinker, speaker, and author. Exploring how people build lives that create lasting impact — through systems, decisions, and lived experience.</textarea>
+      </div>
+      <button class="btn btn-primary" onclick="saveSetting('identity')">Save</button>
+    </div>
+
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header"><div class="card-title">Contact Details</div></div>
+      <div class="form-group">
+        <label class="form-label">Contact email</label>
+        <input class="form-input" type="email" placeholder="hello@phelim.me">
+      </div>
+      <div class="form-group">
+        <label class="form-label">LinkedIn URL</label>
+        <input class="form-input" type="url" placeholder="https://linkedin.com/in/...">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Twitter / X URL</label>
+        <input class="form-input" type="url" placeholder="https://twitter.com/...">
+      </div>
+      <button class="btn btn-primary" onclick="saveSetting('contact')">Save</button>
+    </div>
+
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header"><div class="card-title">Portal Access</div></div>
+      <div class="form-group">
+        <label class="form-label">Change portal password</label>
+        <input class="form-input" type="password" id="new-pw" placeholder="New password (min 8 characters)">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Confirm new password</label>
+        <input class="form-input" type="password" id="new-pw-confirm" placeholder="Repeat new password">
+      </div>
+      <button class="btn btn-primary" onclick="changePortalPassword()">Update Password</button>
+      <div id="pw-msg" style="display:none;font-size:.78rem;margin-top:10px;"></div>
+    </div>
+  </main>
+
+</div>
+<script src="portal.js"></script>
+<script>
+  function saveSetting(section) {
+    showToast('Settings saved.');
+  }
+  function changePortalPassword() {
+    const next = document.getElementById('new-pw').value;
+    const conf = document.getElementById('new-pw-confirm').value;
+    const msg  = document.getElementById('pw-msg');
+    if (next.length < 8) {
+      msg.style.cssText = 'display:block;color:#c0392b;';
+      msg.textContent = 'Password must be at least 8 characters.';
+      return;
+    }
+    if (next !== conf) {
+      msg.style.cssText = 'display:block;color:#c0392b;';
+      msg.textContent = 'Passwords do not match.';
+      return;
+    }
+    localStorage.setItem('portal-password', next);
+    document.getElementById('new-pw').value = '';
+    document.getElementById('new-pw-confirm').value = '';
+    msg.style.cssText = 'display:block;color:#1a6b3a;';
+    msg.textContent = 'Password updated successfully.';
+    showToast('Portal password updated.');
+  }
+</script>
+</body>
+</html>

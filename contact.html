@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contact — Phelim Ekwebe</title>
+  <meta name="description" content="Speaking enquiries, podcast collaboration, writing and media, partnerships, and general contact.">
+  <meta property="og:title" content="Contact — Phelim Ekwebe">
+  <meta property="og:description" content="Speaking enquiries, podcast collaboration, writing and media, partnerships, and general contact.">
+  <meta property="og:type" content="website">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,600&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="base.css">
+  <link rel="stylesheet" href="pages.css">
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a class="nav-logo" href="index.html">Phelim Ekwebe</a>
+    <ul class="nav-links">
+      <li><a id="nl-home" href="index.html">Home</a></li>
+      <li><a id="nl-about" href="about.html">About</a></li>
+      <li><a id="nl-podcast" href="podcast.html">Podcast</a></li>
+      <li><a id="nl-eng" href="engagements.html">Engagements</a></li>
+      <li><a id="nl-resources" href="resources.html">Resources</a></li>
+    </ul>
+    <button class="nav-cta" onclick="openModal('general')">Work With Me</button>
+    <button class="ham" onclick="toggleMenu()"><span></span><span></span><span></span></button>
+  </div>
+</nav>
+<div id="mob-menu" style="display:none">
+  <a href="index.html">Home</a>
+  <a href="about.html">About</a>
+  <a href="podcast.html">Podcast</a>
+  <a href="engagements.html">Engagements</a>
+  <a href="resources.html">Resources</a>
+  <a href="contact.html">Contact</a>
+  <button class="btn btn-dark" style="margin-top:14px;width:100%;justify-content:center;" onclick="openModal('general')">Work With Me</button>
+</div>
+
+<main>
+<section class="contact-hero">
+    <div class="container"><div class="eyebrow" style="margin-bottom:12px;">Contact</div><h1>Let's connect</h1><p style="max-width:420px;margin-top:10px;">Choose the type of enquiry below — each form is tailored to that context.</p></div>
+  </section>
+  <div style="border-top:1px solid var(--ink12);"><div class="container" style="padding-bottom:80px;">
+    <div class="contact-enquiry-tabs">
+      <button class="enq-tab active" id="enq-btn-speaking" onclick="switchEnqTab('speaking')">Speaking & Events</button>
+      <button class="enq-tab" id="enq-btn-podcast" onclick="switchEnqTab('podcast')">Podcast</button>
+      <button class="enq-tab" id="enq-btn-writing" onclick="switchEnqTab('writing')">Writing & Media</button>
+      <button class="enq-tab" id="enq-btn-partnership" onclick="switchEnqTab('partnership')">Partnership</button>
+      <button class="enq-tab" id="enq-btn-general" onclick="switchEnqTab('general')">General</button>
+    </div>
+    <!-- Speaking -->
+    <div class="enq-panel active" id="enq-speaking"><div class="enq-info"><h3>Speaking & Events</h3><p>Book Phelim for keynotes, workshops, panels, and fireside chats — in person or virtually.</p><div class="enq-detail"><div class="enq-detail-label">Response time</div><div class="enq-detail-val">2 business days</div></div><div class="enq-detail"><div class="enq-detail-label">Formats</div><div class="enq-detail-val">Keynote · Workshop · Panel · Virtual</div></div><ul class="enq-bullets"><li>Available globally, in person and virtually</li><li>Custom talk development available</li><li>SME and corporate contexts welcome</li></ul></div>
+    <form class="form" onsubmit="handleSubmit(event)"><div class="frow"><div class="fg"><label class="flabel">Name</label><input class="finput" type="text" placeholder="Full name"></div><div class="fg"><label class="flabel">Email</label><input class="finput" type="email" placeholder="you@org.com"></div></div><div class="fg"><label class="flabel">Organisation</label><input class="finput" type="text" placeholder="Company or institution"></div><div class="fg"><label class="flabel">Event format</label><select class="fselect"><option>Keynote</option><option>Workshop</option><option>Panel / Fireside</option><option>Virtual</option><option>Other</option></select></div><div class="frow"><div class="fg"><label class="flabel">Expected audience</label><input class="finput" type="text" placeholder="e.g. 200 people"></div><div class="fg"><label class="flabel">Approximate date</label><input class="finput" type="text" placeholder="Month / Year"></div></div><div class="fg"><label class="flabel">Tell me about the event</label><textarea class="ftextarea" placeholder="Theme, audience, what you hope they walk away with..."></textarea></div><button type="submit" class="btn btn-dark" style="width:100%;justify-content:center;">Send Booking Enquiry</button></form></div>
+    <!-- Podcast -->
+    <div class="enq-panel" id="enq-podcast"><div class="enq-info"><h3>Podcast Enquiry</h3><p>Two types of collaboration — choose what applies.</p><div class="enq-detail"><div class="enq-detail-label">Option A</div><div class="enq-detail-val">Invite Phelim onto your show</div></div><div class="enq-detail"><div class="enq-detail-label">Option B</div><div class="enq-detail-val">Apply to guest on Future Foundations</div></div><ul class="enq-bullets"><li>Guest episodes are selective — story and alignment matter</li><li>Cross-show collaborations also considered</li></ul></div>
+    <form class="form" onsubmit="handleSubmit(event)"><div class="frow"><div class="fg"><label class="flabel">Name</label><input class="finput" type="text" placeholder="Full name"></div><div class="fg"><label class="flabel">Email</label><input class="finput" type="email" placeholder="your@email.com"></div></div><div class="fg"><label class="flabel">Type of collaboration</label><select class="fselect"><option>I want to invite Phelim onto my show</option><option>I want to be a guest on Future Foundations</option><option>Cross-show collaboration</option><option>Other podcast enquiry</option></select></div><div class="fg"><label class="flabel">Your show / background</label><input class="finput" type="text" placeholder="Show name, audience, platform..."></div><div class="fg"><label class="flabel">What makes your story worth telling?</label><textarea class="ftextarea" placeholder="Tell me what you've built, experienced, or overcome..."></textarea></div><button type="submit" class="btn btn-dark" style="width:100%;justify-content:center;">Submit Application</button></form></div>
+    <!-- Writing -->
+    <div class="enq-panel" id="enq-writing"><div class="enq-info"><h3>Writing & Media</h3><p>For collaborations on articles, interviews, features, and press enquiries about <em>Built to Last</em>.</p><div class="enq-detail"><div class="enq-detail-label">Response time</div><div class="enq-detail-val">3–5 business days</div></div><ul class="enq-bullets"><li>Interviews and editorial features</li><li>Guest essays and op-eds</li><li>Book media and press</li><li>Writing collaborations</li></ul></div>
+    <form class="form" onsubmit="handleSubmit(event)"><div class="frow"><div class="fg"><label class="flabel">Name</label><input class="finput" type="text" placeholder="Full name"></div><div class="fg"><label class="flabel">Email</label><input class="finput" type="email" placeholder="your@email.com"></div></div><div class="fg"><label class="flabel">Publication or outlet</label><input class="finput" type="text" placeholder="Where would this appear?"></div><div class="fg"><label class="flabel">Type of collaboration</label><select class="fselect"><option>Interview / Feature</option><option>Guest essay</option><option>Book / press enquiry</option><option>Writing collaboration</option><option>Other</option></select></div><div class="fg"><label class="flabel">Tell me more</label><textarea class="ftextarea" placeholder="Concept, timeline, and audience?"></textarea></div><button type="submit" class="btn btn-dark" style="width:100%;justify-content:center;">Send Enquiry</button></form></div>
+    <!-- Partnership -->
+    <div class="enq-panel" id="enq-partnership"><div class="enq-info"><h3>Partnership Opportunity</h3><p>Partnerships are considered carefully — we feature work that genuinely aligns with the Future Foundations philosophy.</p><div class="enq-detail"><div class="enq-detail-label">Response time</div><div class="enq-detail-val">5–7 business days</div></div><ul class="enq-bullets"><li>Brand partnerships and sponsorships</li><li>Product endorsements (selective)</li><li>Co-created tools and resources</li><li>Event and community partnerships</li></ul></div>
+    <form class="form" onsubmit="handleSubmit(event)"><div class="frow"><div class="fg"><label class="flabel">Name</label><input class="finput" type="text" placeholder="Full name"></div><div class="fg"><label class="flabel">Email</label><input class="finput" type="email" placeholder="your@company.com"></div></div><div class="fg"><label class="flabel">Company / Organisation</label><input class="finput" type="text" placeholder="Who you represent"></div><div class="fg"><label class="flabel">Partnership type</label><select class="fselect"><option>Brand partnership / sponsorship</option><option>Product endorsement</option><option>Co-created resource</option><option>Event partnership</option><option>Other</option></select></div><div class="fg"><label class="flabel">Describe the opportunity</label><textarea class="ftextarea" placeholder="What are you proposing, and why does it align with Future Foundations?"></textarea></div><button type="submit" class="btn btn-dark" style="width:100%;justify-content:center;">Submit Proposal</button></form></div>
+    <!-- General -->
+    <div class="enq-panel" id="enq-general"><div class="enq-info"><h3>General Enquiry</h3><p>For anything that doesn't fit the other categories — questions, feedback, or just starting a conversation.</p><div class="enq-detail"><div class="enq-detail-label">Response time</div><div class="enq-detail-val">3–5 business days</div></div><ul class="enq-bullets"><li>Questions about the podcast or content</li><li>Feedback on ideas or essays</li><li>General introductions</li></ul></div>
+    <form class="form" onsubmit="handleSubmit(event)"><div class="frow"><div class="fg"><label class="flabel">Name</label><input class="finput" type="text" placeholder="Full name"></div><div class="fg"><label class="flabel">Email</label><input class="finput" type="email" placeholder="your@email.com"></div></div><div class="fg"><label class="flabel">Message</label><textarea class="ftextarea" style="min-height:130px;" placeholder="Tell me what's on your mind..."></textarea></div><button type="submit" class="btn btn-dark" style="width:100%;justify-content:center;">Send Message</button></form></div>
+  </div></div>
+</main>
+
+<!-- ════ GENERAL MODAL ════ -->
+<div class="modal-overlay" id="modal" onclick="closeModalOuter(event)">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <div class="modal-eyebrow" id="m-eyebrow">Get in touch</div>
+    <div class="modal-title" id="m-title">Work With Phelim</div>
+    <div id="m-form-body"></div>
+  </div>
+</div>
+
+<!-- ════ CHECKOUT MODAL ════ -->
+<div class="modal-overlay" id="checkout-modal" onclick="closeCheckoutOuter(event)">
+  <div class="checkout-box">
+    <div class="checkout-head">
+      <button class="checkout-close" onclick="closeCheckout()">×</button>
+      <div class="checkout-eyebrow-lbl" id="co-eyebrow">Pre-order</div>
+      <div class="checkout-title" id="co-title">Built to Last</div>
+      <div class="checkout-price" id="co-price">€ 24.99</div>
+    </div>
+    <div class="checkout-body">
+      <div class="checkout-item-row">
+        <div class="checkout-cover" id="co-cover" style="background:var(--forest);"><span id="co-cover-text">Built to Last</span></div>
+        <div class="checkout-item-info">
+          <div class="checkout-item-name" id="co-item-name">Built to Last</div>
+          <div class="checkout-item-type" id="co-item-type">Pre-order · Hardcover</div>
+        </div>
+        <div class="checkout-item-price" id="co-item-price">€ 24.99</div>
+      </div>
+      <div class="checkout-note"><p><strong>Pre-order guarantee:</strong> You will be charged now and your copy ships as soon as the book is available. Cancel anytime before dispatch for a full refund.</p></div>
+      <div class="checkout-divider">Your details</div>
+      <form class="form" id="checkout-form" onsubmit="handleCheckout(event)">
+        <div class="frow">
+          <div class="fg"><label class="flabel">First name</label><input class="finput" type="text" placeholder="First name" required></div>
+          <div class="fg"><label class="flabel">Last name</label><input class="finput" type="text" placeholder="Last name" required></div>
+        </div>
+        <div class="fg"><label class="flabel">Email</label><input class="finput" type="email" placeholder="your@email.com" required></div>
+        <div class="fg"><label class="flabel">Format</label>
+          <select class="fselect" id="co-format" onchange="updateCoPrice()">
+            <option value="24.99">Hardcover — € 24.99</option>
+            <option value="12.99">eBook (PDF + ePub) — € 12.99</option>
+            <option value="14.99">Audiobook — € 14.99</option>
+            <option value="29.99">Hardcover + eBook bundle — € 29.99</option>
+          </select>
+        </div>
+        <div class="checkout-divider">Payment</div>
+        <div class="checkout-methods">
+          <div class="pay-method selected" onclick="selectPayMethod(this,'card')">
+            <div class="pay-method-icon">💳</div><div class="pay-method-label">Card</div>
+          </div>
+          <div class="pay-method" onclick="selectPayMethod(this,'bank')">
+            <div class="pay-method-icon">🏦</div><div class="pay-method-label">Bank transfer</div>
+          </div>
+        </div>
+        <div id="card-fields">
+          <div class="fg"><label class="flabel">Card number</label><input class="finput" type="text" placeholder="•••• •••• •••• ••••" maxlength="19"></div>
+          <div class="frow">
+            <div class="fg"><label class="flabel">Expiry</label><input class="finput" type="text" placeholder="MM / YY" maxlength="7"></div>
+            <div class="fg"><label class="flabel">CVC</label><input class="finput" type="text" placeholder="•••" maxlength="4"></div>
+          </div>
+        </div>
+        <div id="bank-fields" style="display:none;background:var(--forest-faint);border:1px solid rgba(38,61,51,.15);padding:15px 17px;margin-bottom:4px;">
+          <p style="font-size:.82rem;color:var(--ink60);margin-bottom:7px;">Bank transfer details will be sent to your email once you place the order.</p>
+          <p style="font-size:.78rem;color:var(--ink30);margin:0;font-style:italic;">Orders are held for 5 business days pending payment.</p>
+        </div>
+        <button type="submit" class="btn btn-dark" style="width:100%;justify-content:center;padding:13px;margin-top:14px;">Complete Pre-order</button>
+        <div class="stripe-badge">Payments processed securely via Stripe. Connect your Stripe account to activate.</div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="site-footer-inner">
+      <div class="footer-logo">Phelim Ekwebe</div>
+      <div class="footer-links">
+        <a href="index.html">Home</a>
+        <a href="about.html">About</a>
+        <a href="podcast.html">Podcast</a>
+        <a href="engagements.html">Engagements</a>
+        <a href="resources.html">Resources</a>
+        <a href="contact.html">Contact</a>
+      </div>
+      <div class="footer-copy">&copy; 2025 Phelim Ekwebe. All rights reserved.</div>
+    </div>
+  </div>
+</footer>
+
+  <script src="nav.js"></script>
+  <script src="modals.js"></script>
+<script>
+  window.switchEnqTab = function(id) {
+    document.querySelectorAll('.enq-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.enq-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('enq-btn-' + id)?.classList.add('active');
+    document.getElementById('enq-' + id)?.classList.add('active');
+  };
+  // Check URL hash
+  const hash = window.location.hash.replace('#','');
+  if (['speaking','podcast','writing','partnership','general'].includes(hash)) switchEnqTab(hash);
+</script>
+
+</body>
+</html>

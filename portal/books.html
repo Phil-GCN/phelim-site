@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Books — Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="portal.css">
+  <style>
+    /* ── Order mode toggle ── */
+    .order-toggle-row{display:flex;align-items:center;gap:12px;margin-bottom:18px;padding:12px 14px;background:var(--paper-mid);border:1px solid var(--ink12);border-radius:var(--r);}
+    .order-toggle-label{font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--ink60);}
+    .toggle-switch{position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0;}
+    .toggle-switch input{opacity:0;width:0;height:0;}
+    .toggle-slider{position:absolute;inset:0;background:var(--ink12);border-radius:24px;cursor:pointer;transition:background .2s;}
+    .toggle-slider::before{content:'';position:absolute;width:18px;height:18px;left:3px;top:3px;background:#fff;border-radius:50%;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2);}
+    .toggle-switch input:checked + .toggle-slider{background:var(--forest);}
+    .toggle-switch input:checked + .toggle-slider::before{transform:translateX(20px);}
+    .order-mode-text{font-size:.82rem;font-weight:500;color:var(--ink);}
+    /* ── File upload zone ── */
+    .upload-zone{border:2px dashed var(--ink12);border-radius:var(--r);padding:22px;text-align:center;cursor:pointer;transition:all .2s;background:var(--paper);}
+    .upload-zone:hover,.upload-zone.drag-over{border-color:var(--forest);background:var(--forest-faint);}
+    .upload-zone input[type=file]{display:none;}
+    .upload-zone-icon{font-size:1.4rem;margin-bottom:6px;opacity:.4;}
+    .upload-zone-label{font-size:.78rem;color:var(--ink60);line-height:1.5;}
+    .upload-zone-label strong{color:var(--forest);cursor:pointer;}
+    .upload-preview{display:flex;align-items:center;gap:12px;margin-top:12px;padding:10px 12px;background:var(--paper-mid);border:1px solid var(--ink12);border-radius:var(--r);}
+    .upload-preview-thumb{width:36px;height:52px;object-fit:cover;border-radius:1px;}
+    .upload-preview-pdf{width:36px;height:52px;background:var(--forest);display:flex;align-items:center;justify-content:center;border-radius:1px;flex-shrink:0;}
+    .upload-preview-pdf span{font-size:.55rem;color:rgba(248,246,241,.8);font-weight:600;letter-spacing:.04em;}
+    .upload-preview-info{flex:1;min-width:0;}
+    .upload-preview-name{font-size:.8rem;color:var(--ink);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .upload-preview-size{font-size:.7rem;color:var(--ink30);}
+    .upload-preview-remove{font-size:.8rem;color:var(--ink30);cursor:pointer;padding:2px 6px;border:none;background:none;}
+    .upload-preview-remove:hover{color:#c0392b;}
+    /* ── Section divider ── */
+    .section-divider{font-size:.63rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink30);border-bottom:1px solid var(--ink06);padding-bottom:8px;margin:20px 0 16px;}
+  </style>
+</head>
+<body>
+<div class="portal-layout">
+
+  <header class="portal-topbar">
+    <div class="topbar-logo">Phelim Ekwebe <span>Content Portal</span></div>
+    <div class="topbar-right">
+      <a href="../index.html" class="topbar-view" target="_blank">View Site ↗</a>
+      <span class="topbar-user">Phelim Ekwebe</span>
+      <button class="topbar-btn" onclick="logout()">Sign Out</button>
+    </div>
+  </header>
+
+  <aside class="portal-sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Overview</div>
+      <a class="sidebar-link" href="index.html"><span class="sidebar-icon">◈</span> Dashboard</a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Content</div>
+      <a class="sidebar-link" href="episodes.html"><span class="sidebar-icon">◎</span> Episodes</a>
+      <a class="sidebar-link" href="articles.html"><span class="sidebar-icon">◉</span> Articles</a>
+      <a class="sidebar-link active" href="books.html"><span class="sidebar-icon">▣</span> Books</a>
+      <a class="sidebar-link" href="content.html"><span class="sidebar-icon">◇</span> Site Content</a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Inbox</div>
+      <a class="sidebar-link" href="contacts.html"><span class="sidebar-icon">✉</span> Enquiries <span class="sidebar-badge" id="unread-badge">4</span></a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Settings</div>
+      <a class="sidebar-link" href="settings.html"><span class="sidebar-icon">⚙</span> Site Settings</a>
+      <a class="sidebar-link" href="integrations.html"><span class="sidebar-icon">🔗</span> Integrations</a>
+    </div>
+  </aside>
+
+  <main class="portal-main">
+    <div class="page-header">
+      <div class="page-header-left">
+        <h1>Books</h1>
+        <p>Manage book listings, order mode, covers, files, and pricing.</p>
+      </div>
+      <div class="page-actions">
+        <button class="btn btn-primary" onclick="addBook()">+ Add Book</button>
+      </div>
+    </div>
+
+    <div class="alert alert-warn">
+      <span>⚠</span>
+      <span>Stripe is not yet connected. Checkout UI is active but no payment is processed. <a href="integrations.html" style="color:var(--amber);text-decoration:underline;">Connect Stripe →</a></span>
+    </div>
+
+    <div id="books-list"></div>
+  </main>
+
+</div>
+<script src="portal.js"></script>
+<script>
+// ── Book data (loaded from localStorage or defaults) ──
+const DEFAULT_BOOKS = [
+  {
+    id: 'btl', title: 'Built to Last', subtitle: 'The Modern Guide to Wealth, Freedom, and Legacy',
+    bookNum: 2, mode: 'preorder', pubDate: '2027-02-01',
+    price: '24.99', stripeHardcover: '', stripeEbook: '', stripeAudio: '',
+    description: 'A blueprint for building a life that compounds — across finances, identity, and legacy.',
+    coverData: null, coverName: null, pdfData: null, pdfName: null,
+  },
+  {
+    id: 'bs', title: 'Beyond Survival', subtitle: 'Building a Life Worth Having',
+    bookNum: 1, mode: 'preorder', pubDate: '2027-01-01',
+    price: '22.99', stripeHardcover: '', stripeEbook: '', stripeAudio: '',
+    description: '',
+    coverData: null, coverName: null, pdfData: null, pdfName: null,
+  },
+];
+
+function loadBooks() {
+  try {
+    const stored = localStorage.getItem('portal-books');
+    return stored ? JSON.parse(stored) : DEFAULT_BOOKS;
+  } catch(e) { return DEFAULT_BOOKS; }
+}
+
+function saveBooks(books) {
+  localStorage.setItem('portal-books', JSON.stringify(books));
+  showToast('Book saved. Changes are live on the site.');
+}
+
+let BOOKS = loadBooks();
+
+function renderBooks() {
+  document.getElementById('books-list').innerHTML = BOOKS.map(renderBookCard).join('');
+  // re-attach drag-over listeners
+  document.querySelectorAll('.upload-zone').forEach(zone => {
+    zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+    zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+    zone.addEventListener('drop', e => {
+      e.preventDefault(); zone.classList.remove('drag-over');
+      const file = e.dataTransfer.files[0];
+      if (!file) return;
+      const bookId = zone.dataset.book;
+      const type   = zone.dataset.type;
+      handleFileInput(file, bookId, type);
+    });
+  });
+}
+
+function renderBookCard(b) {
+  const isLive     = b.mode === 'live';
+  const badgeCls   = isLive ? 'badge-live' : 'badge-preorder';
+  const badgeTxt   = isLive ? 'Live' : 'Pre-order';
+  const modeLabel  = isLive ? 'Live / Available' : 'Pre-order';
+  const coverThumb = b.coverData
+    ? `<img class="upload-preview-thumb" src="${b.coverData}" alt="Cover">`
+    : `<div class="upload-preview-pdf" style="background:var(--forest-l);"><span>IMG</span></div>`;
+  const pdfThumb   = `<div class="upload-preview-pdf"><span>PDF</span></div>`;
+
+  return `
+  <div class="card" style="margin-bottom:16px;" id="book-card-${b.id}">
+    <div class="card-header">
+      <div style="display:flex;align-items:center;gap:14px;">
+        <div style="width:44px;aspect-ratio:2/3;background:var(--forest);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;">
+          ${b.coverData ? `<img src="${b.coverData}" style="width:100%;height:100%;object-fit:cover;">` : `<span style="font-size:.5rem;color:rgba(248,246,241,.6);text-align:center;padding:3px;">${b.id.toUpperCase()}</span>`}
+        </div>
+        <div>
+          <div style="font-family:var(--serif);font-size:1.05rem;color:var(--ink);">${b.title}</div>
+          <div style="font-size:.72rem;color:var(--ink30);">Book ${b.bookNum} · ${modeLabel}</div>
+        </div>
+      </div>
+      <span class="badge ${badgeCls}">${badgeTxt}</span>
+    </div>
+
+    <!-- ORDER MODE TOGGLE -->
+    <div class="order-toggle-row">
+      <span class="order-toggle-label">Order mode</span>
+      <label class="toggle-switch">
+        <input type="checkbox" ${isLive ? 'checked' : ''} onchange="toggleOrderMode('${b.id}', this.checked)">
+        <span class="toggle-slider"></span>
+      </label>
+      <span class="order-mode-text" id="mode-text-${b.id}">${modeLabel}</span>
+      <span style="font-size:.72rem;color:var(--ink30);margin-left:4px;">${isLive ? '— customers can buy now' : '— customers place advance orders'}</span>
+    </div>
+
+    <!-- DETAILS -->
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Full Title</label>
+        <input class="form-input" id="title-${b.id}" value="${b.title}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Subtitle</label>
+        <input class="form-input" id="subtitle-${b.id}" value="${b.subtitle || ''}">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Short Description</label>
+      <textarea class="form-textarea" id="desc-${b.id}" style="min-height:60px;">${b.description || ''}</textarea>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">${isLive ? 'Publication / Release Date' : 'Target Publication Date'}</label>
+        <input class="form-input" type="date" id="pubdate-${b.id}" value="${b.pubDate}">
+        ${!isLive ? '<div class="form-hint">Used for the countdown timer on the site.</div>' : ''}
+      </div>
+      <div class="form-group">
+        <label class="form-label">${isLive ? 'Price (€)' : 'Pre-order Price (€)'}</label>
+        <input class="form-input" type="number" step="0.01" id="price-${b.id}" value="${b.price}">
+      </div>
+    </div>
+
+    <div class="section-divider">Stripe Payment Links</div>
+    <div class="form-group">
+      <label class="form-label">Hardcover</label>
+      <input class="form-input" type="url" id="stripe-hc-${b.id}" placeholder="https://buy.stripe.com/..." value="${b.stripeHardcover || ''}">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">eBook</label>
+        <input class="form-input" type="url" id="stripe-eb-${b.id}" placeholder="https://buy.stripe.com/..." value="${b.stripeEbook || ''}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Audiobook</label>
+        <input class="form-input" type="url" id="stripe-au-${b.id}" placeholder="https://buy.stripe.com/..." value="${b.stripeAudio || ''}">
+      </div>
+    </div>
+
+    <div class="section-divider">Files</div>
+    <div class="form-row">
+      <!-- Cover Image -->
+      <div class="form-group">
+        <label class="form-label">Cover Image</label>
+        <div class="upload-zone" data-book="${b.id}" data-type="cover" onclick="document.getElementById('cover-input-${b.id}').click()">
+          <input type="file" id="cover-input-${b.id}" accept="image/*" onchange="handleFileChange(this,'${b.id}','cover')">
+          <div class="upload-zone-icon">🖼</div>
+          <div class="upload-zone-label">Drop image here or <strong>browse</strong><br><span style="font-size:.7rem;">PNG, JPG, WebP · max 5MB</span></div>
+        </div>
+        ${b.coverData ? `<div class="upload-preview">${coverThumb}<div class="upload-preview-info"><div class="upload-preview-name">${b.coverName || 'Cover image'}</div></div><button class="upload-preview-remove" onclick="removeFile('${b.id}','cover')">✕</button></div>` : ''}
+      </div>
+      <!-- PDF -->
+      <div class="form-group">
+        <label class="form-label">PDF Copy (eBook / Sample)</label>
+        <div class="upload-zone" data-book="${b.id}" data-type="pdf" onclick="document.getElementById('pdf-input-${b.id}').click()">
+          <input type="file" id="pdf-input-${b.id}" accept=".pdf,application/pdf" onchange="handleFileChange(this,'${b.id}','pdf')">
+          <div class="upload-zone-icon">📄</div>
+          <div class="upload-zone-label">Drop PDF here or <strong>browse</strong><br><span style="font-size:.7rem;">PDF only · max 50MB</span></div>
+        </div>
+        ${b.pdfData ? `<div class="upload-preview">${pdfThumb}<div class="upload-preview-info"><div class="upload-preview-name">${b.pdfName || 'Book PDF'}</div><div class="upload-preview-size">Stored locally</div></div><button class="upload-preview-remove" onclick="removeFile('${b.id}','pdf')">✕</button></div>` : ''}
+      </div>
+    </div>
+
+    <div style="display:flex;gap:9px;margin-top:8px;">
+      <button class="btn btn-primary btn-sm" onclick="saveBook('${b.id}')">Save Changes</button>
+      <button class="btn btn-secondary btn-sm" onclick="window.open('../resources.html','_blank')">Preview on Site ↗</button>
+    </div>
+  </div>`;
+}
+
+function toggleOrderMode(id, isLive) {
+  const b = BOOKS.find(x => x.id === id);
+  if (!b) return;
+  b.mode = isLive ? 'live' : 'preorder';
+  // update badge & text without full re-render
+  const card = document.getElementById('book-card-' + id);
+  const badge = card.querySelector('.badge');
+  badge.className = 'badge ' + (isLive ? 'badge-live' : 'badge-preorder');
+  badge.textContent = isLive ? 'Live' : 'Pre-order';
+  document.getElementById('mode-text-' + id).textContent = isLive ? 'Live / Available' : 'Pre-order';
+}
+
+function handleFileChange(input, bookId, type) {
+  const file = input.files[0];
+  if (!file) return;
+  handleFileInput(file, bookId, type);
+}
+
+function handleFileInput(file, bookId, type) {
+  const maxBytes = type === 'pdf' ? 50 * 1024 * 1024 : 5 * 1024 * 1024;
+  if (file.size > maxBytes) {
+    showToast('File too large. Max ' + (type === 'pdf' ? '50MB' : '5MB') + ' allowed.');
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const b = BOOKS.find(x => x.id === bookId);
+    if (!b) return;
+    if (type === 'cover') { b.coverData = e.target.result; b.coverName = file.name; }
+    else                  { b.pdfData   = e.target.result; b.pdfName   = file.name; }
+    renderBooks();
+    showToast((type === 'cover' ? 'Cover image' : 'PDF') + ' attached. Click Save to keep.');
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeFile(bookId, type) {
+  const b = BOOKS.find(x => x.id === bookId);
+  if (!b) return;
+  if (type === 'cover') { b.coverData = null; b.coverName = null; }
+  else                  { b.pdfData   = null; b.pdfName   = null; }
+  renderBooks();
+}
+
+function saveBook(id) {
+  const b = BOOKS.find(x => x.id === id);
+  if (!b) return;
+  b.title           = document.getElementById('title-' + id)?.value || b.title;
+  b.subtitle        = document.getElementById('subtitle-' + id)?.value || '';
+  b.description     = document.getElementById('desc-' + id)?.value || '';
+  b.pubDate         = document.getElementById('pubdate-' + id)?.value || b.pubDate;
+  b.price           = document.getElementById('price-' + id)?.value || b.price;
+  b.stripeHardcover = document.getElementById('stripe-hc-' + id)?.value || '';
+  b.stripeEbook     = document.getElementById('stripe-eb-' + id)?.value || '';
+  b.stripeAudio     = document.getElementById('stripe-au-' + id)?.value || '';
+  saveBooks(BOOKS);
+  renderBooks();
+}
+
+function addBook() {
+  const id = 'book-' + Date.now();
+  BOOKS.push({
+    id, title: 'New Book', subtitle: '', bookNum: BOOKS.length + 1,
+    mode: 'preorder', pubDate: '', price: '', stripeHardcover: '', stripeEbook: '', stripeAudio: '',
+    description: '', coverData: null, coverName: null, pdfData: null, pdfName: null,
+  });
+  renderBooks();
+  document.getElementById('book-card-' + id)?.scrollIntoView({ behavior: 'smooth' });
+}
+
+renderBooks();
+</script>
+</body>
+</html>

@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Articles — Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="portal.css">
+</head>
+<body>
+<div class="portal-layout">
+
+  <!-- TOPBAR -->
+  <header class="portal-topbar">
+    <div class="topbar-logo">Phelim Ekwebe <span>Content Portal</span></div>
+    <div class="topbar-right">
+      <a href="../index.html" class="topbar-view" target="_blank">View Site ↗</a>
+      <span class="topbar-user">Phelim Ekwebe</span>
+      <button class="topbar-btn" onclick="logout()">Sign Out</button>
+    </div>
+  </header>
+
+  <!-- SIDEBAR -->
+  <aside class="portal-sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Overview</div>
+      <a class="sidebar-link " href="dashboard.html"><span class="sidebar-icon">◈</span> Dashboard</a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Content</div>
+      <a class="sidebar-link " href="episodes.html"><span class="sidebar-icon">◎</span> Episodes</a>
+      <a class="sidebar-link active" href="articles.html"><span class="sidebar-icon">◉</span> Articles</a>
+      <a class="sidebar-link " href="books.html"><span class="sidebar-icon">▣</span> Books</a>
+      <a class="sidebar-link " href="content.html"><span class="sidebar-icon">◇</span> Site Content</a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Inbox</div>
+      <a class="sidebar-link " href="contacts.html"><span class="sidebar-icon">✉</span> Enquiries <span class="sidebar-badge" id="unread-badge">4</span></a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Settings</div>
+      <a class="sidebar-link" href="#"><span class="sidebar-icon">⚙</span> Site Settings</a>
+      <a class="sidebar-link" href="#"><span class="sidebar-icon">🔗</span> Integrations</a>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="portal-main">
+    <div class="page-header">
+      <div class="page-header-left">
+        <h1>Articles</h1>
+        <p>Write and manage essays for the Ideas &amp; Frameworks library on the Engagements page.</p>
+      </div>
+      <div class="page-actions">
+        <button class="btn btn-secondary" onclick="showTab('list')">All Articles</button>
+        <button class="btn btn-primary" onclick="showTab('editor')">+ New Article</button>
+      </div>
+    </div>
+
+    <div class="portal-tabs">
+      <button class="portal-tab active" id="tab-list" onclick="showTab('list')">Published & Drafts</button>
+      <button class="portal-tab" id="tab-editor" onclick="showTab('editor')">Editor</button>
+    </div>
+
+    <!-- LIST VIEW -->
+    <div class="portal-tab-panel active" id="panel-list">
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr><th>Title</th><th>Category</th><th>Read time</th><th>Status</th><th style="text-align:right;">Actions</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>The Difference Between Effort and Structure</strong></td><td>Systems</td><td>8 min</td><td><span class="badge badge-published">Published</span></td><td style="text-align:right;"><button class="btn btn-ghost btn-sm" onclick="showTab('editor')">Edit</button><button class="btn btn-danger btn-sm">Delete</button></td></tr>
+            <tr><td><strong>Why Your Environment Matters More Than You Think</strong></td><td>Identity</td><td>11 min</td><td><span class="badge badge-published">Published</span></td><td style="text-align:right;"><button class="btn btn-ghost btn-sm" onclick="showTab('editor')">Edit</button><button class="btn btn-danger btn-sm">Delete</button></td></tr>
+            <tr><td><strong>Designing Decisions Instead of Reacting to Them</strong></td><td>Investment</td><td>10 min</td><td><span class="badge badge-published">Published</span></td><td style="text-align:right;"><button class="btn btn-ghost btn-sm" onclick="showTab('editor')">Edit</button><button class="btn btn-danger btn-sm">Delete</button></td></tr>
+            <tr><td><strong>What Gets Built Into People — Not Just Left Behind</strong></td><td>Legacy</td><td>9 min</td><td><span class="badge badge-published">Published</span></td><td style="text-align:right;"><button class="btn btn-ghost btn-sm" onclick="showTab('editor')">Edit</button><button class="btn btn-danger btn-sm">Delete</button></td></tr>
+            <tr><td><strong>The Compounding Effect No One Talks About</strong></td><td>Systems</td><td>7 min</td><td><span class="badge badge-published">Published</span></td><td style="text-align:right;"><button class="btn btn-ghost btn-sm" onclick="showTab('editor')">Edit</button><button class="btn btn-danger btn-sm">Delete</button></td></tr>
+            <tr><td><strong>On Systems Thinking as a Way of Life</strong></td><td>Systems</td><td>8 min</td><td><span class="badge badge-published">Published</span></td><td style="text-align:right;"><button class="btn btn-ghost btn-sm" onclick="showTab('editor')">Edit</button><button class="btn btn-danger btn-sm">Delete</button></td></tr>
+            <tr><td style="color:var(--ink30);font-style:italic;">Untitled draft</td><td>—</td><td>—</td><td><span class="badge badge-draft">Draft</span></td><td style="text-align:right;"><button class="btn btn-ghost btn-sm" onclick="showTab('editor')">Continue</button><button class="btn btn-danger btn-sm">Delete</button></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- EDITOR VIEW -->
+    <div class="portal-tab-panel" id="panel-editor">
+      <div style="display:grid;grid-template-columns:1fr 280px;gap:20px;align-items:start;">
+        <div>
+          <div class="form-group">
+            <label class="form-label">Article Title</label>
+            <input class="form-input" type="text" placeholder="e.g. The Difference Between Effort and Structure" style="font-size:1rem;">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Short Excerpt (shown on listing)</label>
+            <textarea class="form-textarea" style="min-height:70px;" placeholder="One or two sentences that frame the argument — not a summary, a provocation."></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Article Body</label>
+            <div class="editor-toolbar">
+              <button class="editor-btn" onclick="fmt('bold')"><strong>B</strong></button>
+              <button class="editor-btn" onclick="fmt('italic')"><em>I</em></button>
+              <button class="editor-btn" onclick="fmt('h3')">H3</button>
+              <button class="editor-btn" onclick="fmt('quote')">❝</button>
+              <button class="editor-btn" onclick="fmt('p')">¶</button>
+            </div>
+            <textarea class="editor-area" id="article-body" placeholder="Write in plain text or basic HTML. Use &lt;h3&gt; for subheadings, &lt;blockquote&gt; for pull quotes, &lt;p&gt; for paragraphs."></textarea>
+          </div>
+        </div>
+        <div>
+          <div class="card" style="margin-bottom:14px;">
+            <div class="card-header"><div class="card-title">Publish Settings</div></div>
+            <div class="form-group">
+              <label class="form-label">Category</label>
+              <select class="form-select">
+                <option>Systems</option><option>Identity</option><option>Investment</option><option>Legacy</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Read Time</label>
+              <input class="form-input" type="text" placeholder="e.g. 8 min read">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Status</label>
+              <select class="form-select"><option>Draft</option><option>Published</option></select>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;margin-top:6px;">
+              <button class="btn btn-primary" onclick="saveArticle()">Save &amp; Publish</button>
+              <button class="btn btn-secondary" onclick="saveArticle('draft')">Save as Draft</button>
+            </div>
+          </div>
+          <div class="alert alert-info">
+            <span>💡</span>
+            <span style="font-size:.78rem;">Articles are saved to <code>data.js</code>. The site rebuilds automatically on save.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+</div>
+<script src="portal.js"></script>
+<script>
+  // Auth guard (demo)
+  if (!sessionStorage.getItem('portal-auth')) window.location.href = 'index.html';
+  function logout() { sessionStorage.removeItem('portal-auth'); window.location.href = 'index.html'; }
+</script>
+</body>
+</html>

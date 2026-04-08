@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Phelim Ekwebe — Life Strategist, Systems Thinker, Author</title>
+  <meta name="description" content="Life strategist, systems thinker, speaker, and author. Exploring how people build lives that create lasting impact — through systems, decisions, and lived experience.">
+  <meta property="og:title" content="Phelim Ekwebe — Life Strategist, Systems Thinker, Author">
+  <meta property="og:description" content="Life strategist, systems thinker, speaker, and author. Exploring how people build lives that create lasting impact — through systems, decisions, and lived experience.">
+  <meta property="og:type" content="website">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,600&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="base.css">
+  <link rel="stylesheet" href="pages.css">
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a class="nav-logo" href="index.html">Phelim Ekwebe</a>
+    <ul class="nav-links">
+      <li><a id="nl-home" class="active-link" href="index.html">Home</a></li>
+      <li><a id="nl-about" href="about.html">About</a></li>
+      <li><a id="nl-podcast" href="podcast.html">Podcast</a></li>
+      <li><a id="nl-eng" href="engagements.html">Engagements</a></li>
+      <li><a id="nl-resources" href="resources.html">Resources</a></li>
+    </ul>
+    <button class="nav-cta" onclick="openModal('general')">Work With Me</button>
+    <button class="ham" onclick="toggleMenu()"><span></span><span></span><span></span></button>
+  </div>
+</nav>
+<div id="mob-menu" style="display:none">
+  <a href="index.html">Home</a>
+  <a href="about.html">About</a>
+  <a href="podcast.html">Podcast</a>
+  <a href="engagements.html">Engagements</a>
+  <a href="resources.html">Resources</a>
+  <a href="contact.html">Contact</a>
+  <button class="btn btn-dark" style="margin-top:14px;width:100%;justify-content:center;" onclick="openModal('general')">Work With Me</button>
+</div>
+
+<main>
+<section class="hero">
+    <div class="hero-left">
+      <div class="hero-eyebrow-row fu"><div class="hero-rule"></div><span class="eyebrow">Life Strategist · Systems Thinker · Author</span></div>
+      <h1 class="hero-hl fu2">Most people<br>measure their lives<br>by what they <em>achieve.</em></h1>
+      <p class="hero-manifesto fu3">The more important question is what they build — into their decisions, their habits, and the people around them.</p>
+      <div class="hero-ctas fu4">
+        <a class="btn btn-dark" href="podcast.html">Listen to Future Foundations</a>
+        <button class="btn btn-outline" onclick="openModal('general')">Work With Me</button>
+      </div>
+      <div class="platform-row fu4">
+        <span class="plat-label">Listen on</span>
+        <div class="plat-pill" onclick="window.open('https://youtube.com/playlist?list=PL9fKbOngNj6Ac9wdzaJjxbDua3ZVe4270','_blank')">▶ YouTube</div>
+        <div class="plat-pill" onclick="window.open('https://open.spotify.com/show/6yUjD35JA5VRfHzHw2gCX9','_blank')">Spotify</div>
+        <div class="plat-pill" onclick="window.open('https://podcasts.apple.com/us/podcast/future-foundations-building-beyond-borders/id1874863146','_blank')">Apple Podcasts</div>
+      </div>
+    </div>
+    <div class="hero-right">
+      <div class="hero-portrait-zone">
+        <div class="portrait-sil"><div class="portrait-sil-head"></div><div class="portrait-sil-body"></div></div>
+        <div class="hero-portrait-bg"></div>
+        <div class="hero-vert">Phelim Ekwebe · Life Strategist · phelim.me</div>
+        <span class="hero-photo-label">Portrait placeholder</span>
+        <p style="position:absolute;bottom:14px;left:0;right:0;text-align:center;font-family:var(--serif);font-size:.95rem;font-style:italic;color:var(--ink60);padding:0 24px;line-height:1.5;margin:0;">I explore how people build lives that create lasting impact — through systems, decisions, and lived experience.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="what-i-do">
+    <div class="container">
+      <div class="sec-top"><div class="eyebrow">What I Do</div><h2 style="margin-top:12px;">Three ways I show up</h2></div>
+      <div class="tab-nav">
+        <button class="tab-btn active" onclick="switchHomeTab('podcast',this)">Podcast</button>
+        <button class="tab-btn" onclick="switchHomeTab('speaking',this)">Speaking</button>
+        <button class="tab-btn" onclick="switchHomeTab('writing',this)">Writing</button>
+      </div>
+      <div id="home-podcast" class="tab-panel active"><div><div class="tp-tag">Future Foundations</div><h3 class="tp-title">A podcast about the invisible structures behind how people build their lives</h3><p class="tp-body">Future Foundations explores how real-life decisions, environments, and systems shape long-term outcomes. Each episode breaks down the invisible structures behind how people build — or fail to build — lives that hold.</p><div class="tp-idea">Most people are skilled at working hard. Very few are skilled at designing the conditions in which hard work actually compounds.</div><div class="tp-ctas"><a class="btn btn-dark" href="podcast.html">Explore Episodes</a><button class="btn btn-outline" onclick="openModal('podcast')">Collaborate</button></div></div><div class="tp-card"><div class="tp-card-top">What you'll find</div><ul class="feat-list"><li>The invisible frameworks shaping your decisions</li><li>How environments set ceilings most people never question</li><li>Real stories as evidence, not decoration</li><li>Systems thinking applied to real life</li><li>Long-form depth. No productivity hacks.</li></ul></div></div>
+      <div id="home-speaking" class="tab-panel"><div><div class="tp-tag">Speaking</div><h3 class="tp-title">Talks that change how an audience thinks — not just what they know</h3><p class="tp-body">I speak on the systems behind identity, decision-making, and long-term performance. The goal is never information transfer. It is a shift in how people see the structures shaping their choices — so they leave thinking differently, not just nodding along.</p><div class="tp-idea">"The most expensive thing most organisations do is train people to work harder inside broken systems."</div><div class="tp-ctas"><a class="btn btn-dark" href="engagements.html#speaking">View Topics</a><button class="btn btn-outline" onclick="openModal('speaking')">Book a Talk</button></div></div><div class="tp-card"><div class="tp-card-top">Contexts</div><ul class="feat-list"><li>Corporate leadership and executive teams</li><li>Universities and academic institutions</li><li>SMEs and growing businesses</li><li>Professional communities and summits</li><li>Custom sessions built around your audience</li></ul></div></div>
+      <div id="home-writing" class="tab-panel"><div><div class="tp-tag">Writing & Ideas</div><h3 class="tp-title">Frameworks and ideas for people who think in structures</h3><p class="tp-body">A growing library of essays, frameworks, and reflections — built around clarity, not cleverness. Each piece is an attempt to say something precise about how people design their lives, make decisions, and build things that last. Including the forthcoming book, <em>Built to Last.</em></p><div class="tp-idea">"Good writing does not explain what to think. It builds the scaffolding people use to think better on their own."</div><div class="tp-ctas"><a class="btn btn-dark" href="engagements.html#articles">Read the Ideas</a><button class="btn btn-outline" onclick="openModal('writing')">Pitch a Collaboration</button></div></div><div class="tp-card"><div class="tp-card-top">Themes</div><ul class="feat-list"><li>The architecture of identity and self-design</li><li>Why systems outlast motivation — and how to build them</li><li>Decision environments and compounding choices</li><li>Investment thinking: technology and real estate</li><li>Legacy — what gets built into people, not just left behind</li></ul></div></div>
+    </div>
+  </section>
+
+  <section class="philosophy">
+    <div class="container"><div class="sec-top" style="margin-bottom:0;"><div class="eyebrow" style="color:rgba(248,246,241,.4);">The Way I Think</div><h2 style="color:var(--paper);margin-top:12px;">Five beliefs that shape everything</h2></div></div>
+    <div style="max-width:var(--max);margin:0 auto;padding:0 var(--pad);">
+      <div class="phil-grid">
+        <div class="phil-card"><div class="phil-num">01</div><div class="phil-quote">Systems over motivation</div><p class="phil-body">Motivation is weather. Systems are climate. The reliable builder designs the structure, not the feeling that triggers it.</p></div>
+        <div class="phil-card"><div class="phil-num">02</div><div class="phil-quote">Your environment sets your ceiling</div><p class="phil-body">You cannot consistently outperform the context you operate inside. Most people try harder. Fewer people redesign the context itself.</p></div>
+        <div class="phil-card"><div class="phil-num">03</div><div class="phil-quote">Small decisions compound over time</div><p class="phil-body">The gap between a life well-built and one merely endured is not a single decision. It is the compounded direction of thousands of ordinary ones.</p></div>
+        <div class="phil-card"><div class="phil-num">04</div><div class="phil-quote">Identity is built through repeated action</div><p class="phil-body">Identity is not discovered. It is constructed through action, environment, and repeated commitment — most of it invisible to the person doing it.</p></div>
+        <div class="phil-card"><div class="phil-num">05</div><div class="phil-quote">Legacy is what you build while you're here</div><p class="phil-body">Legacy built after you leave is accident. Legacy built while you are present is design. The work is to be deliberate about what you are installing in the people and systems around you.</p></div>
+        <div class="phil-cta-card" href="engagements.html#articles"><div style="font-family:var(--serif);font-size:1.12rem;color:var(--paper);font-style:italic;line-height:1.4;">Explore the full thinking</div><div style="font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);border-bottom:1px solid var(--gold);padding-bottom:2px;width:fit-content;">Read the essays →</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="container">
+      <div class="sec-row sec-top"><div><div class="eyebrow">Future Foundations</div><h2 style="margin-top:12px;">Latest episodes</h2></div><span class="sec-link" href="podcast.html">All episodes →</span></div>
+      <div class="pod-featured"><div class="pod-art"><div class="pod-art-show">Future Foundations</div><div class="pod-art-title">Ep. 10</div><div class="pod-art-ep">Latest</div></div><div class="pod-content"><div class="pod-meta">Episode 10 · Latest</div><div class="pod-eptitle">The Ultimate Bottleneck: Why You Must Become the CEO of Your Life First</div><p class="pod-desc">Before strategy, before systems — there is you. This episode examines why the greatest constraint in most lives is the absence of intentional self-leadership.</p><div style="display:flex;gap:10px;flex-wrap:wrap;"><a class="btn btn-dark" style="padding:9px 20px;font-size:.73rem;" href="podcast.html">▶ Listen Now</a><a class="btn btn-outline" style="padding:9px 20px;font-size:.73rem;" href="podcast.html">View Episode →</a></div></div></div>
+      <div class="mini-eps"><div class="mini-ep"><div class="mini-ep-num">Ep. 09</div><div class="mini-ep-title">The Busy Trap: Productive vs. Merely Occupied</div><div class="mini-ep-tag">Self-leadership</div></div><div class="mini-ep"><div class="mini-ep-num">Ep. 08</div><div class="mini-ep-title">Designing Your Environment for High Performance</div><div class="mini-ep-tag">Environment design</div></div><div class="mini-ep"><div class="mini-ep-num">Ep. 07</div><div class="mini-ep-title">The Long Game: Why Decades Beat Years</div><div class="mini-ep-tag">Long-term thinking</div></div></div>
+    </div>
+  </section>
+
+  <section class="about-prev">
+    <div class="container"><div class="ap-inner">
+      <div style="position:relative;padding-bottom:26px;padding-right:14px;"><div class="portrait-frame"><div class="pf-sil"><div class="pf-head"></div><div class="pf-body"></div></div><div class="pf-label">Placeholder · photo coming</div></div><div class="portrait-gold-accent"></div></div>
+      <div>
+        <div class="eyebrow" style="margin-bottom:14px;">About Phelim</div>
+        <div style="font-family:var(--serif);font-size:1.3rem;font-style:italic;color:var(--ink);border-left:2px solid var(--forest);padding-left:16px;line-height:1.5;margin-bottom:18px;">"Most people focus on what they can achieve. I focus on what will remain."</div>
+        <p style="margin-bottom:12px;">Phelim Ekwebe is a life strategist, systems thinker, speaker, and author. His work explores one question in several forms: why do some people design lives that compound over time, while others remain stuck performing effort that never quite accumulates?</p>
+        <p style="margin-bottom:22px;">The answer is almost never talent or effort. It is structure — the invisible architecture of habits, environments, and decision frameworks that most people never examine. That is what he writes, speaks, and builds about.</p>
+        <div class="about-pillars"><div class="ab-pillar"><div class="ab-pillar-name">Life Strategy</div><div class="ab-pillar-sub">Intentional design</div></div><div class="ab-pillar"><div class="ab-pillar-name">Tech & Real Estate</div><div class="ab-pillar-sub">Long-term investment</div></div><div class="ab-pillar"><div class="ab-pillar-name">Systems Thinking</div><div class="ab-pillar-sub">Structure over chance</div></div></div>
+        <a class="btn btn-outline" href="about.html">Read the full story →</a>
+      </div>
+    </div></div>
+  </section>
+
+  <section class="pl-teaser">
+    <div class="container"><div class="plt-inner">
+      <div><span class="plt-badge">Builder's Wealth Planner</span><h2 style="color:var(--paper);">Plan across multiple jurisdictions</h2><p style="color:rgba(248,246,241,.6);margin-top:12px;">A financial planning tool for individuals managing income, savings, and goals across multiple countries and currencies.</p><div style="margin-top:24px;display:flex;gap:12px;flex-wrap:wrap;"><a class="btn btn-paper" href="resources.html#planner">Open the Planner</a><button class="btn btn-ghost" onclick="openModal('general')">Learn More</button></div></div>
+      <div class="plt-card"><div style="font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:rgba(248,246,241,.3);margin-bottom:12px;">Sample snapshot</div><div class="plt-row"><span class="plt-label">Monthly income</span><span class="plt-val">€ 4,200</span></div><div class="plt-row"><span class="plt-label">Savings target</span><span class="plt-val">€ 840 / mo</span></div><div class="plt-row"><span class="plt-label">Multi-currency</span><span class="plt-val">3 currencies</span></div><div class="plt-row"><span class="plt-label">Annual goal</span><span class="plt-val">68% complete</span></div></div>
+    </div></div>
+  </section>
+
+  <section class="final-cta">
+    <div class="container" style="text-align:center;"><div class="eyebrow" style="margin-bottom:14px;">Ready to connect?</div><h2>Let's build something that lasts</h2><p style="max-width:420px;margin:10px auto 0;">Whether you want to listen, book a talk, or start a conversation — there is a way in.</p><div class="final-cta-btns"><a class="btn btn-outline" href="podcast.html">Listen to the Podcast</a><button class="btn btn-outline" onclick="openModal('speaking')">Book Speaking</button><a class="btn btn-dark" href="contact.html">Get in Touch</a></div></div>
+  </section>
+</main>
+
+<!-- ════ GENERAL MODAL ════ -->
+<div class="modal-overlay" id="modal" onclick="closeModalOuter(event)">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <div class="modal-eyebrow" id="m-eyebrow">Get in touch</div>
+    <div class="modal-title" id="m-title">Work With Phelim</div>
+    <div id="m-form-body"></div>
+  </div>
+</div>
+
+<!-- ════ CHECKOUT MODAL ════ -->
+<div class="modal-overlay" id="checkout-modal" onclick="closeCheckoutOuter(event)">
+  <div class="checkout-box">
+    <div class="checkout-head">
+      <button class="checkout-close" onclick="closeCheckout()">×</button>
+      <div class="checkout-eyebrow-lbl" id="co-eyebrow">Pre-order</div>
+      <div class="checkout-title" id="co-title">Built to Last</div>
+      <div class="checkout-price" id="co-price">€ 24.99</div>
+    </div>
+    <div class="checkout-body">
+      <div class="checkout-item-row">
+        <div class="checkout-cover" id="co-cover" style="background:var(--forest);"><span id="co-cover-text">Built to Last</span></div>
+        <div class="checkout-item-info">
+          <div class="checkout-item-name" id="co-item-name">Built to Last</div>
+          <div class="checkout-item-type" id="co-item-type">Pre-order · Hardcover</div>
+        </div>
+        <div class="checkout-item-price" id="co-item-price">€ 24.99</div>
+      </div>
+      <div class="checkout-note"><p><strong>Pre-order guarantee:</strong> You will be charged now and your copy ships as soon as the book is available. Cancel anytime before dispatch for a full refund.</p></div>
+      <div class="checkout-divider">Your details</div>
+      <form class="form" id="checkout-form" onsubmit="handleCheckout(event)">
+        <div class="frow">
+          <div class="fg"><label class="flabel">First name</label><input class="finput" type="text" placeholder="First name" required></div>
+          <div class="fg"><label class="flabel">Last name</label><input class="finput" type="text" placeholder="Last name" required></div>
+        </div>
+        <div class="fg"><label class="flabel">Email</label><input class="finput" type="email" placeholder="your@email.com" required></div>
+        <div class="fg"><label class="flabel">Format</label>
+          <select class="fselect" id="co-format" onchange="updateCoPrice()">
+            <option value="24.99">Hardcover — € 24.99</option>
+            <option value="12.99">eBook (PDF + ePub) — € 12.99</option>
+            <option value="14.99">Audiobook — € 14.99</option>
+            <option value="29.99">Hardcover + eBook bundle — € 29.99</option>
+          </select>
+        </div>
+        <div class="checkout-divider">Payment</div>
+        <div class="checkout-methods">
+          <div class="pay-method selected" onclick="selectPayMethod(this,'card')">
+            <div class="pay-method-icon">💳</div><div class="pay-method-label">Card</div>
+          </div>
+          <div class="pay-method" onclick="selectPayMethod(this,'bank')">
+            <div class="pay-method-icon">🏦</div><div class="pay-method-label">Bank transfer</div>
+          </div>
+        </div>
+        <div id="card-fields">
+          <div class="fg"><label class="flabel">Card number</label><input class="finput" type="text" placeholder="•••• •••• •••• ••••" maxlength="19"></div>
+          <div class="frow">
+            <div class="fg"><label class="flabel">Expiry</label><input class="finput" type="text" placeholder="MM / YY" maxlength="7"></div>
+            <div class="fg"><label class="flabel">CVC</label><input class="finput" type="text" placeholder="•••" maxlength="4"></div>
+          </div>
+        </div>
+        <div id="bank-fields" style="display:none;background:var(--forest-faint);border:1px solid rgba(38,61,51,.15);padding:15px 17px;margin-bottom:4px;">
+          <p style="font-size:.82rem;color:var(--ink60);margin-bottom:7px;">Bank transfer details will be sent to your email once you place the order.</p>
+          <p style="font-size:.78rem;color:var(--ink30);margin:0;font-style:italic;">Orders are held for 5 business days pending payment.</p>
+        </div>
+        <button type="submit" class="btn btn-dark" style="width:100%;justify-content:center;padding:13px;margin-top:14px;">Complete Pre-order</button>
+        <div class="stripe-badge">Payments processed securely via Stripe. Connect your Stripe account to activate.</div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="site-footer-inner">
+      <div class="footer-logo">Phelim Ekwebe</div>
+      <div class="footer-links">
+        <a href="index.html">Home</a>
+        <a href="about.html">About</a>
+        <a href="podcast.html">Podcast</a>
+        <a href="engagements.html">Engagements</a>
+        <a href="resources.html">Resources</a>
+        <a href="contact.html">Contact</a>
+      </div>
+      <div class="footer-copy">&copy; 2025 Phelim Ekwebe. All rights reserved.</div>
+    </div>
+  </div>
+</footer>
+
+  <script src="data.js"></script>
+  <script src="nav.js"></script>
+  <script src="articles.js"></script>
+  <script src="modals.js"></script>
+  <script src="podcast.js"></script>
+  <script src="planner.js"></script>
+<script>
+  // Mark active nav
+  document.querySelectorAll('.nav-links a').forEach(a => {
+    if (a.getAttribute('href') === 'index.html') a.classList.add('active-link');
+  });
+  // Home tab init
+  window.switchHomeTab = function(id, btn) {
+    document.querySelectorAll('.tab-nav .tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    ['podcast','speaking','writing'].forEach(t => {
+      const p = document.getElementById('home-' + t);
+      if (p) p.classList.toggle('active', t === id);
+    });
+  };
+</script>
+
+</body>
+</html>

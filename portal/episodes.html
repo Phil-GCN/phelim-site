@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Episodes — Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="portal.css">
+</head>
+<body>
+<div class="portal-layout">
+
+  <!-- TOPBAR -->
+  <header class="portal-topbar">
+    <div class="topbar-logo">Phelim Ekwebe <span>Content Portal</span></div>
+    <div class="topbar-right">
+      <a href="../index.html" class="topbar-view" target="_blank">View Site ↗</a>
+      <span class="topbar-user">Phelim Ekwebe</span>
+      <button class="topbar-btn" onclick="logout()">Sign Out</button>
+    </div>
+  </header>
+
+  <!-- SIDEBAR -->
+  <aside class="portal-sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Overview</div>
+      <a class="sidebar-link " href="index.html"><span class="sidebar-icon">◈</span> Dashboard</a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Content</div>
+      <a class="sidebar-link active" href="episodes.html"><span class="sidebar-icon">◎</span> Episodes</a>
+      <a class="sidebar-link " href="articles.html"><span class="sidebar-icon">◉</span> Articles</a>
+      <a class="sidebar-link " href="books.html"><span class="sidebar-icon">▣</span> Books</a>
+      <a class="sidebar-link " href="content.html"><span class="sidebar-icon">◇</span> Site Content</a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Inbox</div>
+      <a class="sidebar-link " href="contacts.html"><span class="sidebar-icon">✉</span> Enquiries <span class="sidebar-badge" id="unread-badge">4</span></a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Settings</div>
+      <a class="sidebar-link" href="settings.html"><span class="sidebar-icon">⚙</span> Site Settings</a>
+      <a class="sidebar-link" href="integrations.html"><span class="sidebar-icon">🔗</span> Integrations</a>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="portal-main">
+    <div class="page-header">
+      <div class="page-header-left">
+        <h1>Episodes</h1>
+        <p>Manage Future Foundations podcast episodes. Adding or updating an episode here updates the podcast archive on the site.</p>
+      </div>
+      <div class="page-actions">
+        <button class="btn btn-primary" onclick="showEpisodeForm()">+ New Episode</button>
+      </div>
+    </div>
+
+    <div class="alert alert-info">
+      <span>ℹ</span>
+      <span>Episodes are stored in <code>data.js</code>. When you save here, that file updates and the site rebuilds automatically via Cloudflare Pages.</span>
+    </div>
+
+    <!-- Episode form (hidden by default) -->
+    <div id="episode-form" style="display:none;background:var(--paper);border:1px solid var(--ink12);padding:26px;margin-bottom:20px;">
+      <h3 style="font-size:1.1rem;margin-bottom:18px;color:var(--ink);">New Episode</h3>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Episode Number</label>
+          <input class="form-input" type="text" placeholder="e.g. 11">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Pillar</label>
+          <select class="form-select">
+            <option>LIVE — Live Intentionally</option>
+            <option>EARN — Earn with Purpose</option>
+            <option>GROW — Grow with Systems</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Episode Title</label>
+        <input class="form-input" type="text" placeholder="e.g. The Decision Architecture Framework">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Short Description</label>
+        <textarea class="form-textarea" style="min-height:80px;" placeholder="1–2 sentences shown on the episode card and carousel..."></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Spotify Episode URL</label>
+          <input class="form-input" type="url" placeholder="https://open.spotify.com/episode/...">
+        </div>
+        <div class="form-group">
+          <label class="form-label">YouTube Episode URL</label>
+          <input class="form-input" type="url" placeholder="https://youtube.com/watch?v=...">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Thumbnail Background Colour</label>
+        <input class="form-input" type="color" value="#1a3028" style="height:40px;padding:4px;">
+        <div class="form-hint">Used for the episode card background in the carousel.</div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:6px;">
+        <button class="btn btn-primary" onclick="saveEpisode()">Save Episode</button>
+        <button class="btn btn-secondary" onclick="document.getElementById('episode-form').style.display='none'">Cancel</button>
+      </div>
+    </div>
+
+    <!-- Episodes list -->
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr><th>#</th><th>Title</th><th>Pillar</th><th>Status</th><th style="text-align:right;">Actions</th></tr>
+        </thead>
+        <tbody id="episodes-tbody">
+          <tr><td><strong>10</strong></td><td><strong>The Ultimate Bottleneck: Why You Must Become the CEO of Your Life First</strong></td><td>LIVE</td><td><span class="badge badge-published">Live</span></td><td style="text-align:right;"><button class="btn btn-ghost btn-sm">Edit</button><button class="btn btn-danger btn-sm">Delete</button></td></tr>
+          <tr><td><strong>09</strong></td><td><strong>The Busy Trap: Productive vs. Merely Occupied</strong></td><td>LIVE</td><td><span class="badge badge-published">Live</span></td><td style="text-align:right;"><button class="btn btn-ghost btn-sm">Edit</button><button class="btn btn-danger btn-sm">Delete</button></td></tr>
+          <tr><td><strong>08</strong></td><td><strong>Designing Your Environment for High Performance</strong></td><td>GROW</td><td><span class="badge badge-published">Live</span></td><td style="text-align:right;"><button class="btn btn-ghost btn-sm">Edit</button><button class="btn btn-danger btn-sm">Delete</button></td></tr>
+          <tr><td><strong>07</strong></td><td><strong>The Long Game: Why Decades Beat Years</strong></td><td>GROW</td><td><span class="badge badge-published">Live</span></td><td style="text-align:right;"><button class="btn btn-ghost btn-sm">Edit</button><button class="btn btn-danger btn-sm">Delete</button></td></tr>
+          <tr><td><strong>06</strong></td><td><strong>The Five-Year Architecture: Planning Beyond the Year</strong></td><td>EARN</td><td><span class="badge badge-published">Live</span></td><td style="text-align:right;"><button class="btn btn-ghost btn-sm">Edit</button><button class="btn btn-danger btn-sm">Delete</button></td></tr>
+          <tr><td><strong>01–05</strong></td><td style="color:var(--ink30);">Earlier episodes…</td><td>—</td><td><span class="badge badge-published">Live</span></td><td style="text-align:right;"><button class="btn btn-ghost btn-sm">Edit</button></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+</div>
+<script src="portal.js"></script>
+
+</body>
+</html>

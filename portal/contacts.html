@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Enquiries — Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="portal.css">
+</head>
+<body>
+<div class="portal-layout">
+
+  <!-- TOPBAR -->
+  <header class="portal-topbar">
+    <div class="topbar-logo">Phelim Ekwebe <span>Content Portal</span></div>
+    <div class="topbar-right">
+      <a href="../index.html" class="topbar-view" target="_blank">View Site ↗</a>
+      <span class="topbar-user">Phelim Ekwebe</span>
+      <button class="topbar-btn" onclick="logout()">Sign Out</button>
+    </div>
+  </header>
+
+  <!-- SIDEBAR -->
+  <aside class="portal-sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Overview</div>
+      <a class="sidebar-link " href="index.html"><span class="sidebar-icon">◈</span> Dashboard</a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Content</div>
+      <a class="sidebar-link " href="episodes.html"><span class="sidebar-icon">◎</span> Episodes</a>
+      <a class="sidebar-link " href="articles.html"><span class="sidebar-icon">◉</span> Articles</a>
+      <a class="sidebar-link " href="books.html"><span class="sidebar-icon">▣</span> Books</a>
+      <a class="sidebar-link " href="content.html"><span class="sidebar-icon">◇</span> Site Content</a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Inbox</div>
+      <a class="sidebar-link active" href="contacts.html"><span class="sidebar-icon">✉</span> Enquiries <span class="sidebar-badge" id="unread-badge">4</span></a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Settings</div>
+      <a class="sidebar-link" href="settings.html"><span class="sidebar-icon">⚙</span> Site Settings</a>
+      <a class="sidebar-link" href="integrations.html"><span class="sidebar-icon">🔗</span> Integrations</a>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="portal-main">
+    <div class="page-header">
+      <div class="page-header-left">
+        <h1>Enquiries</h1>
+        <p>All form submissions from phelim.me, organised by type. Connect Formspree to receive new submissions here.</p>
+      </div>
+      <div class="page-actions">
+        <button class="btn btn-secondary btn-sm" onclick="markAllRead()">Mark all read</button>
+        <button class="btn btn-secondary btn-sm">Export CSV</button>
+      </div>
+    </div>
+
+    <div class="alert alert-warn">
+      <span>⚠</span>
+      <span>Formspree is not yet connected. Contact form submissions are not being captured. <a href="#" style="color:var(--amber);text-decoration:underline;">Connect Formspree →</a></span>
+    </div>
+
+    <div class="portal-tabs">
+      <button class="portal-tab active" id="enq-all-tab" onclick="filterEnq('all')">All <span class="sidebar-badge" style="margin-left:4px;">4</span></button>
+      <button class="portal-tab" onclick="filterEnq('speaking')">Speaking</button>
+      <button class="portal-tab" onclick="filterEnq('podcast')">Podcast</button>
+      <button class="portal-tab" onclick="filterEnq('writing')">Writing</button>
+      <button class="portal-tab" onclick="filterEnq('partnership')">Partnership</button>
+      <button class="portal-tab" onclick="filterEnq('general')">General</button>
+    </div>
+
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr><th>Name</th><th>Type</th><th>Preview</th><th>Received</th><th>Status</th><th style="text-align:right;">Action</th></tr>
+        </thead>
+        <tbody id="enquiries-tbody">
+          <tr>
+            <td><strong>Sarah Kamara</strong><br><span style="font-size:.72rem;color:var(--ink30);">sarah@company.com</span></td>
+            <td>Speaking</td>
+            <td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Keynote for leadership summit, 200 attendees, Brussels, March 2026...</td>
+            <td>2 hours ago</td>
+            <td><span class="badge badge-new">New</span></td>
+            <td style="text-align:right;"><button class="btn btn-ghost btn-sm" onclick="viewEnq(1)">View</button></td>
+          </tr>
+          <tr>
+            <td><strong>Marc Dupont</strong><br><span style="font-size:.72rem;color:var(--ink30);">marc@podcast.io</span></td>
+            <td>Podcast</td>
+            <td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Would love to have you on The Founders Show — 40k listeners, themes align...</td>
+            <td>Yesterday</td>
+            <td><span class="badge badge-new">New</span></td>
+            <td style="text-align:right;"><button class="btn btn-ghost btn-sm" onclick="viewEnq(2)">View</button></td>
+          </tr>
+          <tr>
+            <td><strong>Amara Leke</strong><br><span style="font-size:.72rem;color:var(--ink30);">amara@brand.co</span></td>
+            <td>Partnership</td>
+            <td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">We build financial tools for diaspora professionals and believe there's a natural...</td>
+            <td>2 days ago</td>
+            <td><span class="badge badge-new">New</span></td>
+            <td style="text-align:right;"><button class="btn btn-ghost btn-sm" onclick="viewEnq(3)">View</button></td>
+          </tr>
+          <tr>
+            <td><strong>James Obi</strong><br><span style="font-size:.72rem;color:var(--ink30);">james@email.com</span></td>
+            <td>General</td>
+            <td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Loved Episode 7. The framing around time horizons changed how I think about...</td>
+            <td>4 days ago</td>
+            <td><span class="badge badge-read">Read</span></td>
+            <td style="text-align:right;"><button class="btn btn-ghost btn-sm" onclick="viewEnq(4)">View</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Enquiry detail panel (hidden) -->
+    <div id="enq-detail" style="display:none;background:var(--paper);border:1px solid var(--ink12);padding:26px;margin-top:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px;">
+        <div>
+          <div style="font-family:var(--serif);font-size:1.2rem;color:var(--ink);" id="enq-d-name">Sarah Kamara</div>
+          <div style="font-size:.74rem;color:var(--ink30);" id="enq-d-meta">Speaking · sarah@company.com · 2 hours ago</div>
+        </div>
+        <button class="btn btn-ghost" onclick="document.getElementById('enq-detail').style.display='none'">✕ Close</button>
+      </div>
+      <div id="enq-d-body" style="font-size:.9rem;color:var(--ink60);line-height:1.75;margin-bottom:18px;">
+        Hi Phelim, I am organising a leadership summit in Brussels in March 2026 for approximately 200 senior managers and executives. The theme is "Designing Organisations That Last" and your thinking on systems and decision architecture feels like a perfect fit. Would you be available for a 45-minute keynote, with potential for a breakout session afterwards? Happy to discuss your fee and logistics.
+      </div>
+      <div style="display:flex;gap:9px;">
+        <a id="enq-reply-btn" href="mailto:sarah@company.com" class="btn btn-primary btn-sm">Reply by Email</a>
+        <button class="btn btn-secondary btn-sm">Mark as Read</button>
+        <button class="btn btn-danger btn-sm">Archive</button>
+      </div>
+    </div>
+  </main>
+
+</div>
+<script src="portal.js"></script>
+
+</body>
+</html>

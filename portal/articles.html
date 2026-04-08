@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Articles — Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="portal.css">
+  <style>
+    /* ── Rich editor ── */
+    .editor-toolbar{display:flex;flex-wrap:wrap;gap:3px;padding:8px 10px;border:1px solid var(--ink12);border-bottom:none;background:var(--paper-mid);align-items:center;}
+    .editor-btn{padding:5px 9px;font-size:.72rem;border:1px solid transparent;background:transparent;cursor:pointer;color:var(--ink60);border-radius:2px;transition:all .15s;line-height:1;}
+    .editor-btn:hover{background:var(--paper-dark);color:var(--ink);border-color:var(--ink12);}
+    .editor-btn.active{background:var(--ink);color:var(--paper);}
+    .editor-sep{width:1px;height:18px;background:var(--ink12);margin:0 4px;flex-shrink:0;}
+    .editor-body{width:100%;min-height:360px;padding:16px;border:1px solid var(--ink12);font-family:var(--sans);font-size:.88rem;color:var(--ink);outline:none;line-height:1.8;overflow-y:auto;background:var(--paper);}
+    .editor-body:focus{border-color:var(--forest);}
+    .editor-body h2{font-family:var(--serif);font-size:1.5rem;font-weight:400;margin:20px 0 8px;}
+    .editor-body h3{font-family:var(--serif);font-size:1.2rem;font-weight:400;margin:16px 0 6px;}
+    .editor-body blockquote{border-left:2px solid var(--forest);padding-left:14px;color:var(--ink60);font-style:italic;margin:12px 0;}
+    .editor-body ul,.editor-body ol{padding-left:22px;margin:8px 0;}
+    .editor-body img{max-width:100%;border-radius:2px;margin:8px 0;}
+    .editor-body a{color:var(--forest);text-decoration:underline;}
+    .editor-body hr{border:none;border-top:1px solid var(--ink12);margin:18px 0;}
+    .editor-body code{background:var(--paper-mid);padding:1px 5px;border-radius:2px;font-size:.85em;}
+    .editor-footer{display:flex;justify-content:space-between;align-items:center;padding:5px 8px;border:1px solid var(--ink12);border-top:none;background:var(--paper-mid);font-size:.68rem;color:var(--ink30);}
+    /* ── Upload zone (shared) ── */
+    .upload-zone{border:2px dashed var(--ink12);border-radius:var(--r);padding:18px;text-align:center;cursor:pointer;transition:all .2s;background:var(--paper);}
+    .upload-zone:hover,.upload-zone.drag-over{border-color:var(--forest);background:var(--forest-faint);}
+    .upload-zone input[type=file]{display:none;}
+    .upload-zone-icon{font-size:1.3rem;margin-bottom:4px;opacity:.4;}
+    .upload-zone-label{font-size:.75rem;color:var(--ink60);line-height:1.5;}
+    .upload-zone-label strong{color:var(--forest);}
+    .upload-preview{display:flex;align-items:center;gap:10px;margin-top:10px;padding:8px 10px;background:var(--paper-mid);border:1px solid var(--ink12);border-radius:var(--r);}
+    .upload-preview img{width:48px;height:34px;object-fit:cover;border-radius:1px;}
+    .upload-preview-icon{width:32px;height:32px;background:var(--forest);display:flex;align-items:center;justify-content:center;border-radius:1px;flex-shrink:0;}
+    .upload-preview-icon span{font-size:.55rem;color:rgba(248,246,241,.8);font-weight:600;}
+    .upload-preview-info{flex:1;min-width:0;}
+    .upload-preview-name{font-size:.78rem;color:var(--ink);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .upload-preview-size{font-size:.68rem;color:var(--ink30);}
+    .upload-preview-remove{font-size:.8rem;color:var(--ink30);cursor:pointer;padding:2px 6px;border:none;background:none;}
+    .upload-preview-remove:hover{color:#c0392b;}
+    /* ── Attachments list ── */
+    .attach-list{display:flex;flex-direction:column;gap:6px;margin-top:10px;}
+    .attach-item{display:flex;align-items:center;gap:10px;padding:7px 10px;background:var(--paper-mid);border:1px solid var(--ink12);border-radius:var(--r);}
+    .attach-item-icon{font-size:.9rem;flex-shrink:0;}
+    .attach-item-name{flex:1;font-size:.78rem;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .attach-item-type{font-size:.66rem;color:var(--ink30);text-transform:uppercase;letter-spacing:.06em;}
+    .attach-remove{font-size:.8rem;color:var(--ink30);cursor:pointer;border:none;background:none;padding:2px 6px;}
+    .attach-remove:hover{color:#c0392b;}
+    /* ── Banner ── */
+    .banner-preview{width:100%;aspect-ratio:16/5;object-fit:cover;border-radius:var(--r);margin-top:10px;display:block;}
+  </style>
+</head>
+<body>
+<div class="portal-layout">
+
+  <header class="portal-topbar">
+    <div class="topbar-logo">Phelim Ekwebe <span>Content Portal</span></div>
+    <div class="topbar-right">
+      <a href="../index.html" class="topbar-view" target="_blank">View Site ↗</a>
+      <span class="topbar-user">Phelim Ekwebe</span>
+      <button class="topbar-btn" onclick="logout()">Sign Out</button>
+    </div>
+  </header>
+
+  <aside class="portal-sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Overview</div>
+      <a class="sidebar-link" href="index.html"><span class="sidebar-icon">◈</span> Dashboard</a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Content</div>
+      <a class="sidebar-link" href="episodes.html"><span class="sidebar-icon">◎</span> Episodes</a>
+      <a class="sidebar-link active" href="articles.html"><span class="sidebar-icon">◉</span> Articles</a>
+      <a class="sidebar-link" href="books.html"><span class="sidebar-icon">▣</span> Books</a>
+      <a class="sidebar-link" href="content.html"><span class="sidebar-icon">◇</span> Site Content</a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Inbox</div>
+      <a class="sidebar-link" href="contacts.html"><span class="sidebar-icon">✉</span> Enquiries <span class="sidebar-badge" id="unread-badge">4</span></a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Settings</div>
+      <a class="sidebar-link" href="settings.html"><span class="sidebar-icon">⚙</span> Site Settings</a>
+      <a class="sidebar-link" href="integrations.html"><span class="sidebar-icon">🔗</span> Integrations</a>
+    </div>
+  </aside>
+
+  <main class="portal-main">
+    <div class="page-header">
+      <div class="page-header-left">
+        <h1>Articles</h1>
+        <p>Write and manage essays for the Ideas &amp; Frameworks library.</p>
+      </div>
+      <div class="page-actions">
+        <button class="btn btn-secondary" onclick="showTab('list')">All Articles</button>
+        <button class="btn btn-primary" onclick="newArticle()">+ New Article</button>
+      </div>
+    </div>
+
+    <div class="portal-tabs">
+      <button class="portal-tab active" id="tab-list" onclick="showTab('list')">Published &amp; Drafts</button>
+      <button class="portal-tab" id="tab-editor" onclick="showTab('editor')">Editor</button>
+    </div>
+
+    <!-- LIST VIEW -->
+    <div class="portal-tab-panel active" id="panel-list">
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr><th>Title</th><th>Category</th><th>Read time</th><th>Status</th><th style="text-align:right;">Actions</th></tr>
+          </thead>
+          <tbody id="articles-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- EDITOR VIEW -->
+    <div class="portal-tab-panel" id="panel-editor">
+      <input type="hidden" id="editing-id">
+      <div style="display:grid;grid-template-columns:1fr 280px;gap:20px;align-items:start;">
+
+        <!-- LEFT: main editor -->
+        <div>
+          <div class="form-group">
+            <label class="form-label">Article Title</label>
+            <input class="form-input" id="ed-title" type="text" placeholder="e.g. The Difference Between Effort and Structure" style="font-size:1rem;">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Short Excerpt <span style="color:var(--ink30);font-weight:400;">(shown on listing)</span></label>
+            <textarea class="form-textarea" id="ed-excerpt" style="min-height:64px;" placeholder="One or two sentences that frame the argument — not a summary, a provocation."></textarea>
+          </div>
+
+          <!-- BANNER IMAGE -->
+          <div class="form-group">
+            <label class="form-label">Banner / Hero Image <span style="color:var(--ink30);font-weight:400;">(optional — shown at top of article)</span></label>
+            <div class="upload-zone" id="banner-zone" onclick="document.getElementById('banner-input').click()">
+              <input type="file" id="banner-input" accept="image/*" onchange="handleBanner(this)">
+              <div class="upload-zone-icon">🖼</div>
+              <div class="upload-zone-label">Drop image here or <strong>browse</strong><br><span style="font-size:.68rem;">PNG, JPG, WebP · max 5MB · ideal ratio 16:5</span></div>
+            </div>
+            <div id="banner-preview-wrap" style="display:none;">
+              <img id="banner-preview" class="banner-preview" src="" alt="Banner">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;">
+                <span id="banner-name" style="font-size:.74rem;color:var(--ink60);"></span>
+                <button style="font-size:.74rem;color:#c0392b;background:none;border:none;cursor:pointer;" onclick="removeBanner()">Remove banner</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- RICH EDITOR -->
+          <div class="form-group">
+            <label class="form-label">Article Body</label>
+            <div class="editor-toolbar" id="editor-toolbar">
+              <!-- Text style -->
+              <button class="editor-btn" title="Heading 2" onclick="edCmd('formatBlock','<h2>')"><strong>H2</strong></button>
+              <button class="editor-btn" title="Heading 3" onclick="edCmd('formatBlock','<h3>')">H3</button>
+              <div class="editor-sep"></div>
+              <button class="editor-btn" title="Bold (⌘B)" onclick="edCmd('bold')"><strong>B</strong></button>
+              <button class="editor-btn" title="Italic (⌘I)" onclick="edCmd('italic')"><em>I</em></button>
+              <button class="editor-btn" title="Underline (⌘U)" onclick="edCmd('underline')"><u>U</u></button>
+              <button class="editor-btn" title="Strikethrough" onclick="edCmd('strikeThrough')"><s>S</s></button>
+              <div class="editor-sep"></div>
+              <!-- Lists -->
+              <button class="editor-btn" title="Bullet list" onclick="edCmd('insertUnorderedList')">• List</button>
+              <button class="editor-btn" title="Numbered list" onclick="edCmd('insertOrderedList')">1. List</button>
+              <div class="editor-sep"></div>
+              <!-- Blocks -->
+              <button class="editor-btn" title="Blockquote / pull quote" onclick="wrapBlock('blockquote')">❝ Quote</button>
+              <button class="editor-btn" title="Paragraph" onclick="edCmd('formatBlock','<p>')">¶</button>
+              <button class="editor-btn" title="Horizontal rule" onclick="edCmd('insertHorizontalRule')">— Rule</button>
+              <div class="editor-sep"></div>
+              <!-- Media -->
+              <button class="editor-btn" title="Insert link" onclick="insertLink()">🔗 Link</button>
+              <button class="editor-btn" title="Insert image into body" onclick="document.getElementById('inline-img-input').click()">📷 Image</button>
+              <input type="file" id="inline-img-input" accept="image/*" style="display:none" onchange="insertInlineImage(this)">
+              <div class="editor-sep"></div>
+              <!-- History -->
+              <button class="editor-btn" title="Undo (⌘Z)" onclick="edCmd('undo')">↩</button>
+              <button class="editor-btn" title="Redo (⌘Y)" onclick="edCmd('redo')">↪</button>
+            </div>
+            <div class="editor-body" id="editor-body" contenteditable="true"
+              data-placeholder="Write your article here. Use the toolbar above to format text, add headings, quotes, links and images."
+              oninput="updateWordCount()"
+              onkeydown="handleEditorKey(event)"></div>
+            <div class="editor-footer">
+              <span id="word-count">0 words</span>
+              <span id="read-time">~0 min read</span>
+            </div>
+          </div>
+
+          <!-- ATTACHMENTS -->
+          <div class="form-group">
+            <label class="form-label">Attachments &amp; Downloads <span style="color:var(--ink30);font-weight:400;">(PDFs, docs, media — appear as download links)</span></label>
+            <div class="upload-zone" id="attach-zone" onclick="document.getElementById('attach-input').click()">
+              <input type="file" id="attach-input" accept="*/*" multiple onchange="handleAttachments(this)">
+              <div class="upload-zone-icon">📎</div>
+              <div class="upload-zone-label">Drop files here or <strong>browse</strong><br><span style="font-size:.68rem;">PDF, DOCX, images, video clips · max 50MB each</span></div>
+            </div>
+            <div class="attach-list" id="attach-list"></div>
+          </div>
+        </div>
+
+        <!-- RIGHT: settings panel -->
+        <div>
+          <div class="card" style="margin-bottom:14px;">
+            <div class="card-header"><div class="card-title">Publish Settings</div></div>
+            <div class="form-group">
+              <label class="form-label">Category</label>
+              <select class="form-select" id="ed-category">
+                <option value="systems">Systems</option>
+                <option value="identity">Identity</option>
+                <option value="investment">Investment</option>
+                <option value="legacy">Legacy</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Tag <span style="color:var(--ink30);font-weight:400;">(display label)</span></label>
+              <input class="form-input" id="ed-tag" placeholder="e.g. Systems">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Read Time</label>
+              <input class="form-input" id="ed-readtime" type="text" placeholder="e.g. 8 min">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Status</label>
+              <select class="form-select" id="ed-status">
+                <option value="draft">Draft</option>
+                <option value="published">Published</option>
+              </select>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px;">
+              <button class="btn btn-primary" onclick="saveArticlePortal('published')">Save &amp; Publish</button>
+              <button class="btn btn-secondary" onclick="saveArticlePortal('draft')">Save as Draft</button>
+            </div>
+          </div>
+          <div class="alert alert-info">
+            <span>💡</span>
+            <span style="font-size:.76rem;">Published articles appear live on the site immediately in the same browser session. Changes persist via localStorage.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+</div>
+<script src="../data.js"></script>
+<script src="portal.js"></script>
+<script>
+// ── Data ──
+function loadArticles() {
+  try {
+    const s = localStorage.getItem('portal-articles');
+    if (s) return JSON.parse(s);
+  } catch(e) {}
+  // Seed from ARTICLES_DEFAULT if available (loaded via data.js)
+  const seed = typeof ARTICLES_DEFAULT !== 'undefined' ? ARTICLES_DEFAULT : (typeof ARTICLES !== 'undefined' ? ARTICLES : []);
+  return seed.map(a => Object.assign({ status: 'published' }, a));
+}
+
+function saveArticles(arts) {
+  localStorage.setItem('portal-articles', JSON.stringify(arts));
+}
+
+let PORTAL_ARTICLES = loadArticles();
+let currentAttachments = []; // [{name, type, size, data}]
+let currentBanner = null;    // {name, data}
+
+// ── List rendering ──
+function renderList() {
+  const tbody = document.getElementById('articles-tbody');
+  if (!tbody) return;
+  if (!PORTAL_ARTICLES.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="color:var(--ink30);text-align:center;padding:24px;">No articles yet. Click + New Article to start.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = PORTAL_ARTICLES.map(a => {
+    const statusCls = a.status === 'published' ? 'badge-published' : 'badge-draft';
+    const statusTxt = a.status === 'published' ? 'Published' : 'Draft';
+    return `<tr>
+      <td><strong>${a.title || 'Untitled'}</strong></td>
+      <td>${a.tag || '—'}</td>
+      <td>${a.readtime ? a.readtime + ' read' : '—'}</td>
+      <td><span class="badge ${statusCls}">${statusTxt}</span></td>
+      <td style="text-align:right;">
+        <button class="btn btn-ghost btn-sm" onclick="editArticle('${a.id}')">Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteArticle('${a.id}')">Delete</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Editor ──
+function newArticle() {
+  document.getElementById('editing-id').value = '';
+  document.getElementById('ed-title').value = '';
+  document.getElementById('ed-excerpt').value = '';
+  document.getElementById('ed-tag').value = '';
+  document.getElementById('ed-readtime').value = '';
+  document.getElementById('ed-category').value = 'systems';
+  document.getElementById('ed-status').value = 'draft';
+  document.getElementById('editor-body').innerHTML = '';
+  currentAttachments = [];
+  currentBanner = null;
+  renderAttachments();
+  removeBanner();
+  updateWordCount();
+  showTab('editor');
+}
+
+function editArticle(id) {
+  const a = PORTAL_ARTICLES.find(x => x.id === id);
+  if (!a) return;
+  document.getElementById('editing-id').value = id;
+  document.getElementById('ed-title').value = a.title || '';
+  document.getElementById('ed-excerpt').value = a.excerpt || '';
+  document.getElementById('ed-tag').value = a.tag || '';
+  document.getElementById('ed-readtime').value = a.readtime || '';
+  document.getElementById('ed-category').value = a.cat || 'systems';
+  document.getElementById('ed-status').value = a.status || 'draft';
+  document.getElementById('editor-body').innerHTML = a.body || '';
+  currentAttachments = a.attachments ? JSON.parse(JSON.stringify(a.attachments)) : [];
+  currentBanner = a.banner || null;
+  renderAttachments();
+  if (currentBanner) {
+    document.getElementById('banner-preview').src = currentBanner.data;
+    document.getElementById('banner-name').textContent = currentBanner.name;
+    document.getElementById('banner-preview-wrap').style.display = '';
+    document.getElementById('banner-zone').style.display = 'none';
+  } else {
+    removeBanner();
+  }
+  updateWordCount();
+  showTab('editor');
+}
+
+function deleteArticle(id) {
+  if (!confirm('Delete this article?')) return;
+  PORTAL_ARTICLES = PORTAL_ARTICLES.filter(a => a.id !== id);
+  saveArticles(PORTAL_ARTICLES);
+  renderList();
+  showToast('Article deleted.');
+}
+
+function saveArticlePortal(statusOverride) {
+  const id = document.getElementById('editing-id').value || ('a-' + Date.now());
+  const status = statusOverride || document.getElementById('ed-status').value;
+  const title  = document.getElementById('ed-title').value.trim();
+  if (!title) { showToast('Please add a title before saving.'); return; }
+
+  const body     = document.getElementById('editor-body').innerHTML;
+  const excerpt  = document.getElementById('ed-excerpt').value.trim();
+  const tag      = document.getElementById('ed-tag').value.trim() || document.getElementById('ed-category').value;
+  const cat      = document.getElementById('ed-category').value;
+  const readtime = document.getElementById('ed-readtime').value.trim();
+  const words    = countWords();
+  const autoTime = readtime || (Math.max(1, Math.round(words / 200)) + ' min');
+
+  const article = {
+    id, title, excerpt, tag, cat, body, status,
+    readtime: autoTime,
+    meta: 'Essay · ' + autoTime + ' read',
+    banner: currentBanner,
+    attachments: currentAttachments,
+  };
+
+  const idx = PORTAL_ARTICLES.findIndex(a => a.id === id);
+  if (idx >= 0) PORTAL_ARTICLES[idx] = article;
+  else PORTAL_ARTICLES.unshift(article);
+
+  saveArticles(PORTAL_ARTICLES);
+  renderList();
+  document.getElementById('editing-id').value = id;
+  showToast(status === 'published' ? 'Published. Visible on the site now.' : 'Draft saved.');
+}
+
+// ── Rich editor commands ──
+function edCmd(cmd, val) {
+  document.getElementById('editor-body').focus();
+  document.execCommand(cmd, false, val || null);
+}
+
+function wrapBlock(tag) {
+  const sel = window.getSelection();
+  if (!sel.rangeCount) return;
+  const range = sel.getRangeAt(0);
+  const el = document.createElement(tag);
+  try {
+    range.surroundContents(el);
+    sel.removeAllRanges();
+    const r = document.createRange();
+    r.selectNodeContents(el);
+    sel.addRange(r);
+  } catch(e) {
+    edCmd('formatBlock', '<' + tag + '>');
+  }
+}
+
+function insertLink() {
+  const url = prompt('Enter URL:');
+  if (url) edCmd('createLink', url);
+}
+
+function insertInlineImage(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 5 * 1024 * 1024) { showToast('Image too large (max 5MB).'); return; }
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    document.getElementById('editor-body').focus();
+    document.execCommand('insertImage', false, e.target.result);
+    updateWordCount();
+  };
+  reader.readAsDataURL(file);
+  input.value = '';
+}
+
+function handleEditorKey(e) {
+  // Tab = indent
+  if (e.key === 'Tab') { e.preventDefault(); edCmd('insertHTML', '&nbsp;&nbsp;&nbsp;&nbsp;'); }
+}
+
+// ── Word count ──
+function countWords() {
+  const text = document.getElementById('editor-body').innerText || '';
+  return text.trim().split(/\s+/).filter(w => w.length > 0).length;
+}
+
+function updateWordCount() {
+  const words = countWords();
+  const mins  = Math.max(1, Math.round(words / 200));
+  document.getElementById('word-count').textContent = words.toLocaleString() + ' words';
+  document.getElementById('read-time').textContent  = '~' + mins + ' min read';
+}
+
+// ── Banner ──
+function handleBanner(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 5 * 1024 * 1024) { showToast('Image too large (max 5MB).'); return; }
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    currentBanner = { name: file.name, data: e.target.result };
+    document.getElementById('banner-preview').src = e.target.result;
+    document.getElementById('banner-name').textContent = file.name;
+    document.getElementById('banner-preview-wrap').style.display = '';
+    document.getElementById('banner-zone').style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+  input.value = '';
+}
+
+function removeBanner() {
+  currentBanner = null;
+  document.getElementById('banner-preview-wrap').style.display = 'none';
+  document.getElementById('banner-zone').style.display = '';
+  document.getElementById('banner-input').value = '';
+}
+
+// ── Attachments ──
+function handleAttachments(input) {
+  const files = Array.from(input.files);
+  let pending = files.length;
+  files.forEach(file => {
+    if (file.size > 50 * 1024 * 1024) { showToast(file.name + ' is too large (max 50MB).'); pending--; return; }
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      currentAttachments.push({ name: file.name, type: file.type, size: file.size, data: e.target.result });
+      pending--;
+      if (pending === 0) renderAttachments();
+    };
+    reader.readAsDataURL(file);
+  });
+  input.value = '';
+}
+
+function renderAttachments() {
+  const list = document.getElementById('attach-list');
+  if (!currentAttachments.length) { list.innerHTML = ''; return; }
+  list.innerHTML = currentAttachments.map((a, i) => {
+    const icon = a.type.startsWith('image/') ? '🖼' : a.type === 'application/pdf' ? '📄' : a.type.startsWith('video/') ? '🎬' : '📎';
+    const size = a.size > 1024 * 1024 ? (a.size / 1024 / 1024).toFixed(1) + ' MB' : Math.round(a.size / 1024) + ' KB';
+    return `<div class="attach-item">
+      <span class="attach-item-icon">${icon}</span>
+      <div class="attach-item-info" style="flex:1;min-width:0;">
+        <div class="attach-item-name">${a.name}</div>
+        <div class="attach-item-type">${size}</div>
+      </div>
+      <button class="attach-remove" onclick="removeAttachment(${i})">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function removeAttachment(i) {
+  currentAttachments.splice(i, 1);
+  renderAttachments();
+}
+
+// ── Drag-over for zones ──
+document.querySelectorAll('.upload-zone').forEach(zone => {
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault(); zone.classList.remove('drag-over');
+    const id = zone.id;
+    if (id === 'banner-zone') {
+      const fakeInput = { files: e.dataTransfer.files };
+      handleBanner({ files: e.dataTransfer.files });
+    } else if (id === 'attach-zone') {
+      handleAttachments({ files: e.dataTransfer.files, value: '' });
+    }
+  });
+});
+
+// ── Editor placeholder ──
+const editorBody = document.getElementById('editor-body');
+editorBody.addEventListener('focus', () => editorBody.classList.add('focused'));
+editorBody.addEventListener('blur',  () => editorBody.classList.remove('focused'));
+
+// ── Init ──
+renderList();
+</script>
+</body>
+</html>

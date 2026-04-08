@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Future Foundations Podcast — Phelim Ekwebe</title>
+  <meta name="description" content="A long-form podcast on the invisible structures behind how people build lives that hold — in meaning, decisions, and what they leave behind.">
+  <meta property="og:title" content="Future Foundations Podcast — Phelim Ekwebe">
+  <meta property="og:description" content="A long-form podcast on the invisible structures behind how people build lives that hold — in meaning, decisions, and what they leave behind.">
+  <meta property="og:type" content="website">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,600&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="base.css">
+  <link rel="stylesheet" href="pages.css">
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a class="nav-logo" href="index.html">Phelim Ekwebe</a>
+    <ul class="nav-links">
+      <li><a id="nl-home" href="index.html">Home</a></li>
+      <li><a id="nl-about" href="about.html">About</a></li>
+      <li><a id="nl-podcast" class="active-link" href="podcast.html">Podcast</a></li>
+      <li><a id="nl-eng" href="engagements.html">Engagements</a></li>
+      <li><a id="nl-resources" href="resources.html">Resources</a></li>
+    </ul>
+    <button class="nav-cta" onclick="openModal('general')">Work With Me</button>
+    <button class="ham" onclick="toggleMenu()"><span></span><span></span><span></span></button>
+  </div>
+</nav>
+<div id="mob-menu" style="display:none">
+  <a href="index.html">Home</a>
+  <a href="about.html">About</a>
+  <a href="podcast.html">Podcast</a>
+  <a href="engagements.html">Engagements</a>
+  <a href="resources.html">Resources</a>
+  <a href="contact.html">Contact</a>
+  <button class="btn btn-dark" style="margin-top:14px;width:100%;justify-content:center;" onclick="openModal('general')">Work With Me</button>
+</div>
+
+<main>
+<!-- 1. HERO -->
+  <section class="pod-hero">
+    <div class="container"><div class="pod-hero-inner">
+      <div>
+        <div class="eyebrow" style="color:rgba(248,246,241,.4);">The Show</div>
+        <h1>Future <em>Foundations</em></h1>
+        <p class="pod-tagline">A long-form podcast on the invisible structures behind how people build lives that hold — in meaning, decisions, and what they leave behind.</p>
+        <p class="pod-manifesto">Each episode examines the invisible structures behind how people build their lives — the decision frameworks they use, the environments they operate inside, the compounding habits that determine outcomes over time. Not quick insight. Structural thinking, applied to real life. Because legacy isn't just what you leave behind. It's what you build into people, systems, and perspectives while you're still here.</p>
+        <div class="pod-platforms-row">
+          <span class="pod-plat-label">Listen on</span>
+          <button class="pod-plat-btn" onclick="window.open('https://youtube.com/playlist?list=PL9fKbOngNj6Ac9wdzaJjxbDua3ZVe4270','_blank')"><svg width="14" height="14" viewBox="0 0 24 24"><rect width="24" height="24" rx="4" fill="#FF0000"/><path d="M19.59 7.11A2.5 2.5 0 0017.83 5.35C16.44 5 12 5 12 5s-4.44 0-5.83.35A2.5 2.5 0 004.41 7.11 26 26 0 004 12a26 26 0 00.41 4.89A2.5 2.5 0 006.17 18.65C7.56 19 12 19 12 19s4.44 0 5.83-.35a2.5 2.5 0 001.76-1.76A26 26 0 0020 12a26 26 0 00-.41-4.89z" fill="white"/><path d="M10 15l5-3-5-3v6z" fill="#FF0000"/></svg>YouTube</button>
+          <button class="pod-plat-btn" onclick="window.open('https://open.spotify.com/show/6yUjD35JA5VRfHzHw2gCX9','_blank')"><svg width="14" height="14" viewBox="0 0 24 24"><circle cx="12" cy="12" r="12" fill="#1DB954"/><path d="M17.25 16.74a.75.75 0 01-1.03.25c-2.83-1.73-6.4-2.12-10.6-1.16a.75.75 0 01-.33-1.46c4.6-1.05 8.55-.6 11.71 1.34.35.22.47.67.25 1.03zm1.46-3.26a.94.94 0 01-1.29.31C14.37 11.75 10.27 11.2 7 12.1a.94.94 0 11-.49-1.81c3.7-.99 8.28-.38 11.88 1.9.45.27.59.84.32 1.29zm.13-3.4C15.3 7.8 10.28 7.63 7.14 8.58a1.13 1.13 0 11-.65-2.17c3.62-1.08 9.64-.87 13.44 1.56.53.31.7 1 .39 1.52a1.13 1.13 0 01-1.53.39z" fill="white"/></svg>Spotify</button>
+          <button class="pod-plat-btn" onclick="window.open('https://podcasts.apple.com/us/podcast/future-foundations-building-beyond-borders/id1874863146','_blank')"><svg width="14" height="14" viewBox="0 0 24 24"><rect width="24" height="24" rx="5" fill="#9933CC"/><path d="M12 4.5c-4.14 0-7.5 3.36-7.5 7.5 0 3.24 2.06 6 5 7.07v-1.53C7.27 16.6 6 14.44 6 12c0-3.31 2.69-6 6-6s6 2.69 6 6c0 2.44-1.27 4.6-3.5 5.54v1.53c2.94-1.07 5-3.83 5-7.07 0-4.14-3.36-7.5-7.5-7.5z" fill="white"/><circle cx="12" cy="12" r="2.5" fill="white"/><path d="M11.25 14.5h1.5v4.5h-1.5z" fill="white"/></svg>Apple Podcasts</button>
+        </div>
+      </div>
+      <div class="pod-show-art"><div class="pod-show-art-sub">Future</div><div class="pod-show-art-main">Foundations</div><div class="pod-show-art-sub" style="margin-top:5px;">phelim.me</div></div>
+    </div></div>
+  </section>
+
+  <!-- 2. PILLARS -->
+  <div class="pod-pillars-strip">
+    <div class="container">
+      <div class="eyebrow" style="margin-bottom:4px;">The Three Pillars</div>
+      <p style="font-size:.87rem;color:var(--ink60);max-width:520px;margin-top:6px;">Every episode touches one or more of three core pillars that define the Future Foundations philosophy.</p>
+      <div class="pillars-row">
+        <div class="pillar-item"><div class="pillar-item-tag">LIVE</div><h3>Live Intentionally</h3><p style="font-size:.83rem;">The decisions, habits, and structures that shape the quality of your everyday life.</p></div>
+        <div class="pillar-item"><div class="pillar-item-tag">EARN</div><h3>Earn with Purpose</h3><p style="font-size:.83rem;">Building financial intelligence, multi-jurisdiction planning, and long-term wealth foundations.</p></div>
+        <div class="pillar-item"><div class="pillar-item-tag">GROW</div><h3>Grow with Systems</h3><p style="font-size:.83rem;">The mindsets, environments, and frameworks that compound personal and professional growth over time.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. START HERE — Spotify left, Recommended right -->
+  <section class="pod-start">
+    <div class="container">
+      <div class="sec-top"><div class="eyebrow">New here?</div><h2 style="margin-top:12px;">Start here</h2></div>
+      <div class="pod-start-inner">
+        <div>
+          <div class="start-embed-label">Listen on Spotify</div>
+          <iframe style="border-radius:8px;" src="https://open.spotify.com/embed/show/6yUjD35JA5VRfHzHw2gCX9/video?utm_source=generator" width="100%" height="352" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
+        </div>
+        <div>
+          <div class="start-embed-label">Recommended episodes</div>
+          <ul class="spotify-listen-list">
+            <li class="spotify-item"><div class="sli-num">01</div><div><div class="sli-title">The Decision — Why You're Here and What It Costs to Stay</div><span class="sli-badge">Start here</span></div></li>
+            <li class="spotify-item"><div class="sli-num">07</div><div><div class="sli-title">The Long Game: Why Decades Beat Years</div><span class="sli-badge">Long-term thinking</span></div></li>
+            <li class="spotify-item"><div class="sli-num">09</div><div><div class="sli-title">The Busy Trap: Productive vs. Merely Occupied</div><span class="sli-badge">Self-leadership</span></div></li>
+            <li class="spotify-item"><div class="sli-num">10</div><div><div class="sli-title">The Ultimate Bottleneck: Become the CEO of Your Life First</div><span class="sli-badge">Latest</span></div></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. FEATURED -->
+  <section class="pod-featured-section">
+    <div class="container">
+      <div class="sec-top"><div class="eyebrow">Start Here</div><h2 style="margin-top:12px;">Episodes worth your time</h2><p style="max-width:460px;margin-top:8px;font-size:.87rem;">Three episodes that represent the thinking behind the show — a useful starting point if you are new here.</p></div>
+      <div class="featured-eps-grid">
+        <div class="fep-card"><div class="fep-thumb" style="background:#1a3028;"><div class="fep-thumb-label">Ep. 10</div><div class="fep-play">▶</div></div><div class="fep-num">Episode 10 · Latest</div><div class="fep-title">The Ultimate Bottleneck: Why You Must Become the CEO of Your Life First</div></div>
+        <div class="fep-card"><div class="fep-thumb" style="background:#1e3530;"><div class="fep-thumb-label">Ep. 07</div><div class="fep-play">▶</div></div><div class="fep-num">Episode 07</div><div class="fep-title">The Long Game: Why Decades Beat Years</div></div>
+        <div class="fep-card"><div class="fep-thumb" style="background:#243420;"><div class="fep-thumb-label">Ep. 01</div><div class="fep-play">▶</div></div><div class="fep-num">Episode 01 · Foundation</div><div class="fep-title">The Decision — Why You're Here and What It Costs to Stay</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. ALL EPISODES CAROUSEL -->
+  <section class="pod-all-eps">
+    <div class="container">
+      <div class="sec-top"><div class="eyebrow">Full Archive</div><h2 style="margin-top:12px;">All episodes</h2><p style="max-width:460px;margin-top:7px;font-size:.87rem;">Click a card to expand. Drag to scroll.</p></div>
+      <div class="carousel-outer"><div class="carousel-track" id="car-track"></div></div>
+      <div class="car-nav"><button class="car-btn" onclick="carMove(-1)">‹</button><button class="car-btn" onclick="carMove(1)">›</button><div class="car-dots" id="car-dots"></div></div>
+    </div>
+  </section>
+
+  <!-- 6. PLATFORM LINKS -->
+  <div class="pod-platform-strip">
+    <div class="container"><div class="pod-platform-strip-inner">
+      <p>Find all episodes on your favourite platform:</p>
+      <button class="pod-plat-btn" style="border-color:var(--ink12);color:var(--ink60);" onclick="window.open('https://youtube.com/playlist?list=PL9fKbOngNj6Ac9wdzaJjxbDua3ZVe4270','_blank')">▶ Full playlist on YouTube</button>
+      <button class="pod-plat-btn" style="border-color:var(--ink12);color:var(--ink60);" onclick="window.open('https://open.spotify.com/show/6yUjD35JA5VRfHzHw2gCX9','_blank')">Follow on Spotify</button>
+      <button class="pod-plat-btn" style="border-color:var(--ink12);color:var(--ink60);" onclick="window.open('https://podcasts.apple.com/us/podcast/future-foundations-building-beyond-borders/id1874863146','_blank')">Subscribe on Apple</button>
+    </div></div>
+  </div>
+
+  <!-- 7. APPLE EMBED -->
+  <div class="apple-embed-strip">
+    <div class="container">
+      <div class="eyebrow" style="margin-bottom:14px;">Listen on Apple Podcasts</div>
+      <iframe allow="autoplay *; encrypted-media *; fullscreen *; clipboard-write" frameborder="0" height="450" style="width:100%;max-width:100%;overflow:hidden;border-radius:8px;" sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-storage-access-by-user-activation allow-top-navigation-by-user-activation" src="https://embed.podcasts.apple.com/us/podcast/future-foundations-building-beyond-borders/id1874863146"></iframe>
+    </div>
+  </div>
+
+  <!-- 8. GUEST CTA — popup with full podcast form -->
+  <section class="pod-guest">
+    <div class="container"><div class="eyebrow" style="color:rgba(248,246,241,.4);margin-bottom:10px;">Be a Guest</div><h2>Want to share your story?</h2><p>Future Foundations occasionally features guests whose lived experience and thinking align with our themes. If you have a story worth telling, we'd love to hear from you.</p><button class="btn btn-paper" onclick="openModal('podcast')">Submit Guest Application</button></div>
+  </section>
+</main>
+
+<!-- ════ GENERAL MODAL ════ -->
+<div class="modal-overlay" id="modal" onclick="closeModalOuter(event)">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <div class="modal-eyebrow" id="m-eyebrow">Get in touch</div>
+    <div class="modal-title" id="m-title">Work With Phelim</div>
+    <div id="m-form-body"></div>
+  </div>
+</div>
+
+<!-- ════ CHECKOUT MODAL ════ -->
+<div class="modal-overlay" id="checkout-modal" onclick="closeCheckoutOuter(event)">
+  <div class="checkout-box">
+    <div class="checkout-head">
+      <button class="checkout-close" onclick="closeCheckout()">×</button>
+      <div class="checkout-eyebrow-lbl" id="co-eyebrow">Pre-order</div>
+      <div class="checkout-title" id="co-title">Built to Last</div>
+      <div class="checkout-price" id="co-price">€ 24.99</div>
+    </div>
+    <div class="checkout-body">
+      <div class="checkout-item-row">
+        <div class="checkout-cover" id="co-cover" style="background:var(--forest);"><span id="co-cover-text">Built to Last</span></div>
+        <div class="checkout-item-info">
+          <div class="checkout-item-name" id="co-item-name">Built to Last</div>
+          <div class="checkout-item-type" id="co-item-type">Pre-order · Hardcover</div>
+        </div>
+        <div class="checkout-item-price" id="co-item-price">€ 24.99</div>
+      </div>
+      <div class="checkout-note"><p><strong>Pre-order guarantee:</strong> You will be charged now and your copy ships as soon as the book is available. Cancel anytime before dispatch for a full refund.</p></div>
+      <div class="checkout-divider">Your details</div>
+      <form class="form" id="checkout-form" onsubmit="handleCheckout(event)">
+        <div class="frow">
+          <div class="fg"><label class="flabel">First name</label><input class="finput" type="text" placeholder="First name" required></div>
+          <div class="fg"><label class="flabel">Last name</label><input class="finput" type="text" placeholder="Last name" required></div>
+        </div>
+        <div class="fg"><label class="flabel">Email</label><input class="finput" type="email" placeholder="your@email.com" required></div>
+        <div class="fg"><label class="flabel">Format</label>
+          <select class="fselect" id="co-format" onchange="updateCoPrice()">
+            <option value="24.99">Hardcover — € 24.99</option>
+            <option value="12.99">eBook (PDF + ePub) — € 12.99</option>
+            <option value="14.99">Audiobook — € 14.99</option>
+            <option value="29.99">Hardcover + eBook bundle — € 29.99</option>
+          </select>
+        </div>
+        <div class="checkout-divider">Payment</div>
+        <div class="checkout-methods">
+          <div class="pay-method selected" onclick="selectPayMethod(this,'card')">
+            <div class="pay-method-icon">💳</div><div class="pay-method-label">Card</div>
+          </div>
+          <div class="pay-method" onclick="selectPayMethod(this,'bank')">
+            <div class="pay-method-icon">🏦</div><div class="pay-method-label">Bank transfer</div>
+          </div>
+        </div>
+        <div id="card-fields">
+          <div class="fg"><label class="flabel">Card number</label><input class="finput" type="text" placeholder="•••• •••• •••• ••••" maxlength="19"></div>
+          <div class="frow">
+            <div class="fg"><label class="flabel">Expiry</label><input class="finput" type="text" placeholder="MM / YY" maxlength="7"></div>
+            <div class="fg"><label class="flabel">CVC</label><input class="finput" type="text" placeholder="•••" maxlength="4"></div>
+          </div>
+        </div>
+        <div id="bank-fields" style="display:none;background:var(--forest-faint);border:1px solid rgba(38,61,51,.15);padding:15px 17px;margin-bottom:4px;">
+          <p style="font-size:.82rem;color:var(--ink60);margin-bottom:7px;">Bank transfer details will be sent to your email once you place the order.</p>
+          <p style="font-size:.78rem;color:var(--ink30);margin:0;font-style:italic;">Orders are held for 5 business days pending payment.</p>
+        </div>
+        <button type="submit" class="btn btn-dark" style="width:100%;justify-content:center;padding:13px;margin-top:14px;">Complete Pre-order</button>
+        <div class="stripe-badge">Payments processed securely via Stripe. Connect your Stripe account to activate.</div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="site-footer-inner">
+      <div class="footer-logo">Phelim Ekwebe</div>
+      <div class="footer-links">
+        <a href="index.html">Home</a>
+        <a href="about.html">About</a>
+        <a href="podcast.html">Podcast</a>
+        <a href="engagements.html">Engagements</a>
+        <a href="resources.html">Resources</a>
+        <a href="contact.html">Contact</a>
+      </div>
+      <div class="footer-copy">&copy; 2025 Phelim Ekwebe. All rights reserved.</div>
+    </div>
+  </div>
+</footer>
+
+  <script src="data.js"></script>
+  <script src="nav.js"></script>
+  <script src="modals.js"></script>
+  <script src="podcast.js"></script>
+<script>
+  buildCarousel();
+  // Update carousel nav buttons to scroll rather than activate
+  document.querySelectorAll('.car-btn').forEach((btn, i) => {
+    btn.addEventListener('click', () => carMove(i === 0 ? -1 : 1));
+  });
+</script>
+
+</body>
+</html>

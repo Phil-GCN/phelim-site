@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="portal.css">
+</head>
+<body>
+<div class="portal-layout">
+
+  <!-- TOPBAR -->
+  <header class="portal-topbar">
+    <div class="topbar-logo">Phelim Ekwebe <span>Content Portal</span></div>
+    <div class="topbar-right">
+      <a href="../index.html" class="topbar-view" target="_blank">View Site ↗</a>
+      <span class="topbar-user">Phelim Ekwebe</span>
+      <button class="topbar-btn" onclick="logout()">Sign Out</button>
+    </div>
+  </header>
+
+  <!-- SIDEBAR -->
+  <aside class="portal-sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Overview</div>
+      <a class="sidebar-link active" href="index.html"><span class="sidebar-icon">◈</span> Dashboard</a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Content</div>
+      <a class="sidebar-link " href="episodes.html"><span class="sidebar-icon">◎</span> Episodes</a>
+      <a class="sidebar-link " href="articles.html"><span class="sidebar-icon">◉</span> Articles</a>
+      <a class="sidebar-link " href="books.html"><span class="sidebar-icon">▣</span> Books</a>
+      <a class="sidebar-link " href="content.html"><span class="sidebar-icon">◇</span> Site Content</a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Inbox</div>
+      <a class="sidebar-link " href="contacts.html"><span class="sidebar-icon">✉</span> Enquiries <span class="sidebar-badge" id="unread-badge">4</span></a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Settings</div>
+      <a class="sidebar-link" href="settings.html"><span class="sidebar-icon">⚙</span> Site Settings</a>
+      <a class="sidebar-link" href="integrations.html"><span class="sidebar-icon">🔗</span> Integrations</a>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="portal-main">
+    <div class="page-header">
+      <div class="page-header-left">
+        <h1>Dashboard</h1>
+        <p>Welcome back. Here's what's happening across phelim.me.</p>
+      </div>
+      <div class="page-actions">
+        <a href="episodes.html" class="btn btn-secondary">Add Episode</a>
+        <a href="articles.html" class="btn btn-primary">New Article</a>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Episodes Published</div>
+        <div class="stat-val">10</div>
+        <div class="stat-sub">Future Foundations</div>
+        <div class="stat-trend up">+1 this month</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Articles Published</div>
+        <div class="stat-val">6</div>
+        <div class="stat-sub">Ideas & Frameworks</div>
+        <div class="stat-trend up">2 drafts pending</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Pre-orders</div>
+        <div class="stat-val">—</div>
+        <div class="stat-sub">Stripe not connected</div>
+        <div class="stat-trend"><a href="index.html#integrations" style="color:var(--gold);font-size:.7rem;">Connect Stripe →</a></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">New Enquiries</div>
+        <div class="stat-val">4</div>
+        <div class="stat-sub">Last 7 days</div>
+        <div class="stat-trend up"><a href="contacts.html" style="color:var(--green);font-size:.7rem;">View inbox →</a></div>
+      </div>
+    </div>
+
+    <div class="card-grid card-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+
+      <!-- Recent enquiries -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Recent Enquiries</div>
+          <a href="contacts.html" class="btn btn-ghost btn-sm">View all</a>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>Name</th><th>Type</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Sarah K.</strong></td><td>Speaking</td><td><span class="badge badge-new">New</span></td></tr>
+            <tr><td><strong>Marc D.</strong></td><td>Podcast</td><td><span class="badge badge-new">New</span></td></tr>
+            <tr><td><strong>Amara L.</strong></td><td>Partnership</td><td><span class="badge badge-new">New</span></td></tr>
+            <tr><td><strong>James O.</strong></td><td>General</td><td><span class="badge badge-read">Read</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Quick actions -->
+      <div class="card">
+        <div class="card-header"><div class="card-title">Quick Actions</div></div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <a href="episodes.html" class="btn btn-secondary" style="justify-content:flex-start;">+ Add new podcast episode</a>
+          <a href="articles.html" class="btn btn-secondary" style="justify-content:flex-start;">+ Write a new article</a>
+          <a href="books.html" class="btn btn-secondary" style="justify-content:flex-start;">+ Update book pre-order link</a>
+          <a href="content.html" class="btn btn-secondary" style="justify-content:flex-start;">✎ Edit homepage hero text</a>
+          <a href="content.html" class="btn btn-secondary" style="justify-content:flex-start;">✎ Update portrait photo</a>
+        </div>
+        <div class="alert alert-info" style="margin-top:16px;">
+          <span>💡</span>
+          <span>Stripe is not yet connected. <a href="#" style="color:var(--forest);text-decoration:underline;">Connect now</a> to activate book pre-orders.</span>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+</div>
+<script src="portal.js"></script>
+
+</body>
+</html>

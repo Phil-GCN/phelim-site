@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Engagements — Phelim Ekwebe</title>
+  <meta name="description" content="Speaking, books, and essays. Ideas designed to change how an audience thinks, not just what they know.">
+  <meta property="og:title" content="Engagements — Phelim Ekwebe">
+  <meta property="og:description" content="Speaking, books, and essays. Ideas designed to change how an audience thinks, not just what they know.">
+  <meta property="og:type" content="website">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,600&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="base.css">
+  <link rel="stylesheet" href="pages.css">
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a class="nav-logo" href="index.html">Phelim Ekwebe</a>
+    <ul class="nav-links">
+      <li><a id="nl-home" href="index.html">Home</a></li>
+      <li><a id="nl-about" href="about.html">About</a></li>
+      <li><a id="nl-podcast" href="podcast.html">Podcast</a></li>
+      <li><a id="nl-eng" class="active-link" href="engagements.html">Engagements</a></li>
+      <li><a id="nl-resources" href="resources.html">Resources</a></li>
+    </ul>
+    <button class="nav-cta" onclick="openModal('general')">Work With Me</button>
+    <button class="ham" onclick="toggleMenu()"><span></span><span></span><span></span></button>
+  </div>
+</nav>
+<div id="mob-menu" style="display:none">
+  <a href="index.html">Home</a>
+  <a href="about.html">About</a>
+  <a href="podcast.html">Podcast</a>
+  <a href="engagements.html">Engagements</a>
+  <a href="resources.html">Resources</a>
+  <a href="contact.html">Contact</a>
+  <button class="btn btn-dark" style="margin-top:14px;width:100%;justify-content:center;" onclick="openModal('general')">Work With Me</button>
+</div>
+
+<main>
+<section class="eng-hero">
+    <div class="container">
+      <div class="eyebrow" style="margin-bottom:12px;">Engagements</div>
+      <h1>Ideas that matter.<br>Words that last.</h1>
+      <div class="eng-tab-strip">
+        <button class="eng-tab active" id="eng-tab-speaking" onclick="switchEngTab('speaking')">Speaking</button>
+        <button class="eng-tab" id="eng-tab-books" onclick="switchEngTab('books')">Books</button>
+        <button class="eng-tab" id="eng-tab-articles" onclick="switchEngTab('articles')">Articles</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- SPEAKING -->
+  <div id="eng-speaking" class="eng-tab-panel active">
+    <div class="container">
+      <div class="speaking-intro">
+        <div><div class="eyebrow" style="margin-bottom:12px;">Speaking</div><h2>Ideas designed to change how your audience thinks</h2><p style="margin-top:12px;margin-bottom:22px;">Keynotes and sessions on identity, systems thinking, decision architecture, and the structures behind meaningful lives.</p><button class="btn btn-dark" onclick="openModal('speaking')">Book a Talk</button></div>
+        <div style="background:var(--paper-mid);border:1px solid var(--ink12);padding:26px;"><p style="font-size:.84rem;color:var(--ink60);line-height:1.75;margin-bottom:12px;">Available globally — in person and virtually.</p><ul class="feat-list"><li>Keynotes, workshops, panels, fireside formats</li><li>Custom talk development for your specific audience</li><li>Corporate, academic, and SME contexts</li><li>Virtual and hybrid formats available</li></ul></div>
+      </div>
+      <div class="speaking-note"><p><strong>A note on how I work:</strong> The topics below are not a menu — they are the areas where I have done the deepest thinking. The best sessions I have delivered were shaped around a specific audience and a specific outcome. If you have a clear problem or a particular kind of shift you want your audience to make, that conversation is worth having.</p></div>
+      <div class="eyebrow" style="margin-bottom:12px;">Areas of Expertise</div><h2 style="margin-bottom:24px;">What I speak on</h2>
+      <div class="topics-grid">
+        <div class="topic-card"><h3>Identity by Design</h3><p style="font-size:.84rem;">How identity is constructed through decisions, habits, and the environments we choose — not found, but built.</p></div>
+        <div class="topic-card"><h3>Systems Thinking for Life and Work</h3><p style="font-size:.84rem;">Why motivation fails and structure succeeds. Building consistent results regardless of how you feel.</p></div>
+        <div class="topic-card"><h3>Decision Architecture</h3><p style="font-size:.84rem;">Designing your decision-making environment for long-term outcomes rather than short-term reactions.</p></div>
+        <div class="topic-card"><h3>The CEO of Your Own Life</h3><p style="font-size:.84rem;">Radical ownership and intentional design applied to the business of your own life.</p></div>
+        <div class="topic-card"><h3>The Long Game</h3><p style="font-size:.84rem;">Those who create lasting impact optimise for the decade. On long-term thinking and compounding choices.</p></div>
+        <div class="topic-card"><h3>Technology, Real Estate & Cross-Border Building</h3><p style="font-size:.84rem;">Investing and building across jurisdictions — practical perspectives on tech and real estate as vehicles for impact.</p></div>
+        <div class="topic-card"><h3>Legacy & Meaningful Impact</h3><p style="font-size:.84rem;">What you build into people, systems, and perspectives while you're still here — not just what you leave behind.</p></div>
+        <div class="topic-card"><h3>Custom & Collaborative Talks</h3><p style="font-size:.84rem;">Have a specific theme? I develop talks tailored to your audience and outcomes.</p></div>
+        <div class="topic-card" style="background:var(--forest-faint);border-color:rgba(38,61,51,.2);display:flex;flex-direction:column;justify-content:center;gap:11px;cursor:pointer;" onclick="openModal('speaking')"><div style="font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--forest);font-weight:500;">Have something specific?</div><div style="font-family:var(--serif);font-size:.97rem;color:var(--ink);line-height:1.4;">Let's build a talk around your event</div><div style="font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--forest);border-bottom:1px solid var(--forest);padding-bottom:2px;width:fit-content;">Book a conversation →</div></div>
+      </div>
+      <div style="margin-top:44px;"><div class="eyebrow" style="margin-bottom:12px;">Who I Speak To</div><h2 style="margin-bottom:0;">Built for multiple contexts</h2></div>
+      <div class="audience-grid"><div class="audience-card"><div class="aud-icon">◈</div><h3>Corporate & Executive</h3><p style="font-size:.83rem;">Leadership development, performance culture, and systems thinking for professional organisations.</p></div><div class="audience-card"><div class="aud-icon">◉</div><h3>Universities & Academia</h3><p style="font-size:.83rem;">Commencement addresses, student leadership events, and graduate development programmes.</p></div><div class="audience-card"><div class="aud-icon">◎</div><h3>Communities & Professional Events</h3><p style="font-size:.83rem;">Multicultural communities, entrepreneurship summits, tech and real estate conferences, and professional associations.</p></div></div>
+      <div class="book-speaking-inner" style="margin-top:52px;">
+        <div><div class="eyebrow" style="margin-bottom:13px;">Book Phelim</div><h2>Let's talk about your event</h2><p style="margin-top:12px;margin-bottom:18px;">Tell me about your audience, event, and what you want them to walk away with. I'll respond within two business days.</p><ul style="list-style:none;display:flex;flex-direction:column;gap:8px;color:var(--ink60);font-size:.87rem;"><li>— Keynote and plenary sessions</li><li>— Workshops and breakouts</li><li>— Panels and fireside chats</li><li>— Virtual and hybrid formats</li></ul></div>
+        <form class="form" onsubmit="handleSubmit(event)">
+          <div class="frow"><div class="fg"><label class="flabel">Name</label><input class="finput" type="text" placeholder="Full name"></div><div class="fg"><label class="flabel">Email</label><input class="finput" type="email" placeholder="you@org.com"></div></div>
+          <div class="fg"><label class="flabel">Organisation</label><input class="finput" type="text" placeholder="Company or institution"></div>
+          <div class="fg"><label class="flabel">Event type</label><select class="fselect"><option>Keynote</option><option>Workshop</option><option>Panel / Fireside</option><option>Other</option></select></div>
+          <div class="fg"><label class="flabel">Tell me about the event</label><textarea class="ftextarea" placeholder="Audience, date, theme, expected outcomes..."></textarea></div>
+          <button type="submit" class="btn btn-dark" style="width:100%;justify-content:center;">Send Booking Enquiry</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOOKS -->
+  <div id="eng-books" class="eng-tab-panel">
+    <div class="container">
+      <div class="eyebrow" style="margin-bottom:12px;">Books</div>
+      <h2 style="margin-bottom:28px;">Ideas worth owning</h2>
+      <!-- Per-book tabs -->
+      <div class="book-tabs-nav">
+        <button class="book-tab-btn active" id="bt-btl" onclick="switchBookTab('btl',this)">Built to Last</button>
+        <button class="book-tab-btn" id="bt-bs" onclick="switchBookTab('bs',this)">Beyond Survival</button>
+        <button class="book-tab-btn" id="bt-more" onclick="switchBookTab('more',this)" style="opacity:.5;">More coming</button>
+      </div>
+      <!-- Built to Last -->
+      <div id="book-btl" class="book-tab-panel active">
+        <div class="book-cover-wrap">
+          <div class="book-cover">
+            <div class="book-cover-badge">Pre-order</div>
+            <div class="book-cover-title">Built to Last</div>
+            <div class="book-cover-author">Phelim Ekwebe</div>
+            <div class="book-cover-series">Book 2</div>
+          </div>
+        </div>
+        <div class="book-info-panel">
+          <div class="book-tag">Coming Soon · Pre-order open</div>
+          <div class="book-main-title">Built to Last</div>
+          <div class="book-subtitle">The Modern Guide to Wealth, Freedom, and Legacy</div>
+          <p class="book-desc">Not motivation. Not quick wins. A clear-eyed, personal exploration of the structures behind lives that hold — in meaning, wealth, freedom, and what remains long after the achievements fade. Honest, direct, story-heavy. Written for those who are done surviving and ready to build.</p>
+          <div class="book-meta-row">
+            <div class="book-meta"><strong>Author</strong> Phelim Ekwebe</div>
+            <div class="book-meta"><strong>Est. publication</strong> February 2027</div>
+            <div class="book-meta"><strong>Format</strong> Hardcover · eBook · Audiobook</div>
+          </div>
+          <div style="font-size:.78rem;color:var(--ink30);margin-bottom:14px;">Countdown to launch</div>
+          <div class="countdown-row">
+            <div class="countdown-unit"><div class="countdown-num" id="cd-days">--</div><div class="countdown-lbl">Days</div></div>
+            <div class="countdown-unit"><div class="countdown-num" id="cd-hours">--</div><div class="countdown-lbl">Hours</div></div>
+            <div class="countdown-unit"><div class="countdown-num" id="cd-mins">--</div><div class="countdown-lbl">Mins</div></div>
+            <div class="countdown-unit"><div class="countdown-num" id="cd-secs">--</div><div class="countdown-lbl">Secs</div></div>
+          </div>
+          <div class="book-ctas">
+            <button class="btn btn-dark" onclick="openCheckout('btl')">Pre-order Now</button>
+            <button class="btn btn-outline" onclick="openModal('general')">Get launch notification</button>
+          </div>
+        </div>
+      </div>
+      <!-- Beyond Survival -->
+      <div id="book-bs" class="book-tab-panel">
+        <div class="book-cover-wrap">
+          <div class="book-cover" style="background:#1a2d24;">
+            <div class="book-cover-badge" style="background:var(--ink);">Coming soon</div>
+            <div class="book-cover-title">Beyond Survival</div>
+            <div class="book-cover-author">Philip Ekwebe</div>
+            <div class="book-cover-series">Book 1</div>
+          </div>
+        </div>
+        <div class="book-info-panel">
+          <div class="book-tag">Coming Soon · Book 1</div>
+          <div class="book-main-title">Beyond Survival</div>
+          <div class="book-subtitle">The Immigrant's Guide to Generational Wealth</div>
+          <p class="book-desc">For the first-generation immigrant who arrived with drive, built a life, and now asks — what's next? This book is rooted in lived experience: the decisions that separate survival from legacy, the financial behaviours that compound across generations, and the identity shifts that make it all possible. Written for African diaspora builders, and for anyone who has navigated building a life across borders.</p>
+          <div style="background:var(--forest-faint);border:1px solid rgba(38,61,51,.15);padding:15px 18px;margin-bottom:16px;"><p style="font-size:.83rem;color:var(--ink60);margin:0;line-height:1.7;">This book is personal. It comes from watching — and living — the journey of first-generation Africans and immigrants who arrive with everything and often leave wealth-building to chance. <em>Beyond Survival</em> is the guide I wished existed.</p></div>
+          <div class="book-meta-row">
+            <div class="book-meta"><strong>Author</strong> Philip Ekwebe</div>
+            <div class="book-meta"><strong>Est. publication</strong> January 2027</div>
+            <div class="book-meta"><strong>Audience</strong> African diaspora &amp; first-gen immigrants</div>
+          </div>
+          <div class="book-ctas">
+            <button class="btn btn-dark" onclick="openCheckout('bs')">Pre-order Now</button>
+            <button class="btn btn-outline" onclick="openModal('general')">Get launch notification</button>
+          </div>
+        </div>
+      </div>
+      <!-- More coming -->
+      <div id="book-more" class="book-tab-panel" style="opacity:.6;">
+        <div class="book-cover-wrap"><div class="book-cover" style="background:var(--paper-dark);border:1px dashed var(--ink12);"><div class="book-cover-title" style="color:var(--ink30);font-size:1rem;">Coming next</div></div></div>
+        <div class="book-info-panel"><div class="book-tag">In development</div><div class="book-main-title">More to come</div><p class="book-desc">Future titles in development. There is more to say. Sign up to be the first to know when the next book is announced.</p><button class="btn btn-outline" onclick="openModal('general')">Stay updated</button></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ARTICLES -->
+  <div id="eng-articles" class="eng-tab-panel">
+    <div class="container">
+      <div id="articles-list-view">
+        <div class="eyebrow" style="margin-bottom:12px;">Ideas & Frameworks</div>
+        <h2 style="margin-bottom:8px;">A thinking library — built one idea at a time</h2>
+        <p style="max-width:520px;margin-bottom:6px;font-size:.91rem;">A collection of frameworks, reflections, and precise thinking on how people design structured lives. Not motivational content. Not listicles. Ideas that try to say something true.</p>
+        <p style="max-width:520px;margin-bottom:28px;font-size:.83rem;color:var(--ink30);">Click any piece to read in full.</p>
+        <div class="articles-layout">
+          <!-- Vertical sidebar filter -->
+          <div class="articles-sidebar">
+            <div class="art-sidebar-label">Filter by theme</div>
+            <button class="art-filter-btn active" onclick="filterArticles('all',this)">All</button>
+            <button class="art-filter-btn" onclick="filterArticles('systems',this)">Systems</button>
+            <button class="art-filter-btn" onclick="filterArticles('identity',this)">Identity</button>
+            <button class="art-filter-btn" onclick="filterArticles('investment',this)">Investment</button>
+            <button class="art-filter-btn" onclick="filterArticles('legacy',this)">Legacy</button>
+          </div>
+          <div class="articles-list" id="articles-list"></div>
+        </div>
+      </div>
+      <!-- Full article view (hidden until click) -->
+      <div id="article-full-view" class="article-full">
+        <div class="article-full-inner">
+          <div class="article-back" onclick="closeArticle()">← Back to Articles</div>
+          <div class="article-full-tag" id="af-tag"></div>
+          <div class="article-full-title" id="af-title"></div>
+          <div class="article-full-meta" id="af-meta"></div>
+          <div class="article-full-body" id="af-body"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- ════ GENERAL MODAL ════ -->
+<div class="modal-overlay" id="modal" onclick="closeModalOuter(event)">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <div class="modal-eyebrow" id="m-eyebrow">Get in touch</div>
+    <div class="modal-title" id="m-title">Work With Phelim</div>
+    <div id="m-form-body"></div>
+  </div>
+</div>
+
+<!-- ════ CHECKOUT MODAL ════ -->
+<div class="modal-overlay" id="checkout-modal" onclick="closeCheckoutOuter(event)">
+  <div class="checkout-box">
+    <div class="checkout-head">
+      <button class="checkout-close" onclick="closeCheckout()">×</button>
+      <div class="checkout-eyebrow-lbl" id="co-eyebrow">Pre-order</div>
+      <div class="checkout-title" id="co-title">Built to Last</div>
+      <div class="checkout-price" id="co-price">€ 24.99</div>
+    </div>
+    <div class="checkout-body">
+      <div class="checkout-item-row">
+        <div class="checkout-cover" id="co-cover" style="background:var(--forest);"><span id="co-cover-text">Built to Last</span></div>
+        <div class="checkout-item-info">
+          <div class="checkout-item-name" id="co-item-name">Built to Last</div>
+          <div class="checkout-item-type" id="co-item-type">Pre-order · Hardcover</div>
+        </div>
+        <div class="checkout-item-price" id="co-item-price">€ 24.99</div>
+      </div>
+      <div class="checkout-note"><p><strong>Pre-order guarantee:</strong> You will be charged now and your copy ships as soon as the book is available. Cancel anytime before dispatch for a full refund.</p></div>
+      <div class="checkout-divider">Your details</div>
+      <form class="form" id="checkout-form" onsubmit="handleCheckout(event)">
+        <div class="frow">
+          <div class="fg"><label class="flabel">First name</label><input class="finput" type="text" placeholder="First name" required></div>
+          <div class="fg"><label class="flabel">Last name</label><input class="finput" type="text" placeholder="Last name" required></div>
+        </div>
+        <div class="fg"><label class="flabel">Email</label><input class="finput" type="email" placeholder="your@email.com" required></div>
+        <div class="fg"><label class="flabel">Format</label>
+          <select class="fselect" id="co-format" onchange="updateCoPrice()">
+            <option value="24.99">Hardcover — € 24.99</option>
+            <option value="12.99">eBook (PDF + ePub) — € 12.99</option>
+            <option value="14.99">Audiobook — € 14.99</option>
+            <option value="29.99">Hardcover + eBook bundle — € 29.99</option>
+          </select>
+        </div>
+        <div class="checkout-divider">Payment</div>
+        <div class="checkout-methods">
+          <div class="pay-method selected" onclick="selectPayMethod(this,'card')">
+            <div class="pay-method-icon">💳</div><div class="pay-method-label">Card</div>
+          </div>
+          <div class="pay-method" onclick="selectPayMethod(this,'bank')">
+            <div class="pay-method-icon">🏦</div><div class="pay-method-label">Bank transfer</div>
+          </div>
+        </div>
+        <div id="card-fields">
+          <div class="fg"><label class="flabel">Card number</label><input class="finput" type="text" placeholder="•••• •••• •••• ••••" maxlength="19"></div>
+          <div class="frow">
+            <div class="fg"><label class="flabel">Expiry</label><input class="finput" type="text" placeholder="MM / YY" maxlength="7"></div>
+            <div class="fg"><label class="flabel">CVC</label><input class="finput" type="text" placeholder="•••" maxlength="4"></div>
+          </div>
+        </div>
+        <div id="bank-fields" style="display:none;background:var(--forest-faint);border:1px solid rgba(38,61,51,.15);padding:15px 17px;margin-bottom:4px;">
+          <p style="font-size:.82rem;color:var(--ink60);margin-bottom:7px;">Bank transfer details will be sent to your email once you place the order.</p>
+          <p style="font-size:.78rem;color:var(--ink30);margin:0;font-style:italic;">Orders are held for 5 business days pending payment.</p>
+        </div>
+        <button type="submit" class="btn btn-dark" style="width:100%;justify-content:center;padding:13px;margin-top:14px;">Complete Pre-order</button>
+        <div class="stripe-badge">Payments processed securely via Stripe. Connect your Stripe account to activate.</div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="site-footer-inner">
+      <div class="footer-logo">Phelim Ekwebe</div>
+      <div class="footer-links">
+        <a href="index.html">Home</a>
+        <a href="about.html">About</a>
+        <a href="podcast.html">Podcast</a>
+        <a href="engagements.html">Engagements</a>
+        <a href="resources.html">Resources</a>
+        <a href="contact.html">Contact</a>
+      </div>
+      <div class="footer-copy">&copy; 2025 Phelim Ekwebe. All rights reserved.</div>
+    </div>
+  </div>
+</footer>
+
+  <script src="data.js"></script>
+  <script src="nav.js"></script>
+  <script src="articles.js"></script>
+  <script src="modals.js"></script>
+<script>
+  renderArticles(ARTICLES, 'all');
+  // Tab switching (page-level, no showPage needed)
+  window.switchEngTab = function(id) {
+    ['speaking','books','articles'].forEach(t => {
+      document.getElementById('eng-tab-' + t)?.classList.toggle('active', t === id);
+      document.getElementById('eng-' + t)?.classList.toggle('active', t === id);
+    });
+    if (id === 'articles') renderArticles(ARTICLES, 'all');
+  };
+  window.switchBookTab = function(id, btn) {
+    document.querySelectorAll('.book-tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.book-tab-panel').forEach(p => p.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    document.getElementById('book-' + id)?.classList.add('active');
+  };
+  // Check URL hash for direct tab
+  const hash = window.location.hash.replace('#','');
+  if (['speaking','books','articles'].includes(hash)) switchEngTab(hash);
+</script>
+
+</body>
+</html>

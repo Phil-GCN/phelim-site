@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Site Content — Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="portal.css">
+</head>
+<body>
+<div class="portal-layout">
+
+  <!-- TOPBAR -->
+  <header class="portal-topbar">
+    <div class="topbar-logo">Phelim Ekwebe <span>Content Portal</span></div>
+    <div class="topbar-right">
+      <a href="../index.html" class="topbar-view" target="_blank">View Site ↗</a>
+      <span class="topbar-user">Phelim Ekwebe</span>
+      <button class="topbar-btn" onclick="logout()">Sign Out</button>
+    </div>
+  </header>
+
+  <!-- SIDEBAR -->
+  <aside class="portal-sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Overview</div>
+      <a class="sidebar-link " href="index.html"><span class="sidebar-icon">◈</span> Dashboard</a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Content</div>
+      <a class="sidebar-link " href="episodes.html"><span class="sidebar-icon">◎</span> Episodes</a>
+      <a class="sidebar-link " href="articles.html"><span class="sidebar-icon">◉</span> Articles</a>
+      <a class="sidebar-link " href="books.html"><span class="sidebar-icon">▣</span> Books</a>
+      <a class="sidebar-link active" href="content.html"><span class="sidebar-icon">◇</span> Site Content</a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Inbox</div>
+      <a class="sidebar-link " href="contacts.html"><span class="sidebar-icon">✉</span> Enquiries <span class="sidebar-badge" id="unread-badge">4</span></a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Settings</div>
+      <a class="sidebar-link" href="settings.html"><span class="sidebar-icon">⚙</span> Site Settings</a>
+      <a class="sidebar-link" href="integrations.html"><span class="sidebar-icon">🔗</span> Integrations</a>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="portal-main">
+    <div class="page-header">
+      <div class="page-header-left">
+        <h1>Site Content</h1>
+        <p>Edit key text blocks and media across the site without touching code.</p>
+      </div>
+    </div>
+
+    <div class="portal-tabs">
+      <button class="portal-tab active" id="sc-tab-hero" onclick="showSCTab('hero')">Hero</button>
+      <button class="portal-tab" id="sc-tab-about" onclick="showSCTab('about')">About</button>
+      <button class="portal-tab" id="sc-tab-media" onclick="showSCTab('media')">Media</button>
+      <button class="portal-tab" id="sc-tab-speaking" onclick="showSCTab('speaking')">Speaking</button>
+    </div>
+
+    <!-- HERO TAB -->
+    <div class="portal-tab-panel active" id="sc-panel-hero">
+      <div class="alert alert-info"><span>ℹ</span><span>Changes here update the homepage hero section. Save to apply.</span></div>
+      <div class="form-group">
+        <label class="form-label">Headline — Line 1</label>
+        <input class="form-input" value="Most people measure their lives">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Headline — Line 2</label>
+        <input class="form-input" value="by what they achieve.">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Manifesto (italic line below headline)</label>
+        <input class="form-input" value="The more important question is what they build — into their decisions, their habits, and the people around them.">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Sub-paragraph</label>
+        <textarea class="form-textarea" style="min-height:80px;">I explore how people design lives with lasting impact — through systems, structured decisions, and the hard work of thinking clearly about what actually matters.</textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Portrait subtext (below photo)</label>
+        <input class="form-input" value="I explore how people build lives that create lasting impact — through systems, decisions, and lived experience.">
+      </div>
+      <button class="btn btn-primary" onclick="saveContent('hero')">Save Hero Content</button>
+    </div>
+
+    <!-- ABOUT TAB -->
+    <div class="portal-tab-panel" id="sc-panel-about">
+      <div class="form-group">
+        <label class="form-label">Opening paragraph</label>
+        <textarea class="form-textarea">Phelim Ekwebe is a life strategist, systems thinker, speaker, and author. His work asks a precise question: why do some people build lives that compound over time — and what is the structural difference between those who do and those who do not?</textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Second paragraph</label>
+        <textarea class="form-textarea">The answer is rarely talent or effort. It is structure — the invisible architecture of decisions, environments, and habits that most people never examine. That is what the podcast, the writing, and the speaking are built around.</textarea>
+      </div>
+      <button class="btn btn-primary" onclick="saveContent('about')">Save About Content</button>
+    </div>
+
+    <!-- MEDIA TAB -->
+    <div class="portal-tab-panel" id="sc-panel-media">
+      <div class="card" style="margin-bottom:14px;">
+        <div class="card-header"><div class="card-title">Portrait Photo</div></div>
+        <div style="display:grid;grid-template-columns:120px 1fr;gap:20px;align-items:start;">
+          <div style="width:120px;aspect-ratio:4/5;background:var(--paper-dark);border:1px dashed var(--ink12);display:flex;align-items:center;justify-content:center;">
+            <span style="font-size:.65rem;color:var(--ink30);text-align:center;padding:8px;">Placeholder</span>
+          </div>
+          <div>
+            <div class="form-group">
+              <label class="form-label">Upload portrait</label>
+              <input class="form-input" type="file" accept="image/*">
+              <div class="form-hint">Recommended: square or 4:5 portrait, B&amp;W, background removed (PNG). Min 800×800px.</div>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="saveContent('photo')">Upload Photo</button>
+          </div>
+        </div>
+      </div>
+      <div class="alert alert-info"><span>💡</span><span style="font-size:.78rem;">After uploading, the photo will appear in the hero, about page, and sidebar profile card. Use a PNG with transparent background for best results.</span></div>
+    </div>
+
+    <!-- SPEAKING TAB -->
+    <div class="portal-tab-panel" id="sc-panel-speaking">
+      <div class="form-group">
+        <label class="form-label">Speaking intro heading</label>
+        <input class="form-input" value="Ideas designed to change how your audience thinks">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Speaking intro paragraph</label>
+        <textarea class="form-textarea" style="min-height:70px;">Keynotes and sessions on identity, systems thinking, decision architecture, and the structures behind meaningful lives.</textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Booking note</label>
+        <textarea class="form-textarea" style="min-height:70px;">The topics below are not a menu — they are the areas where I have done the deepest thinking. The best sessions I have delivered were shaped around a specific audience and a specific outcome.</textarea>
+      </div>
+      <button class="btn btn-primary" onclick="saveContent('speaking')">Save Speaking Content</button>
+    </div>
+  </main>
+
+</div>
+<script src="portal.js"></script>
+
+</body>
+</html>
