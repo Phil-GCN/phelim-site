@@ -93,7 +93,43 @@ function handleCheckout(e){
 }
 
 // ═══ FORMS ═══
-function handleSubmit(e){e.preventDefault();const btn=e.target.querySelector('button[type="submit"]');const orig=btn.textContent;btn.textContent='Sent ✓';btn.style.background='var(--forest)';setTimeout(()=>{btn.textContent=orig;btn.style.background='';},2400);}
+async function handleSubmit(e, type) {
+  e.preventDefault();
+  const form = e.target;
+  const btn = form.querySelector('button[type="submit"]');
+  const orig = btn.textContent;
+  btn.textContent = 'Sending…';
+  btn.disabled = true;
+
+  const data = new FormData(form);
+  const name  = data.get('name')  || '';
+  const email = data.get('email') || '';
+
+  // Submit to Netlify Forms
+  try {
+    await fetch('/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams(data).toString(),
+    });
+  } catch(_) {}
+
+  // Send branded auto-reply via Netlify Function
+  if (email) {
+    try {
+      await fetch('/.netlify/functions/send-reply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to: email, name, type: type || 'general', mode: 'auto' }),
+      });
+    } catch(_) {}
+  }
+
+  btn.textContent = 'Sent ✓';
+  btn.style.background = 'var(--forest)';
+  form.reset();
+  setTimeout(() => { btn.textContent = orig; btn.style.background = ''; btn.disabled = false; }, 3000);
+}
 
 // ═══ COUNTDOWN ═══
 const launchDate=new Date('2027-02-01T00:00:00');
