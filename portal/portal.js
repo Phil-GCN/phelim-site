@@ -154,26 +154,41 @@ function markAllRead() {
   showToast('All enquiries marked as read.');
 }
 
-// ── SITE CONTENT SAVE (localStorage — will migrate to Supabase) ──
-function saveContent(section) {
+// ── SITE CONTENT SAVE ──
+async function saveContent(section) {
   const saved = JSON.parse(localStorage.getItem('portal-site-content') || '{}');
+  const dbUpdates = {}; // key → value for DB.setSiteContent calls
+
+  const pick = (id, key) => {
+    const val = document.getElementById(id)?.value;
+    if (val !== undefined && val !== null) { saved[key] = val; dbUpdates[key] = val; }
+  };
 
   if (section === 'hero') {
-    saved.heroHeading  = document.getElementById('sc-hero-heading')?.value  || saved.heroHeading;
-    saved.heroSub      = document.getElementById('sc-hero-sub')?.value      || saved.heroSub;
-    saved.heroEyebrow  = document.getElementById('sc-hero-eyebrow')?.value  || saved.heroEyebrow;
+    pick('sc-hero-heading', 'heroHeading');
+    pick('sc-hero-sub',     'heroSub');
+    pick('sc-hero-eyebrow', 'heroEyebrow');
   } else if (section === 'about') {
-    saved.aboutP1 = document.getElementById('sc-about-p1')?.value || saved.aboutP1;
-    saved.aboutP2 = document.getElementById('sc-about-p2')?.value || saved.aboutP2;
+    pick('sc-about-p1', 'aboutP1');
+    pick('sc-about-p2', 'aboutP2');
   } else if (section === 'speaking') {
-    saved.speakingHeading = document.getElementById('sc-speaking-heading')?.value || saved.speakingHeading;
-    saved.speakingIntro   = document.getElementById('sc-speaking-intro')?.value   || saved.speakingIntro;
-    saved.speakingNote    = document.getElementById('sc-speaking-note')?.value    || saved.speakingNote;
+    pick('sc-speaking-heading', 'speakingHeading');
+    pick('sc-speaking-intro',   'speakingIntro');
+    pick('sc-speaking-note',    'speakingNote');
+  } else if (section === 'branding') {
+    pick('sc-footer-copy', 'footerCopy');
   }
 
   localStorage.setItem('portal-site-content', JSON.stringify(saved));
 
-  const labels = { hero: 'Hero content', about: 'About content', speaking: 'Speaking content', photo: 'Portrait photo' };
+  // Persist to DB if available
+  if (window.DB && Object.keys(dbUpdates).length) {
+    try {
+      await DB.setSiteContent(dbUpdates);
+    } catch(e) { console.warn('DB save failed, localStorage only:', e); }
+  }
+
+  const labels = { hero: 'Hero content', about: 'About content', speaking: 'Speaking content', photo: 'Portrait photo', branding: 'Branding' };
   showToast(`${labels[section] || 'Content'} saved.`);
 }
 

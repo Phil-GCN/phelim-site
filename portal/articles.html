@@ -247,6 +247,7 @@
   </main>
 
 </div>
+<script src="../data.js"></script>
 <script src="portal.js"></script>
 <script src="db.js"></script>
 <script>
@@ -259,6 +260,15 @@ async function initArticles() {
   if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--ink30);">Loading…</td></tr>';
   try {
     PORTAL_ARTICLES = await DB.getArticles();
+    // First-time seed: if Supabase is empty, push the default articles
+    if (!PORTAL_ARTICLES.length && typeof ARTICLES_DEFAULT !== 'undefined' && ARTICLES_DEFAULT.length) {
+      showToast('Seeding default articles to database…');
+      for (const a of ARTICLES_DEFAULT) {
+        await DB.saveArticle({ ...a, status: 'published', updated_at: new Date().toISOString() });
+      }
+      PORTAL_ARTICLES = ARTICLES_DEFAULT.map(a => ({ ...a, status: 'published' }));
+      showToast('Default articles seeded. Ready.');
+    }
     renderList();
   } catch(err) {
     showToast('Could not load articles: ' + err.message);

@@ -57,6 +57,7 @@
       <button class="portal-tab" id="sc-tab-about" onclick="showSCTab('about')">About</button>
       <button class="portal-tab" id="sc-tab-media" onclick="showSCTab('media')">Media</button>
       <button class="portal-tab" id="sc-tab-speaking" onclick="showSCTab('speaking')">Speaking</button>
+      <button class="portal-tab" id="sc-tab-branding" onclick="showSCTab('branding')">Branding</button>
     </div>
 
     <!-- HERO TAB -->
@@ -127,10 +128,22 @@
       </div>
       <button class="btn btn-primary" onclick="saveContent('speaking')">Save Speaking Content</button>
     </div>
+
+    <!-- BRANDING TAB -->
+    <div class="portal-tab-panel" id="sc-panel-branding">
+      <div class="alert alert-info"><span>ℹ</span><span>Changes here update global branding elements across the site.</span></div>
+      <div class="form-group">
+        <label class="form-label">Footer copyright text</label>
+        <input class="form-input" id="sc-footer-copy" value="© 2025 Phelim Ekwebe. All rights reserved.">
+        <div class="form-hint">Appears in the footer of every page.</div>
+      </div>
+      <button class="btn btn-primary" onclick="saveContent('branding')">Save Branding</button>
+    </div>
   </main>
 
 </div>
 <script src="portal.js"></script>
+<script src="db.js"></script>
 <script>
 // Load saved values into all fields on page load
 (function loadSavedContent() {
@@ -144,6 +157,7 @@
   set('sc-speaking-heading',saved.speakingHeading);
   set('sc-speaking-intro',  saved.speakingIntro);
   set('sc-speaking-note',   saved.speakingNote);
+  set('sc-footer-copy',     saved.footerCopy);
 
   // Photo preview
   if (saved.portraitPhoto) {
@@ -163,6 +177,28 @@ function previewPhoto(input) {
   };
   reader.readAsDataURL(input.files[0]);
 }
+
+// Load from DB and update fields
+async function loadContentFromDB() {
+  if (!window.DB) return;
+  try {
+    const sc = await DB.getSiteContent(); // returns flat {key: value} object
+    if (!sc || !Object.keys(sc).length) return;
+    const saved = JSON.parse(localStorage.getItem('portal-site-content') || '{}');
+    const map = { heroHeading:'sc-hero-heading', heroEyebrow:'sc-hero-eyebrow', heroSub:'sc-hero-sub',
+                  aboutP1:'sc-about-p1', aboutP2:'sc-about-p2',
+                  speakingHeading:'sc-speaking-heading', speakingIntro:'sc-speaking-intro', speakingNote:'sc-speaking-note',
+                  footerCopy:'sc-footer-copy' };
+    Object.entries(sc).forEach(([key, value]) => {
+      if (!value) return;
+      saved[key] = value;
+      const el = document.getElementById(map[key]);
+      if (el) el.value = value;
+    });
+    localStorage.setItem('portal-site-content', JSON.stringify(saved));
+  } catch(e) { console.warn('DB load failed:', e); }
+}
+document.addEventListener('DOMContentLoaded', () => { if (window.DB) loadContentFromDB(); else setTimeout(loadContentFromDB, 400); });
 
 // Override saveContent for photo to include the data URL
 const _origSaveContent = saveContent;

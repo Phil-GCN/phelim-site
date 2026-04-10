@@ -36,11 +36,54 @@ async function loadLiveEpisodes() {
   }
 }
 
+// Site content: apply text fields from Supabase to DOM elements
+async function loadSiteContent() {
+  const rows = await fetchFromDB('site_content');
+  if (!rows || !rows.length) return;
+  const sc = Object.fromEntries(rows.map(r => [r.key, r.value]));
+
+  // About page
+  const set = (id, val) => { const el = document.getElementById(id); if (el && val) el.innerHTML = val; };
+  const setText = (id, val) => { const el = document.getElementById(id); if (el && val) el.textContent = val; };
+
+  set('sc-live-about-p1', sc.aboutP1);
+  set('sc-live-about-p2', sc.aboutP2);
+
+  // Hero (index.html)
+  set('sc-live-hero-heading', sc.heroHeading);
+  set('sc-live-hero-sub', sc.heroSub);
+
+  // Speaking
+  setText('sc-live-speaking-heading', sc.speakingHeading);
+  set('sc-live-speaking-intro', sc.speakingIntro);
+
+  // Footer (all pages)
+  if (sc.footerCopy) {
+    document.querySelectorAll('.footer-copy').forEach(el => el.textContent = sc.footerCopy);
+  }
+}
+
+// Books: load from Supabase and update modal data
+async function loadLiveBooks() {
+  const rows = await fetchFromDB('books');
+  if (!rows || !rows.length) return;
+  // Update the BOOKS_DATA used by the checkout modal in modals.js
+  rows.forEach(b => {
+    if (window.BOOKS_DATA && window.BOOKS_DATA[b.id]) {
+      window.BOOKS_DATA[b.id].title    = b.title    || window.BOOKS_DATA[b.id].title;
+      window.BOOKS_DATA[b.id].subtitle = b.subtitle || window.BOOKS_DATA[b.id].subtitle;
+      window.BOOKS_DATA[b.id].price    = b.price    || window.BOOKS_DATA[b.id].price;
+    }
+  });
+}
+
 // Kick off background fetches — page renders immediately with defaults, updates silently
 if (typeof window !== 'undefined') {
   window.addEventListener('DOMContentLoaded', () => {
     loadLiveArticles();
     loadLiveEpisodes();
+    loadSiteContent();
+    loadLiveBooks();
   });
 }
 

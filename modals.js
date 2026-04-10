@@ -48,12 +48,12 @@ function handleModalSubmit(btn){
 }
 
 // ═══ CHECKOUT ═══
-const BOOKS_DATA={
+window.BOOKS_DATA={
   btl:{title:'Built to Last',subtitle:'The Modern Guide to Wealth, Freedom, and Legacy',price:'24.99',color:'var(--forest)'},
   bs:{title:'Beyond Survival',subtitle:"The Immigrant's Guide to Generational Wealth",price:'22.99',color:'#1a2d24'}
 };
 function openCheckout(id){
-  const b=BOOKS_DATA[id]||BOOKS_DATA.btl;
+  const b=window.BOOKS_DATA[id]||window.BOOKS_DATA.btl;
   document.getElementById('co-title').textContent=b.title;
   document.getElementById('co-price').textContent='€ '+b.price;
   document.getElementById('co-cover').style.background=b.color;
