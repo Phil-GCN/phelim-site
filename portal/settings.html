@@ -157,6 +157,7 @@
 
 </div>
 <script src="portal.js"></script>
+<script src="db.js"></script>
 <script>
 // ── Default templates (mirrors send-reply.js) ──
 const TPL_DEFAULTS = {
@@ -212,20 +213,35 @@ function switchTpl(type) {
   document.getElementById('tpl-status').textContent = saved.heading !== undefined ? '(custom saved)' : '(using default)';
 }
 
-function saveTpl() {
-  const all = getSavedTemplates();
-  all[activeTpl] = {
+async function saveTpl() {
+  const tpl = {
     heading: document.getElementById('tpl-heading').value,
     intro:   document.getElementById('tpl-intro').value,
     body:    document.getElementById('tpl-body').value,
     closing: document.getElementById('tpl-closing').value,
   };
-  localStorage.setItem('portal-email-templates', JSON.stringify(all));
-  document.getElementById('tpl-status').textContent = '(custom saved)';
-  showToast('Template saved.');
+  try {
+    await DB.saveTemplate(activeTpl, tpl);
+    // Also update local cache
+    const all = getSavedTemplates();
+    all[activeTpl] = tpl;
+    localStorage.setItem('portal-email-templates', JSON.stringify(all));
+    document.getElementById('tpl-status').textContent = '(saved)';
+    showToast('Template saved.');
+  } catch(err) {
+    // Fall back to localStorage only
+    const all = getSavedTemplates();
+    all[activeTpl] = tpl;
+    localStorage.setItem('portal-email-templates', JSON.stringify(all));
+    document.getElementById('tpl-status').textContent = '(saved locally)';
+    showToast('Template saved locally.');
+  }
 }
 
-function resetTpl() {
+async function resetTpl() {
+  try {
+    await DB.delete('email_templates', activeTpl);
+  } catch(_) {}
   const all = getSavedTemplates();
   delete all[activeTpl];
   localStorage.setItem('portal-email-templates', JSON.stringify(all));
@@ -257,8 +273,18 @@ function changePortalPassword() {
   showToast('Portal password updated.');
 }
 
-// Load initial template
-switchTpl('speaking');
+// Load templates from DB (with localStorage fallback already in getSavedTemplates)
+async function initTemplates() {
+  try {
+    const dbTpls = await DB.getTemplates();
+    if (dbTpls && Object.keys(dbTpls).length) {
+      // Merge into localStorage cache so getSavedTemplates() sees them
+      localStorage.setItem('portal-email-templates', JSON.stringify(dbTpls));
+    }
+  } catch(_) {} // silently fall back to local cache
+  switchTpl('speaking');
+}
+initTemplates();
 </script>
 </body>
 </html>

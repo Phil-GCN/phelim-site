@@ -82,65 +82,48 @@
 
 </div>
 <script src="portal.js"></script>
+<script src="db.js"></script>
 <script>
-const SENT_KEY   = 'portal-sent';
-const THREAD_KEY = 'portal-threads';
-
-function getSent() {
-  try { return JSON.parse(localStorage.getItem(SENT_KEY) || '[]'); } catch { return []; }
-}
-
-// Also pull replies from threads into a flat sent list
-function getAllSent() {
-  const direct = getSent(); // compose messages
-  const threads = JSON.parse(localStorage.getItem(THREAD_KEY) || '{}');
-  const replies = [];
-  for (const [submissionId, msgs] of Object.entries(threads)) {
-    msgs.forEach(m => replies.push({
-      ...m,
-      type: 'Reply',
-      submissionId,
-    }));
-  }
-  const all = [...direct.map(m => ({ ...m, type: m.type || 'Outbound' })), ...replies];
-  all.sort((a, b) => new Date(b.sentAt) - new Date(a.sentAt));
-  return all;
-}
-
 function fmtDate(d) {
   return new Date(d).toLocaleString('en-GB', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
 }
 
-function renderSent() {
-  const all   = getAllSent();
+async function initSent() {
   const tbody = document.getElementById('sent-tbody');
-  if (!all.length) {
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--ink30);">No sent messages yet. Replies and outbound messages will appear here.</td></tr>';
-    return;
+  tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--ink30);">Loading…</td></tr>';
+  try {
+    const rows = await DB.getSent();
+    const all  = (rows || []).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    if (!all.length) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--ink30);">No sent messages yet. Replies and outbound messages will appear here.</td></tr>';
+      return;
+    }
+    window._sentAll = all;
+    tbody.innerHTML = all.map((m, i) => `
+      <tr>
+        <td><strong>${m.to_name || '—'}</strong>${m.to_email ? `<br><span style="font-size:.72rem;color:var(--ink30);">${m.to_email}</span>` : ''}</td>
+        <td style="color:var(--ink60);">${m.subject || '—'}</td>
+        <td><span style="font-size:.75rem;color:var(--ink30);">${m.type || '—'}</span></td>
+        <td style="white-space:nowrap;color:var(--ink60);">${fmtDate(m.created_at)}</td>
+        <td style="text-align:right;"><button class="btn btn-ghost btn-sm" onclick="viewSent(${i})">View</button></td>
+      </tr>`).join('');
+  } catch(err) {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--ink30);">Error: ${err.message}</td></tr>`;
   }
-  tbody.innerHTML = all.map((m, i) => `
-    <tr>
-      <td><strong>${m.to || m.recipientName || '—'}</strong>${m.recipientEmail ? `<br><span style="font-size:.72rem;color:var(--ink30);">${m.recipientEmail}</span>` : ''}</td>
-      <td style="color:var(--ink60);">${m.subject || '—'}</td>
-      <td><span style="font-size:.75rem;color:var(--ink30);">${m.type}</span></td>
-      <td style="white-space:nowrap;color:var(--ink60);">${fmtDate(m.sentAt)}</td>
-      <td style="text-align:right;"><button class="btn btn-ghost btn-sm" onclick="viewSent(${i})">View</button></td>
-    </tr>`).join('');
-  window._sentAll = all;
 }
 
 function viewSent(i) {
   const m = window._sentAll[i];
   if (!m) return;
-  document.getElementById('sd-to').textContent   = `To: ${m.to || m.recipientName || '—'}`;
-  document.getElementById('sd-meta').textContent = `${m.subject || '(no subject)'} · ${fmtDate(m.sentAt)} · ${m.type}`;
-  document.getElementById('sd-body').textContent = m.body || m.replyBody || '';
+  document.getElementById('sd-to').textContent   = `To: ${m.to_name || '—'} ${m.to_email ? '<' + m.to_email + '>' : ''}`;
+  document.getElementById('sd-meta').textContent = `${m.subject || '(no subject)'} · ${fmtDate(m.created_at)} · ${m.type || ''}`;
+  document.getElementById('sd-body').textContent = m.body || '';
   const detail = document.getElementById('sent-detail');
   detail.style.display = 'block';
   detail.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-renderSent();
+initSent();
 </script>
 </body>
 </html>

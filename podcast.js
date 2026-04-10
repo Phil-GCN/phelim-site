@@ -6,7 +6,8 @@ function buildCarousel(){
   const track=document.getElementById('car-track');
   const dots=document.getElementById('car-dots');
   if(!track)return;
-  track.innerHTML=EPS.map((e,i)=>`
+  const eps = window.EPS || [];
+  track.innerHTML=eps.map((e,i)=>`
     <div class="car-card">
       <div class="cc-thumb" style="background:${e.bg}"><div class="cc-thumb-lbl">Ep. ${e.n}</div><div class="cc-play">&#9654;</div></div>
       <div class="cc-body">
@@ -14,19 +15,20 @@ function buildCarousel(){
         <div class="cc-title">${e.t}</div>
         <p class="cc-desc">${e.d}</p>
         <div class="cc-actions">
-          <button class="cc-btn" onclick="window.open('https://youtube.com/playlist?list=PL9fKbOngNj6Ac9wdzaJjxbDua3ZVe4270','_blank')">&#9654; Watch</button>
-          <button class="cc-btn outline" onclick="window.open('https://open.spotify.com/show/6yUjD35JA5VRfHzHw2gCX9','_blank')">Listen</button>
+          ${e.youtube ? `<button class="cc-btn" onclick="window.open('${e.youtube}','_blank')">&#9654; Watch</button>` : `<button class="cc-btn" onclick="window.open('https://youtube.com/playlist?list=PL9fKbOngNj6Ac9wdzaJjxbDua3ZVe4270','_blank')">&#9654; Watch</button>`}
+          ${e.spotify ? `<button class="cc-btn outline" onclick="window.open('${e.spotify}','_blank')">Listen</button>` : `<button class="cc-btn outline" onclick="window.open('https://open.spotify.com/show/6yUjD35JA5VRfHzHw2gCX9','_blank')">Listen</button>`}
         </div>
       </div>
-    </div>`).join('');;
-  if(dots)dots.innerHTML=EPS.map((_,i)=>`<div class="car-dot${i===0?' active':''}"></div>`).join('');
+    </div>`).join('');
+  if(dots)dots.innerHTML=eps.map((_,i)=>`<div class="car-dot${i===0?' active':''}"></div>`).join('');
   setupDrag();scrollCar();
 }
 function carMove(dir){
   const track=document.getElementById('car-track');if(!track)return;
+  const eps = window.EPS || [];
   const cardW=296;
   const cur=parseFloat(track.style.transform?.replace('translateX(',''))||0;
-  const newT=Math.min(0,Math.max(-(EPS.length-3)*cardW,cur+(dir<0?cardW:-cardW)));
+  const newT=Math.min(0,Math.max(-(eps.length-3)*cardW,cur+(dir<0?cardW:-cardW)));
   track.style.transform=`translateX(${newT}px)`;
 }
 function scrollCar(){

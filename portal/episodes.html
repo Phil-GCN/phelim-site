@@ -60,20 +60,20 @@
 
     <div class="alert alert-info">
       <span>ℹ</span>
-      <span>Episodes are stored in <code>data.js</code>. When you save here, that file updates and the site rebuilds automatically via Cloudflare Pages.</span>
+      <span>Episodes are stored in Supabase and displayed live on the podcast page and homepage carousel. Add new episodes here to publish them immediately.</span>
     </div>
 
     <!-- Episode form (hidden by default) -->
     <div id="episode-form" style="display:none;background:var(--paper);border:1px solid var(--ink12);padding:26px;margin-bottom:20px;">
-      <h3 style="font-size:1.1rem;margin-bottom:18px;color:var(--ink);">New Episode</h3>
+      <h3 id="ep-form-title" style="font-size:1.1rem;margin-bottom:18px;color:var(--ink);">New Episode</h3>
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">Episode Number</label>
-          <input class="form-input" type="text" placeholder="e.g. 11">
+          <input class="form-input" id="ep-num" type="text" placeholder="e.g. 11">
         </div>
         <div class="form-group">
           <label class="form-label">Pillar</label>
-          <select class="form-select">
+          <select class="form-select" id="ep-pillar">
             <option>LIVE — Live Intentionally</option>
             <option>EARN — Earn with Purpose</option>
             <option>GROW — Grow with Systems</option>
@@ -82,30 +82,30 @@
       </div>
       <div class="form-group">
         <label class="form-label">Episode Title</label>
-        <input class="form-input" type="text" placeholder="e.g. The Decision Architecture Framework">
+        <input class="form-input" id="ep-title" type="text" placeholder="e.g. The Decision Architecture Framework">
       </div>
       <div class="form-group">
         <label class="form-label">Short Description</label>
-        <textarea class="form-textarea" style="min-height:80px;" placeholder="1–2 sentences shown on the episode card and carousel..."></textarea>
+        <textarea class="form-textarea" id="ep-desc" style="min-height:80px;" placeholder="1–2 sentences shown on the episode card and carousel..."></textarea>
       </div>
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">Spotify Episode URL</label>
-          <input class="form-input" type="url" placeholder="https://open.spotify.com/episode/...">
+          <input class="form-input" id="ep-spotify" type="url" placeholder="https://open.spotify.com/episode/...">
         </div>
         <div class="form-group">
           <label class="form-label">YouTube Episode URL</label>
-          <input class="form-input" type="url" placeholder="https://youtube.com/watch?v=...">
+          <input class="form-input" id="ep-youtube" type="url" placeholder="https://youtube.com/watch?v=...">
         </div>
       </div>
       <div class="form-group">
         <label class="form-label">Thumbnail Background Colour</label>
-        <input class="form-input" type="color" value="#1a3028" style="height:40px;padding:4px;">
+        <input class="form-input" id="ep-color" type="color" value="#1a3028" style="height:40px;padding:4px;">
         <div class="form-hint">Used for the episode card background in the carousel.</div>
       </div>
       <div style="display:flex;gap:10px;margin-top:6px;">
         <button class="btn btn-primary" onclick="saveEpisode()">Save Episode</button>
-        <button class="btn btn-secondary" onclick="document.getElementById('episode-form').style.display='none'">Cancel</button>
+        <button class="btn btn-secondary" onclick="cancelEpisode()">Cancel</button>
       </div>
     </div>
 
@@ -113,15 +113,10 @@
     <div class="table-wrap">
       <table class="data-table">
         <thead>
-          <tr><th>#</th><th>Title</th><th>Pillar</th><th>Status</th><th style="text-align:right;">Actions</th></tr>
+          <tr><th>#</th><th>Title</th><th>Pillar</th><th>Links</th><th style="text-align:right;">Actions</th></tr>
         </thead>
         <tbody id="episodes-tbody">
-          <tr><td><strong>10</strong></td><td><strong>The Ultimate Bottleneck: Why You Must Become the CEO of Your Life First</strong></td><td>LIVE</td><td><span class="badge badge-published">Live</span></td><td style="text-align:right;"><button class="btn btn-ghost btn-sm">Edit</button><button class="btn btn-danger btn-sm">Delete</button></td></tr>
-          <tr><td><strong>09</strong></td><td><strong>The Busy Trap: Productive vs. Merely Occupied</strong></td><td>LIVE</td><td><span class="badge badge-published">Live</span></td><td style="text-align:right;"><button class="btn btn-ghost btn-sm">Edit</button><button class="btn btn-danger btn-sm">Delete</button></td></tr>
-          <tr><td><strong>08</strong></td><td><strong>Designing Your Environment for High Performance</strong></td><td>GROW</td><td><span class="badge badge-published">Live</span></td><td style="text-align:right;"><button class="btn btn-ghost btn-sm">Edit</button><button class="btn btn-danger btn-sm">Delete</button></td></tr>
-          <tr><td><strong>07</strong></td><td><strong>The Long Game: Why Decades Beat Years</strong></td><td>GROW</td><td><span class="badge badge-published">Live</span></td><td style="text-align:right;"><button class="btn btn-ghost btn-sm">Edit</button><button class="btn btn-danger btn-sm">Delete</button></td></tr>
-          <tr><td><strong>06</strong></td><td><strong>The Five-Year Architecture: Planning Beyond the Year</strong></td><td>EARN</td><td><span class="badge badge-published">Live</span></td><td style="text-align:right;"><button class="btn btn-ghost btn-sm">Edit</button><button class="btn btn-danger btn-sm">Delete</button></td></tr>
-          <tr><td><strong>01–05</strong></td><td style="color:var(--ink30);">Earlier episodes…</td><td>—</td><td><span class="badge badge-published">Live</span></td><td style="text-align:right;"><button class="btn btn-ghost btn-sm">Edit</button></td></tr>
+          <tr><td colspan="5" style="text-align:center;padding:24px;color:var(--ink30);">Loading…</td></tr>
         </tbody>
       </table>
     </div>
@@ -129,6 +124,134 @@
 
 </div>
 <script src="portal.js"></script>
+<script src="db.js"></script>
+<script>
+let EPISODES = [];
+let editingEpId = null;
 
+// Input IDs → episode fields
+const EP_FIELDS = {
+  num:     'ep-num',
+  pillar:  'ep-pillar',
+  title:   'ep-title',
+  description: 'ep-desc',
+  spotify_url: 'ep-spotify',
+  youtube_url: 'ep-youtube',
+  bg_color: 'ep-color',
+};
+
+async function initEpisodes() {
+  try {
+    EPISODES = await DB.getEpisodes();
+    renderEpisodes();
+  } catch(err) {
+    document.getElementById('episodes-tbody').innerHTML =
+      `<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--ink30);">Error loading: ${err.message}</td></tr>`;
+  }
+}
+
+function renderEpisodes() {
+  const tbody = document.getElementById('episodes-tbody');
+  if (!EPISODES.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--ink30);">No episodes yet. Add your first episode above.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = EPISODES.map(e => `
+    <tr>
+      <td><strong>${e.number}</strong></td>
+      <td><strong>${e.title}</strong></td>
+      <td style="font-size:.78rem;color:var(--ink60);">${e.pillar || '—'}</td>
+      <td style="font-size:.75rem;">
+        ${e.spotify_url ? `<a href="${e.spotify_url}" target="_blank" style="color:var(--forest);margin-right:8px;">Spotify</a>` : ''}
+        ${e.youtube_url ? `<a href="${e.youtube_url}" target="_blank" style="color:var(--forest);">YouTube</a>` : ''}
+      </td>
+      <td style="text-align:right;">
+        <button class="btn btn-ghost btn-sm" onclick="editEpisodeRow('${e.id}')">Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteEpisodeRow('${e.id}')">Delete</button>
+      </td>
+    </tr>`).join('');
+}
+
+function editEpisodeRow(id) {
+  const e = EPISODES.find(x => x.id === id);
+  if (!e) return;
+  editingEpId = id;
+  document.getElementById('ep-form-title').textContent = 'Edit Episode';
+  document.getElementById(EP_FIELDS.num).value     = e.number || '';
+  document.getElementById(EP_FIELDS.pillar).value  = e.pillar || 'LIVE — Live Intentionally';
+  document.getElementById(EP_FIELDS.title).value   = e.title || '';
+  document.getElementById(EP_FIELDS.description).value = e.description || '';
+  document.getElementById(EP_FIELDS.spotify_url).value = e.spotify_url || '';
+  document.getElementById(EP_FIELDS.youtube_url).value = e.youtube_url || '';
+  document.getElementById(EP_FIELDS.bg_color).value    = e.bg_color || '#1a3028';
+  showEpisodeForm();
+}
+
+async function deleteEpisodeRow(id) {
+  if (!confirm('Delete this episode?')) return;
+  try {
+    await DB.deleteEpisode(id);
+    EPISODES = EPISODES.filter(e => e.id !== id);
+    renderEpisodes();
+    showToast('Episode deleted.');
+  } catch(err) {
+    showToast('Delete failed: ' + err.message);
+  }
+}
+
+function showEpisodeForm() {
+  const form = document.getElementById('episode-form');
+  if (form) {
+    form.style.display = 'block';
+    form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
+
+function cancelEpisode() {
+  editingEpId = null;
+  document.getElementById('ep-form-title').textContent = 'New Episode';
+  ['ep-num','ep-title','ep-desc','ep-spotify','ep-youtube'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  document.getElementById('ep-color').value = '#1a3028';
+  document.getElementById('episode-form').style.display = 'none';
+}
+
+async function saveEpisode() {
+  const title = document.getElementById(EP_FIELDS.title).value.trim();
+  const num   = document.getElementById(EP_FIELDS.num).value.trim();
+  if (!title || !num) { showToast('Episode number and title are required.'); return; }
+
+  const episode = {
+    id:          editingEpId || ('ep-' + Date.now()),
+    number:      num,
+    title,
+    description: document.getElementById(EP_FIELDS.description).value.trim(),
+    pillar:      document.getElementById(EP_FIELDS.pillar).value,
+    spotify_url: document.getElementById(EP_FIELDS.spotify_url).value.trim(),
+    youtube_url: document.getElementById(EP_FIELDS.youtube_url).value.trim(),
+    bg_color:    document.getElementById(EP_FIELDS.bg_color).value,
+    updated_at:  new Date().toISOString(),
+  };
+
+  const btn = document.querySelector('#episode-form .btn-primary');
+  btn.disabled = true; btn.textContent = 'Saving…';
+
+  try {
+    await DB.saveEpisode(episode);
+    const idx = EPISODES.findIndex(e => e.id === episode.id);
+    if (idx >= 0) EPISODES[idx] = episode; else EPISODES.unshift(episode);
+    renderEpisodes();
+    cancelEpisode();
+    showToast('Episode saved. Live on the site.');
+  } catch(err) {
+    showToast('Save failed: ' + err.message);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Save Episode';
+  }
+}
+
+initEpisodes();
+</script>
 </body>
 </html>

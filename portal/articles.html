@@ -247,27 +247,24 @@
   </main>
 
 </div>
-<script src="../data.js"></script>
 <script src="portal.js"></script>
+<script src="db.js"></script>
 <script>
-// ── Data ──
-function loadArticles() {
+let PORTAL_ARTICLES = [];
+let currentAttachments = [];
+let currentBanner = null;
+
+async function initArticles() {
+  const tbody = document.getElementById('articles-tbody');
+  if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--ink30);">Loading…</td></tr>';
   try {
-    const s = localStorage.getItem('portal-articles');
-    if (s) return JSON.parse(s);
-  } catch(e) {}
-  // Seed from ARTICLES_DEFAULT if available (loaded via data.js)
-  const seed = typeof ARTICLES_DEFAULT !== 'undefined' ? ARTICLES_DEFAULT : (typeof ARTICLES !== 'undefined' ? ARTICLES : []);
-  return seed.map(a => Object.assign({ status: 'published' }, a));
+    PORTAL_ARTICLES = await DB.getArticles();
+    renderList();
+  } catch(err) {
+    showToast('Could not load articles: ' + err.message);
+    if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--ink30);">Error loading articles. Check Supabase env vars.</td></tr>';
+  }
 }
-
-function saveArticles(arts) {
-  localStorage.setItem('portal-articles', JSON.stringify(arts));
-}
-
-let PORTAL_ARTICLES = loadArticles();
-let currentAttachments = []; // [{name, type, size, data}]
-let currentBanner = null;    // {name, data}
 
 // ── List rendering ──
 function renderList() {
@@ -337,16 +334,20 @@ function editArticle(id) {
   showTab('editor');
 }
 
-function deleteArticle(id) {
+async function deleteArticle(id) {
   if (!confirm('Delete this article?')) return;
-  PORTAL_ARTICLES = PORTAL_ARTICLES.filter(a => a.id !== id);
-  saveArticles(PORTAL_ARTICLES);
-  renderList();
-  showToast('Article deleted.');
+  try {
+    await DB.deleteArticle(id);
+    PORTAL_ARTICLES = PORTAL_ARTICLES.filter(a => a.id !== id);
+    renderList();
+    showToast('Article deleted.');
+  } catch(err) {
+    showToast('Delete failed: ' + err.message);
+  }
 }
 
-function saveArticlePortal(statusOverride) {
-  const id = document.getElementById('editing-id').value || ('a-' + Date.now());
+async function saveArticlePortal(statusOverride) {
+  const id     = document.getElementById('editing-id').value || ('a-' + Date.now());
   const status = statusOverride || document.getElementById('ed-status').value;
   const title  = document.getElementById('ed-title').value.trim();
   if (!title) { showToast('Please add a title before saving.'); return; }
@@ -365,16 +366,25 @@ function saveArticlePortal(statusOverride) {
     meta: 'Essay · ' + autoTime + ' read',
     banner: currentBanner,
     attachments: currentAttachments,
+    updated_at: new Date().toISOString(),
   };
 
-  const idx = PORTAL_ARTICLES.findIndex(a => a.id === id);
-  if (idx >= 0) PORTAL_ARTICLES[idx] = article;
-  else PORTAL_ARTICLES.unshift(article);
+  const btns = document.querySelectorAll('#panel-editor .btn-primary, #panel-editor .btn-secondary');
+  btns.forEach(b => b.disabled = true);
 
-  saveArticles(PORTAL_ARTICLES);
-  renderList();
-  document.getElementById('editing-id').value = id;
-  showToast(status === 'published' ? 'Published. Visible on the site now.' : 'Draft saved.');
+  try {
+    await DB.saveArticle(article);
+    const idx = PORTAL_ARTICLES.findIndex(a => a.id === id);
+    if (idx >= 0) PORTAL_ARTICLES[idx] = article;
+    else PORTAL_ARTICLES.unshift(article);
+    renderList();
+    document.getElementById('editing-id').value = id;
+    showToast(status === 'published' ? 'Published. Live on the site.' : 'Draft saved.');
+  } catch(err) {
+    showToast('Save failed: ' + err.message);
+  } finally {
+    btns.forEach(b => b.disabled = false);
+  }
 }
 
 // ── Rich editor commands ──
@@ -521,7 +531,7 @@ editorBody.addEventListener('focus', () => editorBody.classList.add('focused'));
 editorBody.addEventListener('blur',  () => editorBody.classList.remove('focused'));
 
 // ── Init ──
-renderList();
+initArticles();
 </script>
 </body>
 </html>

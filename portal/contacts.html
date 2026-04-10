@@ -190,6 +190,7 @@
   </main>
 </div>
 <script src="portal.js"></script>
+<script src="db.js"></script>
 <script>
 let allSubmissions = [];
 let currentEnq     = null;
@@ -206,18 +207,26 @@ function markIdRead(id) {
   localStorage.setItem(READ_KEY, JSON.stringify([...ids]));
 }
 
-// ── Thread storage ──
-function getThreads() {
+// ── Thread storage (DB with localStorage cache) ──
+function _localThreads() {
   try { return JSON.parse(localStorage.getItem(THREAD_KEY) || '{}'); } catch { return {}; }
 }
-function saveThread(submissionId, entry) {
-  const threads = getThreads();
-  if (!threads[submissionId]) threads[submissionId] = [];
-  threads[submissionId].push(entry);
-  localStorage.setItem(THREAD_KEY, JSON.stringify(threads));
+function _cacheThread(submissionId, entry) {
+  const t = _localThreads();
+  if (!t[submissionId]) t[submissionId] = [];
+  t[submissionId].push(entry);
+  localStorage.setItem(THREAD_KEY, JSON.stringify(t));
 }
-function getThread(submissionId) {
-  return getThreads()[submissionId] || [];
+async function saveThread(submissionId, entry) {
+  _cacheThread(submissionId, entry); // optimistic local update
+  try { await DB.saveThreadEntry(submissionId, entry); } catch(e) { console.warn('Thread DB save failed', e); }
+}
+async function getThread(submissionId) {
+  try {
+    const rows = await DB.getThread(submissionId);
+    if (rows && rows.length) return rows.map(r => ({ subject: r.subject, body: r.body, sentAt: r.created_at }));
+  } catch(_) {}
+  return _localThreads()[submissionId] || [];
 }
 
 // ── Time formatting ──
@@ -352,8 +361,8 @@ function viewEnq(id) {
   renderTable();
 }
 
-function renderThread(id) {
-  const entries = getThread(id);
+async function renderThread(id) {
+  const entries = await getThread(id);
   const wrap    = document.getElementById('thread-wrap');
   const list    = document.getElementById('thread-list');
   if (!entries.length) { wrap.style.display = 'none'; return; }
@@ -488,13 +497,20 @@ async function sendCompose() {
   }
 }
 
-// ── Save sent message to portal-sent ──
-function recordSent(entry) {
+// ── Save sent message (DB + local cache) ──
+async function recordSent(entry) {
   try {
     const sent = JSON.parse(localStorage.getItem('portal-sent') || '[]');
-    sent.unshift(entry);
-    localStorage.setItem('portal-sent', JSON.stringify(sent));
+    sent.unshift(entry); localStorage.setItem('portal-sent', JSON.stringify(sent));
   } catch(_) {}
+  try {
+    await DB.recordSent({
+      id: 's-' + Date.now(),
+      to_name: entry.to, to_email: entry.recipientEmail,
+      subject: entry.subject, body: entry.body,
+      type: entry.type, submission_id: entry.submissionId || null,
+    });
+  } catch(e) { console.warn('Sent DB save failed', e); }
 }
 
 // ── Deep-link: ?open=<submissionId> ──

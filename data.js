@@ -1,21 +1,48 @@
-/* phelim.me — content data: articles, episodes */
+/* phelim.me — content data: articles, episodes, books
+ * Fetches live from Supabase via the db Netlify Function.
+ * Falls back to hardcoded defaults if the fetch fails.
+ */
 
-// ═══ PORTAL DATA SYNC ═══
-// If the portal has saved articles or books, use those instead of the defaults.
-// This allows portal changes to reflect immediately on the live site (same browser).
-(function applyPortalOverrides() {
+// ═══ SUPABASE FETCH (via server-side proxy) ═══
+async function fetchFromDB(table, filter) {
   try {
-    const saved = localStorage.getItem('portal-articles');
-    if (saved) {
-      const arts = JSON.parse(saved).filter(a => a.status === 'published');
-      if (arts.length) { window._PORTAL_ARTICLES = arts; }
-    }
-  } catch(e) {}
-  try {
-    const saved = localStorage.getItem('portal-books');
-    if (saved) { window._PORTAL_BOOKS = JSON.parse(saved); }
-  } catch(e) {}
-})();
+    let url = `/.netlify/functions/db?table=${table}`;
+    if (filter) url += `&filter=${encodeURIComponent(filter)}`;
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    return await res.json();
+  } catch(e) { return null; }
+}
+
+// Articles: fetched async, renders when ready
+async function loadLiveArticles() {
+  const rows = await fetchFromDB('articles', 'status:eq:published');
+  if (rows && rows.length) {
+    window.ARTICLES = rows;
+    // Re-render if the articles list is already on screen
+    const list = document.getElementById('articles-list');
+    if (list && list.childElementCount > 0) renderArticles(window.ARTICLES, 'all');
+  }
+}
+
+// Episodes: fetched async, rebuilds carousel when ready
+async function loadLiveEpisodes() {
+  const rows = await fetchFromDB('episodes');
+  if (rows && rows.length) {
+    window.EPS = rows.map(r => ({ n: r.number, t: r.title, d: r.description, bg: r.bg_color || '#1a3028', spotify: r.spotify_url, youtube: r.youtube_url }));
+    // Rebuild carousel if it's visible
+    const carousel = document.getElementById('podcast-carousel');
+    if (carousel) buildCarousel();
+  }
+}
+
+// Kick off background fetches — page renders immediately with defaults, updates silently
+if (typeof window !== 'undefined') {
+  window.addEventListener('DOMContentLoaded', () => {
+    loadLiveArticles();
+    loadLiveEpisodes();
+  });
+}
 
 // ═══ ARTICLES DATA ═══
 const ARTICLES_DEFAULT=[
@@ -26,11 +53,11 @@ const ARTICLES_DEFAULT=[
   {id:'a5',tag:'Systems',title:'The Compounding Effect No One Talks About',excerpt:'The compound effect is discussed constantly in finance. It is almost never discussed in the context of identity, decisions, and character — where it matters just as much, if not more.',meta:'Essay · 7 min read',cat:'systems',body:`<p>We have a tendency to evaluate the significance of a decision by how large it feels in the moment. Major choices — career changes, moving cities, significant relationships — feel weighty because they demand our full attention. Minor daily choices feel trivial because they ask almost nothing of us.</p><p>This is exactly backwards from how consequences actually work.</p><h3>The compounding problem</h3><p>Most consequential choices are not made in high-stakes moments of obvious decision. They are made in the mundane accumulation of small choices: whether to do the thing or not, whether to respond thoughtfully or reactively, whether to invest an hour in something that compounds or consume it in something that doesn't.</p><p>The compound effect is not a motivational concept. It is a mathematical reality. Small inputs, applied consistently, produce enormous outputs over time. This works for money. It works for knowledge. It works for relationships. It works for reputation. And it works in reverse — small erosions, consistently applied, produce corresponding decay.</p><h3>The practical implication</h3><p>If small decisions compound, then the most important design work is not optimising your biggest choices — it is installing defaults that make your small daily choices automatically better.</p><p>This is what a system does. It takes a small decision out of the moment of temptation or fatigue and pre-commits it at a calmer time. The outcome is not perfection — it is a higher floor and a better average over thousands of repetitions.</p><p>Begin with the question: which small choices, compounded over five years, would matter most? Then design those choices out of the daily decision queue entirely.</p>`},
   {id:'a6',tag:'Systems',title:'On Systems Thinking as a Way of Life',excerpt:'Most people learn systems thinking as a professional tool. The more interesting application is personal — using it to understand and redesign the invisible structures shaping how you live.',meta:'Essay · 8 min read',cat:'legacy',body:`<p>Success is a reasonable goal. It is measurable: targets achieved, income earned, positions held, awards received. It provides a clear feedback loop and a socially legible way of communicating progress. There is nothing wrong with wanting it.</p><p>But significance is different. And confusing the two — or worse, pursuing success in the belief that it will eventually produce significance — is one of the most common and quietly costly mistakes I observe in high-performing people.</p><h3>The distinction</h3><p>Success is essentially a private ledger. It accumulates in your account, and you can measure it precisely. Significance is fundamentally relational — it exists in the gap between you and other people, in the degree to which your presence in their lives has altered the trajectory of something that matters.</p><p>You can be highly successful without being particularly significant. History is full of people who achieved extraordinary results but left surprisingly little trace in the lives of those around them. And the reverse is equally true: some of the most significant people in any community never appeared in any public accounting of success.</p><h3>Why the distinction matters</h3><p>If you are optimising purely for success, you will make certain choices that actively work against significance: you will prioritise visibility over depth, output over relationships, speed over the slow work of investing in people.</p><blockquote>Significance requires a different kind of investment — one that rarely shows up on a quarterly review, but accumulates in the kind of loyalty, influence, and impact that outlasts any particular achievement.</blockquote><p>The path forward is not to abandon success — it is to hold both simultaneously and understand that they require different strategies, different time horizons, and different measures of progress. Build the career. And build the people around you. Both matter. Only one lasts.</p>`},
 ];
-// Use portal-saved articles (published only) if available, otherwise fall back to defaults
-const ARTICLES = window._PORTAL_ARTICLES || ARTICLES_DEFAULT;
+// Start with defaults; loadLiveArticles() replaces this async after DOMContentLoaded
+window.ARTICLES = ARTICLES_DEFAULT;
 
-// ═══ EPISODES DATA ═══
-const EPS=[
+// ═══ EPISODES DATA (defaults — replaced async by loadLiveEpisodes) ═══
+window.EPS=[
   {n:'10',t:'The Ultimate Bottleneck: Why You Must Become the CEO of Your Life First',d:'Most people optimise their tools, their schedules, and their habits — while leaving the most critical variable unchanged. This episode examines that variable.',bg:'#1a3028'},
   {n:'09',t:'The Busy Trap: Productive vs. Merely Occupied',d:'Being busy and being productive are structurally different. This episode maps the difference and explains why confusing them is so costly over time.',bg:'#1e3530'},
   {n:'08',t:'Designing Your Environment for High Performance',d:'Your environment is not the backdrop to your life — it is a determining factor. Here is how to design it deliberately.',bg:'#243420'},
@@ -73,7 +100,7 @@ function switchEngTab(id){
   document.querySelectorAll('.eng-tab-panel').forEach(p=>p.classList.remove('active'));
   const tab=document.getElementById('eng-tab-'+id);if(tab)tab.classList.add('active');
   const panel=document.getElementById('eng-'+id);if(panel)panel.classList.add('active');
-  if(id==='articles'){renderArticles(ARTICLES,'all');}
+  if(id==='articles'){renderArticles(window.ARTICLES,'all');}
 }
 
 // ═══ BOOK TABS ═══
@@ -104,10 +131,10 @@ function renderArticles(arts,filter){
 function filterArticles(tag,btn){
   document.querySelectorAll('.art-filter-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
-  renderArticles(ARTICLES,tag);
+  renderArticles(window.ARTICLES,tag);
 }
 function openArticle(id){
-  const a=ARTICLES.find(x=>x.id===id);if(!a)return;
+  const a=window.ARTICLES.find(x=>x.id===id);if(!a)return;
   document.getElementById('af-tag').textContent=a.tag;
   document.getElementById('af-title').textContent=a.title;
   document.getElementById('af-meta').textContent=a.meta;

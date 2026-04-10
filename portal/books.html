@@ -95,6 +95,7 @@
 
 </div>
 <script src="portal.js"></script>
+<script src="db.js"></script>
 <script>
 // ── Book data (loaded from localStorage or defaults) ──
 const DEFAULT_BOOKS = [
@@ -114,19 +115,43 @@ const DEFAULT_BOOKS = [
   },
 ];
 
-function loadBooks() {
+async function loadBooks() {
   try {
-    const stored = localStorage.getItem('portal-books');
-    return stored ? JSON.parse(stored) : DEFAULT_BOOKS;
-  } catch(e) { return DEFAULT_BOOKS; }
+    const rows = await DB.getBooks();
+    if (rows && rows.length) return rows.map(r => ({
+      id: r.id, title: r.title, subtitle: r.subtitle,
+      bookNum: r.book_num, mode: r.mode, pubDate: r.pub_date,
+      price: r.price, stripeHardcover: r.stripe_hardcover,
+      stripeEbook: r.stripe_ebook, stripeAudio: r.stripe_audio,
+      description: r.description,
+      coverData: r.cover_data, coverName: r.cover_name,
+      pdfData: r.pdf_data, pdfName: r.pdf_name,
+    }));
+  } catch(e) { console.warn('DB load failed, using defaults:', e.message); }
+  return DEFAULT_BOOKS;
 }
 
-function saveBooks(books) {
-  localStorage.setItem('portal-books', JSON.stringify(books));
-  showToast('Book saved. Changes are live on the site.');
+async function saveBooks(books) {
+  try {
+    for (const b of books) {
+      await DB.saveBook({
+        id: b.id, title: b.title, subtitle: b.subtitle,
+        book_num: b.bookNum, mode: b.mode, pub_date: b.pubDate,
+        price: b.price, stripe_hardcover: b.stripeHardcover,
+        stripe_ebook: b.stripeEbook, stripe_audio: b.stripeAudio,
+        description: b.description,
+        cover_data: b.coverData, cover_name: b.coverName,
+        pdf_data: b.pdfData, pdf_name: b.pdfName,
+        updated_at: new Date().toISOString(),
+      });
+    }
+    showToast('Book saved. Changes are live on the site.');
+  } catch(err) {
+    showToast('Save failed: ' + err.message);
+  }
 }
 
-let BOOKS = loadBooks();
+let BOOKS = DEFAULT_BOOKS; // will be replaced by async init
 
 function renderBooks() {
   document.getElementById('books-list').innerHTML = BOOKS.map(renderBookCard).join('');
@@ -325,7 +350,7 @@ function addBook() {
   document.getElementById('book-card-' + id)?.scrollIntoView({ behavior: 'smooth' });
 }
 
-renderBooks();
+loadBooks().then(books => { BOOKS = books; renderBooks(); });
 </script>
 </body>
 </html>
