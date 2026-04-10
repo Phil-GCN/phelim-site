@@ -94,9 +94,14 @@ function handleCheckout(e){
 
 // ═══ FORMS ═══
 async function handleSubmit(e, type) {
+  // Stop ALL propagation — prevents Netlify's delegated submit listener from intercepting
   e.preventDefault();
+  e.stopPropagation();
+  e.stopImmediatePropagation();
+
   const form = e.target;
   const btn  = form.querySelector('button[type="submit"]');
+  if (!btn) return;
   const orig = btn.textContent;
   btn.textContent = 'Sending…';
   btn.disabled = true;
@@ -105,25 +110,22 @@ async function handleSubmit(e, type) {
   const name  = data.get('name')  || '';
   const email = data.get('email') || '';
 
-  // Submit to Netlify Forms — POST to the current page URL
+  // Collect all fields for notification email
+  const fields = {};
+  data.forEach((v, k) => { fields[k] = v; });
+
+  // Submit to Netlify Forms via AJAX (no redirect)
   try {
-    const res = await fetch(window.location.pathname, {
+    await fetch(window.location.pathname, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams(data).toString(),
     });
-    if (!res.ok) console.warn('Netlify Forms POST returned', res.status);
-  } catch(err) {
-    console.warn('Netlify Forms submission error:', err);
-  }
+  } catch(_) {}
 
-  // Send branded auto-reply + owner notification via Netlify Function
+  // Send branded auto-reply + owner notification
   if (email) {
     try {
-      // Collect all form fields to include in the owner notification
-      const fields = {};
-      data.forEach((v, k) => { fields[k] = v; });
-      // Load any template overrides saved in portal settings
       let templateOverride = null;
       try {
         const saved = JSON.parse(localStorage.getItem('portal-email-templates') || '{}');
@@ -137,10 +139,27 @@ async function handleSubmit(e, type) {
     } catch(_) {}
   }
 
-  btn.textContent = 'Sent ✓';
-  btn.style.background = 'var(--forest)';
+  // Show inline confirmation — replace form content with a success message
   form.reset();
-  setTimeout(() => { btn.textContent = orig; btn.style.background = ''; btn.disabled = false; }, 3000);
+  const confirmId = 'form-confirm-' + (form.name || type);
+  let confirm = document.getElementById(confirmId);
+  if (!confirm) {
+    confirm = document.createElement('div');
+    confirm.id = confirmId;
+    confirm.style.cssText = 'padding:28px 24px;background:var(--forest-faint,#f0f5f2);border:1px solid rgba(38,61,51,.15);text-align:center;';
+    form.parentNode.insertBefore(confirm, form.nextSibling);
+  }
+  confirm.innerHTML = `
+    <div style="font-family:var(--serif,Georgia),serif;font-size:1.2rem;color:var(--forest,#263d33);margin-bottom:8px;">Message sent.</div>
+    <p style="font-size:.9rem;color:var(--ink60,#555);margin:0 0 16px;line-height:1.6;">Thank you, ${name || 'you'}. You will receive a confirmation email shortly.</p>
+    <button type="button" onclick="this.parentNode.remove();document.getElementById('${form.id||''}').style.display=''" style="font-size:.78rem;color:var(--forest,#263d33);background:none;border:none;cursor:pointer;text-decoration:underline;">Send another message</button>`;
+  form.style.display = 'none';
+  confirm.style.display = 'block';
+
+  btn.textContent = orig;
+  btn.style.background = '';
+  btn.disabled = false;
+  return false;
 }
 
 // ═══ COUNTDOWN ═══

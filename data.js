@@ -63,16 +63,57 @@ async function loadSiteContent() {
   }
 }
 
-// Books: load from Supabase and update modal data
+// Books: load from Supabase and update checkout modal + all displayed book cards
 async function loadLiveBooks() {
   const rows = await fetchFromDB('books');
   if (!rows || !rows.length) return;
-  // Update the BOOKS_DATA used by the checkout modal in modals.js
+
+  const set = (id, val) => { const el = document.getElementById(id); if (el && val) el.textContent = val; };
+  const setHTML = (id, val) => { const el = document.getElementById(id); if (el && val) el.innerHTML = val; };
+
   rows.forEach(b => {
-    if (window.BOOKS_DATA && window.BOOKS_DATA[b.id]) {
-      window.BOOKS_DATA[b.id].title    = b.title    || window.BOOKS_DATA[b.id].title;
-      window.BOOKS_DATA[b.id].subtitle = b.subtitle || window.BOOKS_DATA[b.id].subtitle;
-      window.BOOKS_DATA[b.id].price    = b.price    || window.BOOKS_DATA[b.id].price;
+    const id = b.id; // 'btl' or 'bs' or custom
+    const isLive = b.mode === 'live';
+    const badgeText = isLive ? 'Available Now' : 'Pre-order';
+    const tagText   = isLive ? 'Available Now' : `Coming Soon · Pre-order open`;
+    const ctaText   = isLive ? 'Buy Now' : 'Pre-order Now';
+
+    // Update window.BOOKS_DATA for checkout modal
+    if (window.BOOKS_DATA && window.BOOKS_DATA[id]) {
+      if (b.title)    window.BOOKS_DATA[id].title    = b.title;
+      if (b.subtitle) window.BOOKS_DATA[id].subtitle = b.subtitle;
+      if (b.price)    window.BOOKS_DATA[id].price    = b.price;
+      if (b.mode === 'live') window.BOOKS_DATA[id].mode = 'live';
+    }
+
+    // Update engagements.html book display
+    set(`book-live-${id}-title`,       b.title);
+    set(`book-live-${id}-subtitle`,    b.subtitle);
+    setHTML(`book-live-${id}-desc`,    b.description);
+    set(`book-live-${id}-cover-title`, b.title);
+    set(`book-live-${id}-tag`,         tagText);
+    set(`book-live-${id}-badge`,       badgeText);
+    if (b.pub_date) set(`book-live-${id}-pubdate`, b.pub_date);
+
+    // Update resources.html book cards
+    set(`book-live-res-${id}-title`,        b.title);
+    set(`book-live-res-${id}-cover-title`,  b.title);
+    setHTML(`book-live-res-${id}-desc`,     b.description);
+    if (b.price || b.pub_date) {
+      set(`book-live-res-${id}-label`, `${badgeText}${b.pub_date ? ' · ' + b.pub_date : ''}`);
+    }
+    const ctaEl = document.getElementById(`book-live-res-${id}-cta`);
+    if (ctaEl) ctaEl.textContent = ctaText;
+
+    // If book has a cover image, update cover backgrounds
+    if (b.cover_data) {
+      [`book-live-${id}-cover`, `book-live-res-${id}-cover`].forEach(coverId => {
+        const el = document.getElementById(coverId);
+        if (el) {
+          el.style.backgroundImage = `url(${b.cover_data})`;
+          el.style.backgroundSize  = 'cover';
+        }
+      });
     }
   });
 }

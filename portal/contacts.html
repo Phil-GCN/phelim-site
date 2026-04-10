@@ -50,8 +50,9 @@
       <a class="sidebar-link " href="content.html"><span class="sidebar-icon">◇</span> Site Content</a>
     </div>
     <div class="sidebar-section">
-      <div class="sidebar-label">Inbox</div>
+      <div class="sidebar-label">Messages</div>
       <a class="sidebar-link active" href="contacts.html"><span class="sidebar-icon">✉</span> Enquiries <span class="sidebar-badge" id="unread-badge"></span></a>
+      <a class="sidebar-link" href="sent.html"><span class="sidebar-icon">↗</span> Sent</a>
     </div>
     <div class="sidebar-section">
       <div class="sidebar-label">Settings</div>
@@ -255,7 +256,7 @@ function buildMessagePreview(sub) {
 // ── Table ──
 function renderTable() {
   const readIds = getReadIds();
-  const threads = getThreads();
+  const threads = _localThreads();
   const filtered = activeFilter === 'all'
     ? allSubmissions
     : allSubmissions.filter(s => s.formName === activeFilter);
