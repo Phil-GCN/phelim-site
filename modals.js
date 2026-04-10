@@ -96,25 +96,28 @@ function handleCheckout(e){
 async function handleSubmit(e, type) {
   e.preventDefault();
   const form = e.target;
-  const btn = form.querySelector('button[type="submit"]');
+  const btn  = form.querySelector('button[type="submit"]');
   const orig = btn.textContent;
   btn.textContent = 'Sending…';
   btn.disabled = true;
 
-  const data = new FormData(form);
+  const data  = new FormData(form);
   const name  = data.get('name')  || '';
   const email = data.get('email') || '';
 
-  // Submit to Netlify Forms
+  // Submit to Netlify Forms — POST to the current page URL
   try {
-    await fetch('/', {
+    const res = await fetch(window.location.pathname, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams(data).toString(),
     });
-  } catch(_) {}
+    if (!res.ok) console.warn('Netlify Forms POST returned', res.status);
+  } catch(err) {
+    console.warn('Netlify Forms submission error:', err);
+  }
 
-  // Send branded auto-reply via Netlify Function
+  // Send branded auto-reply via Netlify Function (only when RESEND_API_KEY is set)
   if (email) {
     try {
       await fetch('/.netlify/functions/send-reply', {
