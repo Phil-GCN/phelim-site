@@ -64,8 +64,8 @@
     </div>
     <div class="sidebar-section">
       <div class="sidebar-label">Messages</div>
-      <a class="sidebar-link" href="contacts.html"><span class="sidebar-icon">✉</span> Enquiries <span class="sidebar-badge" id="unread-badge">4</span></a>
-      <a class="sidebar-link" href="sent.html"><span class="sidebar-icon">↗</span> Sent</a>
+      <a class="sidebar-link" href="contacts.html"><span class="sidebar-icon">✉</span> All Messages</a>
+      
     </div>
     <div class="sidebar-section">
       <div class="sidebar-label">Settings</div>
@@ -101,16 +101,22 @@
 const DEFAULT_BOOKS = [
   {
     id: 'btl', title: 'Built to Last', subtitle: 'The Modern Guide to Wealth, Freedom, and Legacy',
-    bookNum: 2, mode: 'preorder', pubDate: '2027-02-01',
+    bookNum: 2, mode: 'preorder', stockStatus: 'preorder', pubDate: '2027-02-01',
     price: '24.99', stripeHardcover: '', stripeEbook: '', stripeAudio: '',
-    description: 'A blueprint for building a life that compounds — across finances, identity, and legacy.',
+    author: 'Phelim Ekwebe', audience: '', formatOptions: 'Hardcover · eBook · Audiobook',
+    description: 'A personal framework for designing lives of lasting impact — through structure, identity, and intentional design.',
+    longDescription: 'Not motivation. Not quick wins. A clear-eyed, personal exploration of the structures behind lives that hold — in meaning, wealth, freedom, and what remains long after the achievements fade. Honest, direct, story-heavy. Written for those who are done surviving and ready to build.',
+    hookText: '',
     coverData: null, coverName: null, pdfData: null, pdfName: null,
   },
   {
-    id: 'bs', title: 'Beyond Survival', subtitle: 'Building a Life Worth Having',
-    bookNum: 1, mode: 'preorder', pubDate: '2027-01-01',
+    id: 'bs', title: 'Beyond Survival', subtitle: "The Immigrant's Guide to Generational Wealth",
+    bookNum: 1, mode: 'preorder', stockStatus: 'preorder', pubDate: '2027-01-01',
     price: '22.99', stripeHardcover: '', stripeEbook: '', stripeAudio: '',
-    description: '',
+    author: 'Phelim Ekwebe', audience: 'African diaspora & first-gen immigrants', formatOptions: 'Hardcover · eBook · Audiobook',
+    description: "The immigrant's guide to generational wealth. For those building a life and legacy across borders.",
+    longDescription: 'For the first-generation immigrant who arrived with drive, built a life, and now asks — what\'s next? This book is rooted in lived experience: the decisions that separate survival from legacy, the financial behaviours that compound across generations, and the identity shifts that make it all possible. Written for African diaspora builders, and for anyone who has navigated building a life across borders.',
+    hookText: 'This book is personal. It comes from watching — and living — the journey of first-generation Africans and immigrants who arrive with everything and often leave wealth-building to chance. Beyond Survival is the guide I wished existed.',
     coverData: null, coverName: null, pdfData: null, pdfName: null,
   },
 ];
@@ -120,10 +126,14 @@ async function loadBooks() {
     const rows = await DB.getBooks();
     if (rows && rows.length) return rows.map(r => ({
       id: r.id, title: r.title, subtitle: r.subtitle,
-      bookNum: r.book_num, mode: r.mode, pubDate: r.pub_date,
+      bookNum: r.book_num, mode: r.mode, stockStatus: r.stock_status || 'preorder', pubDate: r.pub_date,
       price: r.price, stripeHardcover: r.stripe_hardcover,
       stripeEbook: r.stripe_ebook, stripeAudio: r.stripe_audio,
-      description: r.description,
+      author: r.author || 'Phelim Ekwebe', audience: r.audience || '',
+      formatOptions: r.format_options || 'Hardcover · eBook · Audiobook',
+      description: r.description || '',
+      longDescription: r.long_description || '',
+      hookText: r.hook_text || '',
       coverData: r.cover_data, coverName: r.cover_name,
       pdfData: r.pdf_data, pdfName: r.pdf_name,
     }));
@@ -136,10 +146,14 @@ async function saveBooks(books) {
     for (const b of books) {
       await DB.saveBook({
         id: b.id, title: b.title, subtitle: b.subtitle,
-        book_num: b.bookNum, mode: b.mode, pub_date: b.pubDate,
+        book_num: b.bookNum, mode: b.mode, stock_status: b.stockStatus || 'preorder', pub_date: b.pubDate,
         price: b.price, stripe_hardcover: b.stripeHardcover,
         stripe_ebook: b.stripeEbook, stripe_audio: b.stripeAudio,
-        description: b.description,
+        author: b.author || 'Phelim Ekwebe', audience: b.audience || '',
+        format_options: b.formatOptions || '',
+        description: b.description || '',
+        long_description: b.longDescription || '',
+        hook_text: b.hookText || '',
         cover_data: b.coverData, cover_name: b.coverName,
         pdf_data: b.pdfData, pdf_name: b.pdfName,
         updated_at: new Date().toISOString(),
@@ -195,7 +209,7 @@ function renderBookCard(b) {
       <span class="badge ${badgeCls}">${badgeTxt}</span>
     </div>
 
-    <!-- ORDER MODE TOGGLE -->
+    <!-- ORDER MODE + STOCK STATUS -->
     <div class="order-toggle-row">
       <span class="order-toggle-label">Order mode</span>
       <label class="toggle-switch">
@@ -203,7 +217,13 @@ function renderBookCard(b) {
         <span class="toggle-slider"></span>
       </label>
       <span class="order-mode-text" id="mode-text-${b.id}">${modeLabel}</span>
-      <span style="font-size:.72rem;color:var(--ink30);margin-left:4px;">${isLive ? '— customers can buy now' : '— customers place advance orders'}</span>
+      <span style="font-size:.72rem;color:var(--ink30);margin-left:8px;">·</span>
+      <span class="order-toggle-label" style="margin-left:8px;">Stock</span>
+      <select class="form-input" id="stock-${b.id}" style="width:auto;font-size:.78rem;padding:3px 8px;margin-left:4px;" onchange="updateStock('${b.id}',this.value)">
+        <option value="preorder"    ${(b.stockStatus||'preorder')==='preorder'    ?'selected':''}>Pre-order</option>
+        <option value="in_stock"    ${(b.stockStatus||'')==='in_stock'            ?'selected':''}>In Stock</option>
+        <option value="out_of_stock"${(b.stockStatus||'')==='out_of_stock'        ?'selected':''}>Out of Stock</option>
+      </select>
     </div>
 
     <!-- DETAILS -->
@@ -217,9 +237,31 @@ function renderBookCard(b) {
         <input class="form-input" id="subtitle-${b.id}" value="${b.subtitle || ''}">
       </div>
     </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Author</label>
+        <input class="form-input" id="author-${b.id}" value="${b.author || 'Phelim Ekwebe'}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Target Audience</label>
+        <input class="form-input" id="audience-${b.id}" value="${b.audience || ''}" placeholder="e.g. African diaspora &amp; first-gen immigrants">
+      </div>
+    </div>
     <div class="form-group">
-      <label class="form-label">Short Description</label>
+      <label class="form-label">Available Formats</label>
+      <input class="form-input" id="format-${b.id}" value="${b.formatOptions || 'Hardcover · eBook · Audiobook'}" placeholder="e.g. Hardcover · eBook · Audiobook">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Short Description <span style="color:var(--ink30);font-weight:400;">(shown on Resources page cards)</span></label>
       <textarea class="form-textarea" id="desc-${b.id}" style="min-height:60px;">${b.description || ''}</textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Full Description <span style="color:var(--ink30);font-weight:400;">(shown on Engagements/Books page)</span></label>
+      <textarea class="form-textarea" id="longdesc-${b.id}" style="min-height:90px;">${b.longDescription || ''}</textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Reader Hook / Personal Note <span style="color:var(--ink30);font-weight:400;">(italic callout box on the book detail page)</span></label>
+      <textarea class="form-textarea" id="hook-${b.id}" style="min-height:70px;">${b.hookText || ''}</textarea>
     </div>
     <div class="form-row">
       <div class="form-group">
@@ -324,17 +366,28 @@ function removeFile(bookId, type) {
   renderBooks();
 }
 
+function updateStock(id, val) {
+  const b = BOOKS.find(x => x.id === id);
+  if (b) b.stockStatus = val;
+}
+
 function saveBook(id) {
   const b = BOOKS.find(x => x.id === id);
   if (!b) return;
   b.title           = document.getElementById('title-' + id)?.value || b.title;
   b.subtitle        = document.getElementById('subtitle-' + id)?.value || '';
+  b.author          = document.getElementById('author-' + id)?.value || 'Phelim Ekwebe';
+  b.audience        = document.getElementById('audience-' + id)?.value || '';
+  b.formatOptions   = document.getElementById('format-' + id)?.value || '';
   b.description     = document.getElementById('desc-' + id)?.value || '';
+  b.longDescription = document.getElementById('longdesc-' + id)?.value || '';
+  b.hookText        = document.getElementById('hook-' + id)?.value || '';
   b.pubDate         = document.getElementById('pubdate-' + id)?.value || b.pubDate;
   b.price           = document.getElementById('price-' + id)?.value || b.price;
   b.stripeHardcover = document.getElementById('stripe-hc-' + id)?.value || '';
   b.stripeEbook     = document.getElementById('stripe-eb-' + id)?.value || '';
   b.stripeAudio     = document.getElementById('stripe-au-' + id)?.value || '';
+  b.stockStatus     = document.getElementById('stock-' + id)?.value || b.stockStatus;
   saveBooks(BOOKS);
   renderBooks();
 }

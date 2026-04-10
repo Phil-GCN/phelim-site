@@ -94,67 +94,58 @@ function handleCheckout(e){
 
 // ═══ FORMS ═══
 async function handleSubmit(e, type) {
-  // Stop ALL propagation — prevents Netlify's delegated submit listener from intercepting
   e.preventDefault();
   e.stopPropagation();
   e.stopImmediatePropagation();
 
   const form = e.target;
   const btn  = form.querySelector('button[type="submit"]');
-  if (!btn) return;
+  if (!btn) return false;
   const orig = btn.textContent;
   btn.textContent = 'Sending…';
   btn.disabled = true;
 
-  const data  = new FormData(form);
-  const name  = data.get('name')  || '';
-  const email = data.get('email') || '';
-
-  // Collect all fields for notification email
+  const data   = new FormData(form);
+  const name   = data.get('name')  || '';
+  const email  = data.get('email') || '';
   const fields = {};
   data.forEach((v, k) => { fields[k] = v; });
 
-  // Submit to Netlify Forms via AJAX (no redirect)
+  let templateOverride = null;
   try {
-    await fetch(window.location.pathname, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams(data).toString(),
-    });
+    const saved = JSON.parse(localStorage.getItem('portal-email-templates') || '{}');
+    if (saved[type]) templateOverride = saved[type];
   } catch(_) {}
 
-  // Send branded auto-reply + owner notification
-  if (email) {
-    try {
-      let templateOverride = null;
-      try {
-        const saved = JSON.parse(localStorage.getItem('portal-email-templates') || '{}');
-        if (saved[type]) templateOverride = saved[type];
-      } catch(_) {}
-      await fetch('/.netlify/functions/send-reply', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ to: email, name, type: type || 'general', mode: 'auto', fields, templateOverride, submissionId: null }),
-      });
-    } catch(_) {}
+  // Single call to our custom function — saves to DB, sends both emails
+  try {
+    const res  = await fetch('/.netlify/functions/submit-form', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, type: type || 'general', fields, templateOverride }),
+    });
+    const json = await res.json();
+    if (!res.ok) console.warn('submit-form error:', json.error);
+  } catch(err) {
+    console.warn('submit-form failed:', err.message);
   }
 
-  // Show inline confirmation — replace form content with a success message
+  // Show inline branded confirmation (never redirect)
   form.reset();
-  const confirmId = 'form-confirm-' + (form.name || type);
+  const formName  = form.name || type;
+  const confirmId = 'form-confirm-' + formName;
   let confirm = document.getElementById(confirmId);
   if (!confirm) {
     confirm = document.createElement('div');
     confirm.id = confirmId;
-    confirm.style.cssText = 'padding:28px 24px;background:var(--forest-faint,#f0f5f2);border:1px solid rgba(38,61,51,.15);text-align:center;';
     form.parentNode.insertBefore(confirm, form.nextSibling);
   }
+  confirm.style.cssText = 'padding:32px 24px;background:#f0f5f2;border:1px solid rgba(38,61,51,.18);text-align:center;';
   confirm.innerHTML = `
-    <div style="font-family:var(--serif,Georgia),serif;font-size:1.2rem;color:var(--forest,#263d33);margin-bottom:8px;">Message sent.</div>
-    <p style="font-size:.9rem;color:var(--ink60,#555);margin:0 0 16px;line-height:1.6;">Thank you, ${name || 'you'}. You will receive a confirmation email shortly.</p>
-    <button type="button" onclick="this.parentNode.remove();document.getElementById('${form.id||''}').style.display=''" style="font-size:.78rem;color:var(--forest,#263d33);background:none;border:none;cursor:pointer;text-decoration:underline;">Send another message</button>`;
+    <div style="font-family:Georgia,serif;font-size:1.25rem;color:#263d33;margin-bottom:10px;">Message sent.</div>
+    <p style="font-size:.9rem;color:#555;margin:0 0 18px;line-height:1.65;">Thank you${name ? ', ' + name.split(' ')[0] : ''}. A confirmation has been sent to ${email || 'your email'}.</p>
+    <button type="button" onclick="document.getElementById('${confirmId}').remove();document.querySelector('[name=${formName}]').style.display=''" style="font-size:.8rem;color:#263d33;background:none;border:1px solid #263d33;padding:7px 18px;cursor:pointer;">Send another message</button>`;
   form.style.display = 'none';
-  confirm.style.display = 'block';
 
   btn.textContent = orig;
   btn.style.background = '';

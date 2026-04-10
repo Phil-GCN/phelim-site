@@ -40,8 +40,8 @@
     </div>
     <div class="sidebar-section">
       <div class="sidebar-label">Messages</div>
-      <a class="sidebar-link" href="contacts.html"><span class="sidebar-icon">✉</span> Enquiries</a>
-      <a class="sidebar-link" href="sent.html"><span class="sidebar-icon">↗</span> Sent</a>
+      <a class="sidebar-link" href="contacts.html"><span class="sidebar-icon">✉</span> All Messages</a>
+      
     </div>
     <div class="sidebar-section">
       <div class="sidebar-label">Settings</div>
@@ -137,6 +137,30 @@
       <div style="margin-top:12px;padding:10px 13px;background:var(--paper-mid);border:1px solid var(--ink12);font-size:.74rem;color:var(--ink30);">
         Templates are saved locally in this browser. When Supabase is connected, they will sync across all devices.
       </div>
+    </div>
+
+    <!-- Email Signature -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header">
+        <div class="card-title">Email Signature</div>
+        <div style="font-size:.78rem;color:var(--ink30);">Appears at the bottom of all auto-replies and portal emails</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Display name</label>
+        <input class="form-input" id="sig-name" value="Phelim Ekwebe">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Title / tagline line</label>
+        <input class="form-input" id="sig-title" value="Life Strategist · Systems Thinker · Author">
+        <div class="form-hint">The line below your name in every email. Change it to anything — a sentence, a role, a quote.</div>
+      </div>
+      <div style="padding:12px 14px;background:var(--paper-mid);border:1px solid var(--ink12);font-size:.82rem;color:var(--ink60);line-height:1.7;margin-bottom:12px;">
+        <strong id="sig-preview-name">Phelim Ekwebe</strong><br>
+        <span id="sig-preview-title" style="color:#888;">Life Strategist · Systems Thinker · Author</span><br>
+        <span style="color:#888;font-size:.78rem;">phelim.me · Future Foundations Podcast</span>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="saveSignature()">Save Signature</button>
+      <span id="sig-status" style="font-size:.78rem;color:var(--ink60);margin-left:10px;"></span>
     </div>
 
     <!-- Portal Access -->
@@ -272,6 +296,40 @@ function changePortalPassword() {
   msg.textContent = 'Password updated successfully.';
   showToast('Portal password updated.');
 }
+
+// ── Signature ──
+async function saveSignature() {
+  const name  = document.getElementById('sig-name').value.trim();
+  const title = document.getElementById('sig-title').value.trim();
+  document.getElementById('sig-preview-name').textContent  = name;
+  document.getElementById('sig-preview-title').textContent = title;
+  try {
+    await DB.setSiteContent({ emailSigName: name, emailSigTitle: title });
+    document.getElementById('sig-status').textContent = 'Saved ✓';
+    showToast('Email signature updated.');
+  } catch(e) {
+    document.getElementById('sig-status').textContent = 'Saved locally only';
+    showToast('Signature saved (local only — check DB connection).');
+  }
+  setTimeout(() => { document.getElementById('sig-status').textContent = ''; }, 3000);
+}
+
+// Load signature from DB on init
+async function initSignature() {
+  try {
+    const sc = await DB.getSiteContent();
+    if (sc.emailSigName)  { document.getElementById('sig-name').value  = sc.emailSigName;  document.getElementById('sig-preview-name').textContent  = sc.emailSigName; }
+    if (sc.emailSigTitle) { document.getElementById('sig-title').value = sc.emailSigTitle; document.getElementById('sig-preview-title').textContent = sc.emailSigTitle; }
+    // Live preview on type
+    ['sig-name','sig-title'].forEach(id => {
+      document.getElementById(id).addEventListener('input', () => {
+        document.getElementById('sig-preview-name').textContent  = document.getElementById('sig-name').value;
+        document.getElementById('sig-preview-title').textContent = document.getElementById('sig-title').value;
+      });
+    });
+  } catch(_) {}
+}
+initSignature();
 
 // Load templates from DB (with localStorage fallback already in getSavedTemplates)
 async function initTemplates() {

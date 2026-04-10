@@ -89,11 +89,26 @@ async function loadLiveBooks() {
     // Update engagements.html book display
     set(`book-live-${id}-title`,       b.title);
     set(`book-live-${id}-subtitle`,    b.subtitle);
-    setHTML(`book-live-${id}-desc`,    b.description);
+    // Long description for engagements page
+    setHTML(`book-live-${id}-desc`,    b.long_description || b.description);
     set(`book-live-${id}-cover-title`, b.title);
     set(`book-live-${id}-tag`,         tagText);
     set(`book-live-${id}-badge`,       badgeText);
     if (b.pub_date) set(`book-live-${id}-pubdate`, b.pub_date);
+    if (b.author)   set(`book-live-${id}-author`,  b.author);
+    if (b.audience) set(`book-live-${id}-audience`,b.audience);
+    if (b.format_options) set(`book-live-${id}-format`, b.format_options);
+    // Hook text (italic callout box)
+    if (b.hook_text) {
+      const hookEl = document.getElementById(`book-live-${id}-hook`);
+      if (hookEl) hookEl.textContent = b.hook_text;
+    }
+    // Stock status badge
+    const stockEl = document.getElementById(`book-live-${id}-stock`);
+    if (stockEl) {
+      const sMap = { in_stock:'Available Now', preorder:'Pre-order open', out_of_stock:'Temporarily unavailable' };
+      stockEl.textContent = sMap[b.stock_status] || 'Pre-order open';
+    }
 
     // Update resources.html book cards
     set(`book-live-res-${id}-title`,        b.title);

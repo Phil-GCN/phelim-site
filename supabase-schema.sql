@@ -110,3 +110,34 @@ create policy "public read episodes"  on episodes        for select using (true)
 create policy "public read books"     on books           for select using (true);
 create policy "public read content"   on site_content    for select using (true);
 -- All writes go through the service-key proxy (db.js function) — no anon write needed.
+
+-- ══════════════════════════════════════════════════════
+-- MIGRATION v2 — run these ALTER statements if you
+-- already ran the schema above (no need to recreate tables)
+-- ══════════════════════════════════════════════════════
+
+-- ── Books: new fields ──
+alter table books add column if not exists long_description text;
+alter table books add column if not exists hook_text        text;
+alter table books add column if not exists author           text default 'Phelim Ekwebe';
+alter table books add column if not exists audience         text;
+alter table books add column if not exists format_options   text;
+alter table books add column if not exists stock_status     text default 'preorder';
+
+-- ── Sent messages: star + read status ──
+alter table sent_messages add column if not exists starred boolean default false;
+alter table sent_messages add column if not exists status  text default 'read';
+
+-- ── Submissions: inbound form submissions (replaces Netlify Forms) ──
+create table if not exists submissions (
+  id         text primary key,
+  name       text,
+  email      text,
+  type       text,
+  fields     jsonb default '{}',
+  status     text default 'new',
+  starred    boolean default false,
+  created_at timestamptz default now()
+);
+alter table submissions enable row level security;
+-- No public read — portal only via service key

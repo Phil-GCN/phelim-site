@@ -27,6 +27,16 @@ const DB = {
     return res.json();
   },
 
+  async patch(table, id, data) {
+    const res = await fetch('/.netlify/functions/db', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ table, action: 'patch', id, data }),
+    });
+    if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error || `DB patch ${table} failed`); }
+    return res.json();
+  },
+
   async delete(table, id) {
     const res = await fetch('/.netlify/functions/db', {
       method: 'POST',
@@ -78,8 +88,13 @@ const DB = {
     return this.upsert('email_templates', { type, ...tpl, updated_at: new Date().toISOString() });
   },
 
+  // ── Submissions (inbound form submissions) ──
+  async getSubmissions()           { return this.get('submissions'); },
+  async patchSubmission(id, data)  { return this.patch('submissions', id, data); },
+
   // ── Sent messages ──
   async getSent()              { return this.get('sent_messages'); },
+  async patchSent(id, data)   { return this.patch('sent_messages', id, data); },
   async recordSent(msg)        { return this.upsert('sent_messages', { ...msg, id: msg.id || ('s-' + Date.now()), created_at: msg.sentAt || new Date().toISOString() }); },
 
   // ── Message threads (replies per submission) ──

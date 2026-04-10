@@ -42,7 +42,7 @@ exports.handler = async function(event) {
     }
 
     // Always order by created_at or number desc if column exists
-    if (['articles','episodes','sent_messages','message_threads'].includes(table)) {
+    if (['articles','episodes','sent_messages','message_threads','submissions'].includes(table)) {
       params.set('order', 'created_at.desc');
     }
 
@@ -68,6 +68,20 @@ exports.handler = async function(event) {
         method: 'POST',
         headers: { ...headers, 'Prefer': 'return=representation,resolution=merge-duplicates' },
         body: JSON.stringify(Array.isArray(data) ? data : [data]),
+      });
+      const result = await res.json();
+      if (!res.ok) return json(res.status, { error: result });
+      return json(200, { success: true, data: result });
+    }
+
+    if (action === 'patch') {
+      const col = match?.col || 'id';
+      const val = match?.val || id;
+      if (!val) return json(400, { error: 'id required for patch' });
+      const res = await fetch(`${URL}/rest/v1/${table}?${col}=eq.${encodeURIComponent(val)}`, {
+        method: 'PATCH',
+        headers: { ...headers, 'Prefer': 'return=representation' },
+        body: JSON.stringify(data),
       });
       const result = await res.json();
       if (!res.ok) return json(res.status, { error: result });
