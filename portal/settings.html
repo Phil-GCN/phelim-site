@@ -7,6 +7,12 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="portal.css">
+  <style>
+    .tpl-tab-bar { display:flex; gap:4px; margin-bottom:16px; flex-wrap:wrap; }
+    .tpl-tab { padding:6px 14px; font-size:.78rem; border:1px solid var(--ink12); background:transparent; cursor:pointer; color:var(--ink60); }
+    .tpl-tab.active { background:var(--forest); color:#f8f6f1; border-color:var(--forest); }
+    .tpl-hint { font-size:.72rem; color:var(--ink30); margin-bottom:6px; }
+  </style>
 </head>
 <body>
 <div class="portal-layout">
@@ -46,47 +52,97 @@
   <main class="portal-main">
     <div class="page-header">
       <div class="page-title">Site Settings</div>
-      <div class="page-subtitle">General configuration for your site</div>
+      <div class="page-subtitle">General configuration for your site and email templates</div>
     </div>
 
+    <!-- Site Identity -->
     <div class="card" style="margin-bottom:20px;">
       <div class="card-header"><div class="card-title">Site Identity</div></div>
       <div class="form-group">
         <label class="form-label">Site name</label>
-        <input class="form-input" value="Phelim Ekwebe">
+        <input class="form-input" id="s-name" value="Phelim Ekwebe">
       </div>
       <div class="form-group">
         <label class="form-label">Tagline</label>
-        <input class="form-input" value="Life Strategist · Systems Thinker · Author">
+        <input class="form-input" id="s-tagline" value="Life Strategist · Systems Thinker · Author">
       </div>
       <div class="form-group">
         <label class="form-label">Meta description</label>
-        <textarea class="form-textarea" style="min-height:70px;">Life strategist, systems thinker, speaker, and author. Exploring how people build lives that create lasting impact — through systems, decisions, and lived experience.</textarea>
+        <textarea class="form-textarea" id="s-meta" style="min-height:70px;">Life strategist, systems thinker, speaker, and author. Exploring how people build lives that create lasting impact — through systems, decisions, and lived experience.</textarea>
       </div>
-      <button class="btn btn-primary" onclick="saveSetting('identity')">Save</button>
+      <button class="btn btn-primary" onclick="saveSetting('identity')">Save Identity</button>
     </div>
 
+    <!-- Contact Details -->
     <div class="card" style="margin-bottom:20px;">
       <div class="card-header"><div class="card-title">Contact Details</div></div>
       <div class="form-group">
         <label class="form-label">Contact email</label>
-        <input class="form-input" type="email" placeholder="hello@phelim.me">
+        <input class="form-input" id="s-email" type="email" placeholder="hello@phelim.me">
       </div>
       <div class="form-group">
         <label class="form-label">LinkedIn URL</label>
-        <input class="form-input" type="url" placeholder="https://linkedin.com/in/...">
+        <input class="form-input" id="s-linkedin" type="url" placeholder="https://linkedin.com/in/...">
       </div>
       <div class="form-group">
         <label class="form-label">Twitter / X URL</label>
-        <input class="form-input" type="url" placeholder="https://twitter.com/...">
+        <input class="form-input" id="s-twitter" type="url" placeholder="https://twitter.com/...">
       </div>
-      <button class="btn btn-primary" onclick="saveSetting('contact')">Save</button>
+      <button class="btn btn-primary" onclick="saveSetting('contact')">Save Contact Details</button>
     </div>
 
+    <!-- Email Reply Templates -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header">
+        <div class="card-title">Email Reply Templates</div>
+        <div style="font-size:.78rem;color:var(--ink30);">Customise the auto-reply sent to each enquiry type</div>
+      </div>
+
+      <div class="tpl-tab-bar">
+        <button class="tpl-tab active" onclick="switchTpl('speaking')">Speaking</button>
+        <button class="tpl-tab" onclick="switchTpl('podcast')">Podcast</button>
+        <button class="tpl-tab" onclick="switchTpl('writing')">Writing</button>
+        <button class="tpl-tab" onclick="switchTpl('partnership')">Partnership</button>
+        <button class="tpl-tab" onclick="switchTpl('general')">General</button>
+      </div>
+
+      <div id="tpl-editor">
+        <div class="form-group">
+          <label class="form-label">Email heading</label>
+          <div class="tpl-hint">Shown prominently at the top of the email</div>
+          <input class="form-input" id="tpl-heading" placeholder="e.g. Thank you for your speaking enquiry">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Introduction</label>
+          <div class="tpl-hint">Use <code>{name}</code> to insert the recipient's name</div>
+          <textarea class="form-textarea" id="tpl-intro" style="min-height:80px;" placeholder="Dear {name},&#10;&#10;Thank you for reaching out…"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Body</label>
+          <div class="tpl-hint">Main paragraph(s). Separate paragraphs with a blank line.</div>
+          <textarea class="form-textarea" id="tpl-body" style="min-height:120px;" placeholder="I review all enquiries personally and respond within…"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Closing line <span style="color:var(--ink30);font-weight:400;">(italic, below the body — leave blank to omit)</span></label>
+          <input class="form-input" id="tpl-closing" placeholder="e.g. I look forward to reviewing your enquiry.">
+        </div>
+      </div>
+
+      <div style="display:flex;gap:9px;align-items:center;margin-top:4px;">
+        <button class="btn btn-primary" onclick="saveTpl()">Save Template</button>
+        <button class="btn btn-ghost btn-sm" onclick="resetTpl()">Reset to default</button>
+        <span id="tpl-status" style="font-size:.78rem;color:var(--ink60);margin-left:6px;"></span>
+      </div>
+      <div style="margin-top:12px;padding:10px 13px;background:var(--paper-mid);border:1px solid var(--ink12);font-size:.74rem;color:var(--ink30);">
+        Templates are saved locally in this browser. When Supabase is connected, they will sync across all devices.
+      </div>
+    </div>
+
+    <!-- Portal Access -->
     <div class="card" style="margin-bottom:20px;">
       <div class="card-header"><div class="card-title">Portal Access</div></div>
       <div class="form-group">
-        <label class="form-label">Change portal password</label>
+        <label class="form-label">New portal password</label>
         <input class="form-input" type="password" id="new-pw" placeholder="New password (min 8 characters)">
       </div>
       <div class="form-group">
@@ -101,30 +157,107 @@
 </div>
 <script src="portal.js"></script>
 <script>
-  function saveSetting(section) {
-    showToast('Settings saved.');
+// ── Default templates (mirrors send-reply.js) ──
+const TPL_DEFAULTS = {
+  speaking: {
+    heading: 'Thank you for your speaking enquiry',
+    intro:   'Dear {name},\n\nThank you for reaching out about a speaking engagement. I appreciate you taking the time to share the details of your event.',
+    body:    'I review all speaking enquiries personally and respond within 2 business days. If your event aligns with my current availability and the themes I speak on — identity, systems thinking, decision architecture, and long-term performance — I will be in touch to discuss further.\n\nIn the meantime, you can explore my speaking topics and previous engagements on the site.',
+    closing: 'I look forward to reviewing your enquiry.',
+  },
+  podcast: {
+    heading: 'Thank you for your podcast enquiry',
+    intro:   'Dear {name},\n\nThank you for reaching out about a podcast collaboration. I appreciate your interest in Future Foundations.',
+    body:    'I review all podcast enquiries carefully — whether you are inviting me onto your show or applying to guest on Future Foundations. Guest episodes are selective, and the most compelling applications centre on a specific story, perspective, or experience that would genuinely serve the audience.\n\nI will be in touch within 3–5 business days.',
+    closing: 'Thank you again for getting in touch.',
+  },
+  writing: {
+    heading: 'Thank you for your media enquiry',
+    intro:   'Dear {name},\n\nThank you for your writing and media enquiry. It is good to hear from you.',
+    body:    'Whether you are working on an interview, feature, guest essay, or press piece related to Built to Last, I take all media enquiries seriously and respond within 3–5 business days.\n\nIf this is time-sensitive, please do note that in a follow-up and I will do my best to accommodate.',
+    closing: 'I look forward to connecting.',
+  },
+  partnership: {
+    heading: 'Thank you for your partnership proposal',
+    intro:   'Dear {name},\n\nThank you for submitting a partnership proposal. I appreciate you taking the time to outline the opportunity.',
+    body:    'Partnerships are considered carefully — I only feature and align with work that genuinely reflects the Future Foundations philosophy around intentional building, systems thinking, and long-term value. I review all proposals and respond within 5–7 business days.\n\nIf there is a strong fit, I will reach out to explore the details further.',
+    closing: 'Thank you for your interest in working together.',
+  },
+  general: {
+    heading: 'Thank you for getting in touch',
+    intro:   'Dear {name},\n\nThank you for your message. It is appreciated.',
+    body:    'I read every message personally and respond to general enquiries within 3–5 business days. Whether you have a question about the podcast, a reaction to an essay, or simply want to start a conversation — I will get back to you.',
+    closing: 'Thank you again for reaching out.',
+  },
+};
+
+let activeTpl = 'speaking';
+
+function getSavedTemplates() {
+  try { return JSON.parse(localStorage.getItem('portal-email-templates') || '{}'); } catch { return {}; }
+}
+
+function switchTpl(type) {
+  activeTpl = type;
+  document.querySelectorAll('.tpl-tab').forEach(t =>
+    t.classList.toggle('active', t.textContent.toLowerCase() === type)
+  );
+  const saved   = getSavedTemplates()[type] || {};
+  const def     = TPL_DEFAULTS[type];
+  document.getElementById('tpl-heading').value  = saved.heading  !== undefined ? saved.heading  : def.heading;
+  document.getElementById('tpl-intro').value    = saved.intro    !== undefined ? saved.intro    : def.intro;
+  document.getElementById('tpl-body').value     = saved.body     !== undefined ? saved.body     : def.body;
+  document.getElementById('tpl-closing').value  = saved.closing  !== undefined ? saved.closing  : def.closing;
+  document.getElementById('tpl-status').textContent = saved.heading !== undefined ? '(custom saved)' : '(using default)';
+}
+
+function saveTpl() {
+  const all = getSavedTemplates();
+  all[activeTpl] = {
+    heading: document.getElementById('tpl-heading').value,
+    intro:   document.getElementById('tpl-intro').value,
+    body:    document.getElementById('tpl-body').value,
+    closing: document.getElementById('tpl-closing').value,
+  };
+  localStorage.setItem('portal-email-templates', JSON.stringify(all));
+  document.getElementById('tpl-status').textContent = '(custom saved)';
+  showToast('Template saved.');
+}
+
+function resetTpl() {
+  const all = getSavedTemplates();
+  delete all[activeTpl];
+  localStorage.setItem('portal-email-templates', JSON.stringify(all));
+  switchTpl(activeTpl);
+  showToast('Reset to default.');
+}
+
+function saveSetting(section) {
+  showToast('Settings saved.');
+}
+
+function changePortalPassword() {
+  const next = document.getElementById('new-pw').value;
+  const conf = document.getElementById('new-pw-confirm').value;
+  const msg  = document.getElementById('pw-msg');
+  if (next.length < 8) {
+    msg.style.cssText = 'display:block;color:#c0392b;';
+    msg.textContent = 'Password must be at least 8 characters.'; return;
   }
-  function changePortalPassword() {
-    const next = document.getElementById('new-pw').value;
-    const conf = document.getElementById('new-pw-confirm').value;
-    const msg  = document.getElementById('pw-msg');
-    if (next.length < 8) {
-      msg.style.cssText = 'display:block;color:#c0392b;';
-      msg.textContent = 'Password must be at least 8 characters.';
-      return;
-    }
-    if (next !== conf) {
-      msg.style.cssText = 'display:block;color:#c0392b;';
-      msg.textContent = 'Passwords do not match.';
-      return;
-    }
-    localStorage.setItem('portal-password', next);
-    document.getElementById('new-pw').value = '';
-    document.getElementById('new-pw-confirm').value = '';
-    msg.style.cssText = 'display:block;color:#1a6b3a;';
-    msg.textContent = 'Password updated successfully.';
-    showToast('Portal password updated.');
+  if (next !== conf) {
+    msg.style.cssText = 'display:block;color:#c0392b;';
+    msg.textContent = 'Passwords do not match.'; return;
   }
+  localStorage.setItem('portal-password', next);
+  document.getElementById('new-pw').value = '';
+  document.getElementById('new-pw-confirm').value = '';
+  msg.style.cssText = 'display:block;color:#1a6b3a;';
+  msg.textContent = 'Password updated successfully.';
+  showToast('Portal password updated.');
+}
+
+// Load initial template
+switchTpl('speaking');
 </script>
 </body>
 </html>

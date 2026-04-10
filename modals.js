@@ -117,13 +117,22 @@ async function handleSubmit(e, type) {
     console.warn('Netlify Forms submission error:', err);
   }
 
-  // Send branded auto-reply via Netlify Function (only when RESEND_API_KEY is set)
+  // Send branded auto-reply + owner notification via Netlify Function
   if (email) {
     try {
+      // Collect all form fields to include in the owner notification
+      const fields = {};
+      data.forEach((v, k) => { fields[k] = v; });
+      // Load any template overrides saved in portal settings
+      let templateOverride = null;
+      try {
+        const saved = JSON.parse(localStorage.getItem('portal-email-templates') || '{}');
+        if (saved[type]) templateOverride = saved[type];
+      } catch(_) {}
       await fetch('/.netlify/functions/send-reply', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ to: email, name, type: type || 'general', mode: 'auto' }),
+        body: JSON.stringify({ to: email, name, type: type || 'general', mode: 'auto', fields, templateOverride }),
       });
     } catch(_) {}
   }

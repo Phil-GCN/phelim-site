@@ -7,6 +7,21 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="portal.css">
+  <style>
+    .thread-wrap { margin-top:22px; border-top:1px solid var(--ink12); padding-top:18px; }
+    .thread-item { display:flex; gap:12px; margin-bottom:18px; }
+    .thread-avatar { width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:.68rem; font-weight:600; flex-shrink:0; margin-top:2px; }
+    .thread-avatar.you { background:var(--forest); color:#f8f6f1; }
+    .thread-avatar.them { background:var(--ink12); color:var(--ink60); }
+    .thread-bubble { flex:1; }
+    .thread-bubble-header { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:4px; }
+    .thread-bubble-name { font-size:.78rem; font-weight:600; color:var(--ink); }
+    .thread-bubble-time { font-size:.7rem; color:var(--ink30); }
+    .thread-bubble-subject { font-size:.72rem; color:var(--ink30); margin-bottom:5px; font-style:italic; }
+    .thread-bubble-body { font-size:.85rem; color:var(--ink60); line-height:1.7; white-space:pre-wrap; background:var(--paper-mid); padding:10px 13px; border:1px solid var(--ink12); }
+    .compose-section { background:var(--paper); border:1px solid var(--ink12); padding:24px; margin-top:16px; }
+    .compose-section .compose-header { font-size:.72rem; letter-spacing:.1em; text-transform:uppercase; color:var(--ink30); margin-bottom:16px; }
+  </style>
 </head>
 <body>
 <div class="portal-layout">
@@ -36,7 +51,7 @@
     </div>
     <div class="sidebar-section">
       <div class="sidebar-label">Inbox</div>
-      <a class="sidebar-link active" href="contacts.html"><span class="sidebar-icon">✉</span> Enquiries <span class="sidebar-badge" id="unread-badge">4</span></a>
+      <a class="sidebar-link active" href="contacts.html"><span class="sidebar-icon">✉</span> Enquiries <span class="sidebar-badge" id="unread-badge"></span></a>
     </div>
     <div class="sidebar-section">
       <div class="sidebar-label">Settings</div>
@@ -54,7 +69,7 @@
       </div>
       <div class="page-actions">
         <button class="btn btn-secondary btn-sm" onclick="markAllRead()">Mark all read</button>
-        <button class="btn btn-secondary btn-sm">Export CSV</button>
+        <button class="btn btn-primary btn-sm" onclick="openCompose()">✉ New Message</button>
       </div>
     </div>
 
@@ -92,16 +107,26 @@
         </div>
         <button class="btn btn-ghost" onclick="closeEnqDetail()">✕ Close</button>
       </div>
-      <div id="enq-d-body" style="font-size:.9rem;color:var(--ink60);line-height:1.75;margin-bottom:18px;white-space:pre-wrap;"></div>
+
+      <!-- Original message -->
+      <div style="font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink30);margin-bottom:8px;">Original Message</div>
+      <div id="enq-d-body" style="font-size:.9rem;color:var(--ink60);line-height:1.75;margin-bottom:18px;white-space:pre-wrap;background:var(--paper-mid);padding:14px 16px;border:1px solid var(--ink12);"></div>
+
       <div style="display:flex;gap:9px;margin-bottom:20px;">
-        <button class="btn btn-primary btn-sm" onclick="openReplyPanel()">✉ Send Branded Reply</button>
+        <button class="btn btn-primary btn-sm" onclick="openReplyPanel()">✉ Reply</button>
         <a id="enq-reply-btn" href="#" class="btn btn-secondary btn-sm">Open in Mail App</a>
         <button class="btn btn-secondary btn-sm" onclick="markCurrentRead()">Mark as Read</button>
-        <button class="btn btn-danger btn-sm" onclick="closeEnqDetail()">Close</button>
+        <button class="btn btn-ghost btn-sm" onclick="closeEnqDetail()">Close</button>
       </div>
 
-      <!-- Reply panel (hidden by default) -->
-      <div id="reply-panel" style="display:none;border-top:1px solid var(--ink12);padding-top:20px;">
+      <!-- Thread history -->
+      <div id="thread-wrap" class="thread-wrap" style="display:none;">
+        <div style="font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink30);margin-bottom:14px;">Communication Thread</div>
+        <div id="thread-list"></div>
+      </div>
+
+      <!-- Reply panel -->
+      <div id="reply-panel" style="display:none;border-top:1px solid var(--ink12);padding-top:20px;margin-top:4px;">
         <div style="font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink30);margin-bottom:14px;">Compose Reply</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
           <div class="form-group">
@@ -110,25 +135,59 @@
           </div>
           <div class="form-group">
             <label class="form-label">Subject</label>
-            <input class="form-input" id="reply-subject" placeholder="Re: Your enquiry — Phelim Ekwebe">
+            <input class="form-input" id="reply-subject">
           </div>
         </div>
         <div class="form-group" style="margin-bottom:12px;">
-          <label class="form-label">Message <span style="color:var(--ink30);font-weight:400;">(plain text — will be formatted with your branding)</span></label>
-          <textarea class="form-textarea" id="reply-body" style="min-height:160px;" placeholder="Write your reply here. It will be sent with your branded email template — Phelim Ekwebe header, signature, and footer."></textarea>
+          <label class="form-label">Message <span style="color:var(--ink30);font-weight:400;">(plain text — sent with your branded template)</span></label>
+          <textarea class="form-textarea" id="reply-body" style="min-height:160px;" placeholder="Write your reply here…"></textarea>
         </div>
         <div style="display:flex;gap:9px;align-items:center;">
-          <button class="btn btn-primary btn-sm" onclick="sendReply()">Send Reply</button>
+          <button class="btn btn-primary btn-sm" id="reply-send-btn" onclick="sendReply()">Send Reply</button>
           <button class="btn btn-ghost btn-sm" onclick="document.getElementById('reply-panel').style.display='none'">Cancel</button>
           <span id="reply-status" style="font-size:.78rem;color:var(--ink60);margin-left:8px;"></span>
         </div>
-        <div style="margin-top:10px;padding:10px 12px;background:var(--paper-mid);border:1px solid var(--ink12);border-radius:var(--r);font-size:.74rem;color:var(--ink30);">
-          Sent from: <strong>hello@phelim.me</strong> via Resend · Template: branded with forest header, Phelim Ekwebe signature
+        <div style="margin-top:10px;padding:10px 12px;background:var(--paper-mid);border:1px solid var(--ink12);font-size:.74rem;color:var(--ink30);">
+          Sent from: <strong>hello@phelim.me</strong> via Resend · Branded template with forest header and Phelim Ekwebe signature
         </div>
       </div>
     </div>
-  </main>
 
+    <!-- Compose new message panel -->
+    <div id="compose-panel" class="compose-section" style="display:none;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <div style="font-family:var(--serif);font-size:1.1rem;">New Message</div>
+        <button class="btn btn-ghost btn-sm" onclick="document.getElementById('compose-panel').style.display='none'">✕ Close</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px;">
+        <div class="form-group">
+          <label class="form-label">Recipient Name</label>
+          <input class="form-input" id="compose-name" placeholder="Full name">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email Address</label>
+          <input class="form-input" id="compose-to" type="email" placeholder="recipient@email.com">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Subject</label>
+          <input class="form-input" id="compose-subject" placeholder="e.g. Podcast Guest Invitation — Future Foundations">
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:12px;">
+        <label class="form-label">Message <span style="color:var(--ink30);font-weight:400;">(plain text — sent with your branded template)</span></label>
+        <textarea class="form-textarea" id="compose-body" style="min-height:180px;" placeholder="Write your message here…"></textarea>
+      </div>
+      <div style="display:flex;gap:9px;align-items:center;">
+        <button class="btn btn-primary btn-sm" id="compose-send-btn" onclick="sendCompose()">Send Message</button>
+        <button class="btn btn-ghost btn-sm" onclick="document.getElementById('compose-panel').style.display='none'">Cancel</button>
+        <span id="compose-status" style="font-size:.78rem;color:var(--ink60);margin-left:8px;"></span>
+      </div>
+      <div style="margin-top:10px;padding:10px 12px;background:var(--paper-mid);border:1px solid var(--ink12);font-size:.74rem;color:var(--ink30);">
+        Sent from: <strong>hello@phelim.me</strong> via Resend · Branded template with forest header and Phelim Ekwebe signature
+      </div>
+    </div>
+
+  </main>
 </div>
 <script src="portal.js"></script>
 <script>
@@ -136,7 +195,9 @@ let allSubmissions = [];
 let currentEnq     = null;
 let activeFilter   = 'all';
 const READ_KEY     = 'portal-read-ids';
+const THREAD_KEY   = 'portal-threads';
 
+// ── Read/unread tracking ──
 function getReadIds() {
   try { return new Set(JSON.parse(localStorage.getItem(READ_KEY) || '[]')); } catch { return new Set(); }
 }
@@ -145,28 +206,47 @@ function markIdRead(id) {
   localStorage.setItem(READ_KEY, JSON.stringify([...ids]));
 }
 
+// ── Thread storage ──
+function getThreads() {
+  try { return JSON.parse(localStorage.getItem(THREAD_KEY) || '{}'); } catch { return {}; }
+}
+function saveThread(submissionId, entry) {
+  const threads = getThreads();
+  if (!threads[submissionId]) threads[submissionId] = [];
+  threads[submissionId].push(entry);
+  localStorage.setItem(THREAD_KEY, JSON.stringify(threads));
+}
+function getThread(submissionId) {
+  return getThreads()[submissionId] || [];
+}
+
+// ── Time formatting ──
 function timeAgo(dateStr) {
   const diff = Date.now() - new Date(dateStr).getTime();
   const mins  = Math.floor(diff / 60000);
   const hours = Math.floor(diff / 3600000);
   const days  = Math.floor(diff / 86400000);
   if (mins < 2)   return 'Just now';
-  if (mins < 60)  return `${mins} minutes ago`;
-  if (hours < 24) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
-  if (days < 7)   return `${days} day${days > 1 ? 's' : ''} ago`;
+  if (mins < 60)  return `${mins}m ago`;
+  if (hours < 24) return `${hours}h ago`;
+  if (days < 7)   return `${days}d ago`;
   return new Date(dateStr).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+}
+function fmtDate(dateStr) {
+  return new Date(dateStr).toLocaleString('en-GB', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
 }
 
 function buildMessagePreview(sub) {
-  // Collect all text fields except name/email into a readable preview
   const skip = new Set(['name','email','bot-field','form-name']);
   return Object.entries(sub.extra || {})
     .filter(([k]) => !skip.has(k) && typeof sub.extra[k] === 'string' && sub.extra[k])
     .map(([, v]) => v).join(' · ').substring(0, 120);
 }
 
+// ── Table ──
 function renderTable() {
   const readIds = getReadIds();
+  const threads = getThreads();
   const filtered = activeFilter === 'all'
     ? allSubmissions
     : allSubmissions.filter(s => s.formName === activeFilter);
@@ -182,13 +262,15 @@ function renderTable() {
   }
 
   tbody.innerHTML = filtered.map(s => {
-    const isRead  = readIds.has(s.id);
-    const preview = buildMessagePreview(s);
-    const label   = s.formName.charAt(0).toUpperCase() + s.formName.slice(1);
+    const isRead   = readIds.has(s.id);
+    const preview  = buildMessagePreview(s);
+    const label    = s.formName.charAt(0).toUpperCase() + s.formName.slice(1);
+    const replies  = (threads[s.id] || []).length;
     return `<tr style="${isRead ? '' : 'font-weight:500;'}">
       <td>
         <strong>${s.name}</strong>
         ${!isRead ? '<span class="badge badge-new" style="margin-left:6px;vertical-align:middle;">New</span>' : ''}
+        ${replies ? `<span style="margin-left:6px;font-size:.68rem;color:var(--ink30);font-weight:400;">${replies} repl${replies===1?'y':'ies'}</span>` : ''}
         <br><span style="font-size:.72rem;color:var(--ink30);font-weight:400;">${s.email}</span>
       </td>
       <td style="font-weight:400;">${label}</td>
@@ -208,9 +290,10 @@ function setFilter(f) {
   renderTable();
 }
 
+// ── Load from Netlify API ──
 async function loadSubmissions() {
   try {
-    const res = await fetch('/.netlify/functions/get-submissions');
+    const res  = await fetch('/.netlify/functions/get-submissions');
     const data = await res.json();
     if (!res.ok) {
       if (data.error?.includes('not set')) {
@@ -225,10 +308,9 @@ async function loadSubmissions() {
     }
     allSubmissions = data.submissions || [];
     renderTable();
-    // Update sidebar unread badge
     const readIds = getReadIds();
-    const unread = allSubmissions.filter(s => !readIds.has(s.id)).length;
-    const badge = document.getElementById('unread-badge');
+    const unread  = allSubmissions.filter(s => !readIds.has(s.id)).length;
+    const badge   = document.getElementById('unread-badge');
     if (badge) badge.textContent = unread || '';
   } catch(err) {
     document.getElementById('enquiries-tbody').innerHTML =
@@ -236,6 +318,7 @@ async function loadSubmissions() {
   }
 }
 
+// ── View enquiry + thread ──
 function viewEnq(id) {
   const enq = allSubmissions.find(s => s.id === id);
   if (!enq) return;
@@ -244,10 +327,9 @@ function viewEnq(id) {
 
   document.getElementById('enq-d-name').textContent = enq.name;
   document.getElementById('enq-d-meta').textContent =
-    `${enq.formName} · ${enq.email} · ${timeAgo(enq.created)}`;
+    `${enq.formName} · ${enq.email} · ${fmtDate(enq.created)}`;
 
-  // Build full message from all fields
-  const skip = new Set(['name','email','bot-field','form-name']);
+  const skip  = new Set(['name','email','bot-field','form-name']);
   const lines = Object.entries(enq.extra || {})
     .filter(([k]) => !skip.has(k) && enq.extra[k])
     .map(([k, v]) => `${k.replace(/-/g,' ')}: ${v}`);
@@ -261,10 +343,33 @@ function viewEnq(id) {
   document.getElementById('reply-panel').style.display  = 'none';
   document.getElementById('reply-status').textContent   = '';
 
+  renderThread(id);
+
+  document.getElementById('compose-panel').style.display = 'none';
   const detail = document.getElementById('enq-detail');
   detail.style.display = 'block';
   detail.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  renderTable(); // refresh read state in table
+  renderTable();
+}
+
+function renderThread(id) {
+  const entries = getThread(id);
+  const wrap    = document.getElementById('thread-wrap');
+  const list    = document.getElementById('thread-list');
+  if (!entries.length) { wrap.style.display = 'none'; return; }
+  wrap.style.display = 'block';
+  list.innerHTML = entries.map(e => `
+    <div class="thread-item">
+      <div class="thread-avatar you">PE</div>
+      <div class="thread-bubble">
+        <div class="thread-bubble-header">
+          <span class="thread-bubble-name">Phelim Ekwebe</span>
+          <span class="thread-bubble-time">${fmtDate(e.sentAt)}</span>
+        </div>
+        <div class="thread-bubble-subject">Subject: ${e.subject}</div>
+        <div class="thread-bubble-body">${e.body}</div>
+      </div>
+    </div>`).join('');
 }
 
 function closeEnqDetail() {
@@ -277,6 +382,20 @@ function openReplyPanel() {
   document.getElementById('reply-body').focus();
 }
 
+function openCompose() {
+  document.getElementById('enq-detail').style.display = 'none';
+  currentEnq = null;
+  document.getElementById('compose-name').value    = '';
+  document.getElementById('compose-to').value      = '';
+  document.getElementById('compose-subject').value = '';
+  document.getElementById('compose-body').value    = '';
+  document.getElementById('compose-status').textContent = '';
+  const panel = document.getElementById('compose-panel');
+  panel.style.display = 'block';
+  panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  document.getElementById('compose-name').focus();
+}
+
 function markCurrentRead() {
   if (currentEnq) { markIdRead(currentEnq.id); renderTable(); showToast('Marked as read.'); }
 }
@@ -287,50 +406,81 @@ function markAllRead() {
   showToast('All enquiries marked as read.');
 }
 
+// ── Send reply ──
 async function sendReply() {
   if (!currentEnq) return;
   const body    = document.getElementById('reply-body').value.trim();
   const subject = document.getElementById('reply-subject').value.trim();
   const status  = document.getElementById('reply-status');
-
   if (!body) { status.textContent = 'Please write a message before sending.'; return; }
 
-  const btn = document.querySelector('#reply-panel .btn-primary');
-  btn.disabled = true;
-  btn.textContent = 'Sending…';
-  status.textContent = '';
+  const btn = document.getElementById('reply-send-btn');
+  btn.disabled = true; btn.textContent = 'Sending…'; status.textContent = '';
 
   try {
-    const res = await fetch('/.netlify/functions/send-reply', {
+    const res  = await fetch('/.netlify/functions/send-reply', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        to:        currentEnq.email,
-        name:      currentEnq.name,
-        subject,
-        replyBody: body,
-        mode:      'custom',
-      }),
+      body: JSON.stringify({ to: currentEnq.email, name: currentEnq.name, subject, replyBody: body, mode: 'custom' }),
     });
     const data = await res.json();
     if (res.ok && data.success) {
-      btn.textContent = 'Sent ✓';
-      btn.style.background = 'var(--forest)';
+      // Save to thread
+      saveThread(currentEnq.id, { subject, body, sentAt: new Date().toISOString() });
+      renderThread(currentEnq.id);
+      renderTable();
+      btn.textContent = 'Sent ✓'; btn.style.background = 'var(--forest)';
       status.textContent = `Delivered to ${currentEnq.email}`;
       showToast(`Reply sent to ${currentEnq.name}.`);
       setTimeout(() => {
-        btn.textContent = 'Send Reply';
-        btn.style.background = '';
-        btn.disabled = false;
+        btn.textContent = 'Send Reply'; btn.style.background = ''; btn.disabled = false;
         document.getElementById('reply-panel').style.display = 'none';
-      }, 2500);
+        document.getElementById('reply-body').value = '';
+      }, 2000);
     } else {
       throw new Error(data.error || 'Send failed');
     }
   } catch(err) {
-    btn.textContent = 'Send Reply';
-    btn.disabled = false;
-    status.textContent = 'Failed to send. Check that RESEND_API_KEY is set in Netlify.';
+    btn.textContent = 'Send Reply'; btn.disabled = false;
+    status.textContent = 'Failed to send. Check RESEND_API_KEY is set in Netlify.';
+    console.error(err);
+  }
+}
+
+// ── Compose new message ──
+async function sendCompose() {
+  const name    = document.getElementById('compose-name').value.trim();
+  const to      = document.getElementById('compose-to').value.trim();
+  const subject = document.getElementById('compose-subject').value.trim();
+  const body    = document.getElementById('compose-body').value.trim();
+  const status  = document.getElementById('compose-status');
+
+  if (!name || !to || !body) { status.textContent = 'Name, email, and message are required.'; return; }
+
+  const btn = document.getElementById('compose-send-btn');
+  btn.disabled = true; btn.textContent = 'Sending…'; status.textContent = '';
+
+  try {
+    const res  = await fetch('/.netlify/functions/send-reply', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ to, name, subject: subject || 'A message from Phelim Ekwebe', replyBody: body, mode: 'custom' }),
+    });
+    const data = await res.json();
+    if (res.ok && data.success) {
+      btn.textContent = 'Sent ✓'; btn.style.background = 'var(--forest)';
+      status.textContent = `Delivered to ${to}`;
+      showToast(`Message sent to ${name}.`);
+      setTimeout(() => {
+        btn.textContent = 'Send Message'; btn.style.background = ''; btn.disabled = false;
+        document.getElementById('compose-panel').style.display = 'none';
+      }, 2000);
+    } else {
+      throw new Error(data.error || 'Send failed');
+    }
+  } catch(err) {
+    btn.textContent = 'Send Message'; btn.disabled = false;
+    status.textContent = 'Failed to send. Check RESEND_API_KEY is set in Netlify.';
     console.error(err);
   }
 }

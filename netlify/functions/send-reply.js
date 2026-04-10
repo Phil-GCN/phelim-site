@@ -1,8 +1,9 @@
 // Netlify Function: send-reply
-// Receives { to, name, subject, type, replyBody } from portal
-// Sends a branded HTML email via Resend API
+// Handles: auto-reply to submitter, notification to owner, custom portal replies
+// Requires env var: RESEND_API_KEY
+// Optional env var: NOTIFY_EMAIL (defaults to hello@phelim.me)
 
-const TEMPLATES = {
+const DEFAULT_TEMPLATES = {
   speaking: {
     colour: '#263d33',
     eyebrow: 'Speaking & Events',
@@ -45,31 +46,75 @@ const TEMPLATES = {
   },
 };
 
-function buildAutoReply(name, type) {
-  const t = TEMPLATES[type] || TEMPLATES.general;
-  const introText = t.intro(name);
-  const paragraphs = [introText, t.body].map(p =>
-    p.split('\n\n').map(line => `<p style="margin:0 0 16px;color:#444;font-size:15px;line-height:1.7;">${line.replace(/\n/g,'<br>')}</p>`).join('')
+function buildAutoReply(name, type, override) {
+  const base = DEFAULT_TEMPLATES[type] || DEFAULT_TEMPLATES.general;
+
+  const introText  = override?.intro  ? override.intro.replace(/{name}/g, name) : base.intro(name);
+  const bodyText   = override?.body   || base.body;
+  const closingText = override?.closing !== undefined ? override.closing : base.closing;
+  const colour     = base.colour;
+  const eyebrow    = base.eyebrow;
+  const heading    = override?.heading || base.heading;
+
+  const paragraphs = [introText, bodyText].map(p =>
+    p.split('\n\n').map(line =>
+      `<p style="margin:0 0 16px;color:#444;font-size:15px;line-height:1.7;">${line.replace(/\n/g,'<br>')}</p>`
+    ).join('')
   ).join('');
 
-  return buildEmailHtml({
-    colour: t.colour,
-    eyebrow: t.eyebrow,
-    heading: t.heading,
-    content: paragraphs,
-    closing: t.closing,
-  });
+  return buildEmailHtml({ colour, eyebrow, heading, content: paragraphs, closing: closingText || null });
 }
 
 function buildCustomReply(name, replyBody) {
   const content = replyBody.split('\n\n')
     .map(p => `<p style="margin:0 0 16px;color:#444;font-size:15px;line-height:1.7;">${p.replace(/\n/g,'<br>')}</p>`)
     .join('');
-
   return buildEmailHtml({
     colour: '#263d33',
     eyebrow: 'Message from Phelim Ekwebe',
     heading: `Hi ${name},`,
+    content,
+    closing: null,
+  });
+}
+
+function buildNotification(name, email, type, fields) {
+  const label = (type || 'general').charAt(0).toUpperCase() + (type || 'general').slice(1);
+  const skip  = new Set(['name','email','bot-field','form-name']);
+  const rows  = Object.entries(fields || {})
+    .filter(([k]) => !skip.has(k) && fields[k])
+    .map(([k, v]) =>
+      `<tr>
+        <td style="padding:8px 12px;font-size:13px;color:#888;white-space:nowrap;vertical-align:top;width:140px;">${k.replace(/-/g,' ')}</td>
+        <td style="padding:8px 12px;font-size:14px;color:#1a1a1a;line-height:1.6;">${String(v).replace(/\n/g,'<br>')}</td>
+      </tr>`
+    ).join('');
+
+  const content = `
+    <p style="margin:0 0 18px;font-size:15px;color:#444;line-height:1.6;">
+      You have a new <strong>${label}</strong> enquiry from <strong>${name}</strong>
+      &lt;<a href="mailto:${email}" style="color:#263d33;">${email}</a>&gt;.
+    </p>
+    <table style="width:100%;border-collapse:collapse;border:1px solid #e8e4dd;border-radius:4px;overflow:hidden;margin-bottom:20px;">
+      <tr style="background:#f7f5f0;">
+        <td style="padding:8px 12px;font-size:13px;color:#888;">name</td>
+        <td style="padding:8px 12px;font-size:14px;color:#1a1a1a;">${name}</td>
+      </tr>
+      <tr>
+        <td style="padding:8px 12px;font-size:13px;color:#888;">email</td>
+        <td style="padding:8px 12px;font-size:14px;"><a href="mailto:${email}" style="color:#263d33;">${email}</a></td>
+      </tr>
+      ${rows}
+    </table>
+    <a href="https://phelim.me/portal/contacts.html"
+       style="display:inline-block;background:#263d33;color:#f8f6f1;text-decoration:none;padding:11px 22px;font-size:14px;letter-spacing:.03em;">
+      Open in Portal →
+    </a>`;
+
+  return buildEmailHtml({
+    colour: '#263d33',
+    eyebrow: `New ${label} Enquiry`,
+    heading: `${name} sent you a message`,
     content,
     closing: null,
   });
@@ -122,10 +167,21 @@ function buildEmailHtml({ colour, eyebrow, heading, content, closing }) {
 </html>`;
 }
 
+async function sendEmail(apiKey, { from, to, subject, html, replyTo }) {
+  const payload = { from, to: Array.isArray(to) ? to : [to], subject, html };
+  if (replyTo) payload.reply_to = replyTo;
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(JSON.stringify(data));
+  return data;
+}
+
 exports.handler = async function(event) {
-  if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, body: 'Method not allowed' };
-  }
+  if (event.httpMethod !== 'POST') return { statusCode: 405, body: 'Method not allowed' };
 
   const RESEND_API_KEY = process.env.RESEND_API_KEY;
   if (!RESEND_API_KEY) {
@@ -136,40 +192,47 @@ exports.handler = async function(event) {
   try { body = JSON.parse(event.body); }
   catch { return { statusCode: 400, body: JSON.stringify({ error: 'Invalid JSON' }) }; }
 
-  const { to, name, subject, type, replyBody, mode } = body;
+  const { to, name, subject, type, replyBody, mode, fields, templateOverride } = body;
+  const NOTIFY_EMAIL = process.env.NOTIFY_EMAIL || 'hello@phelim.me';
 
   if (!to || !name) {
     return { statusCode: 400, body: JSON.stringify({ error: 'Missing required fields: to, name' }) };
   }
 
-  const html = mode === 'custom'
-    ? buildCustomReply(name, replyBody || '')
-    : buildAutoReply(name, type || 'general');
-
-  const emailSubject = subject || (mode === 'custom'
-    ? `Re: Your enquiry — Phelim Ekwebe`
-    : `Thank you for your ${type || 'general'} enquiry — Phelim Ekwebe`);
-
   try {
-    const res = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${RESEND_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
+    if (mode === 'auto') {
+      // 1. Send branded auto-reply to submitter
+      await sendEmail(RESEND_API_KEY, {
         from: 'Phelim Ekwebe <hello@phelim.me>',
-        to: [to],
+        to,
+        replyTo: NOTIFY_EMAIL,
+        subject: subject || `Thank you for your ${type || 'general'} enquiry — Phelim Ekwebe`,
+        html: buildAutoReply(name, type || 'general', templateOverride || null),
+      });
+
+      // 2. Send notification to owner
+      await sendEmail(RESEND_API_KEY, {
+        from: 'phelim.me <hello@phelim.me>',
+        to: NOTIFY_EMAIL,
+        replyTo: to,   // ← replying to this notification goes straight to the submitter
+        subject: `New ${(type||'general')} enquiry from ${name}`,
+        html: buildNotification(name, to, type, fields || {}),
+      });
+
+    } else {
+      // Custom reply from portal
+      const html = buildCustomReply(name, replyBody || '');
+      const emailSubject = subject || `Re: Your enquiry — Phelim Ekwebe`;
+      await sendEmail(RESEND_API_KEY, {
+        from: 'Phelim Ekwebe <hello@phelim.me>',
+        to,
+        replyTo: NOTIFY_EMAIL,
         subject: emailSubject,
         html,
-      }),
-    });
-
-    const data = await res.json();
-    if (!res.ok) {
-      return { statusCode: res.status, body: JSON.stringify({ error: data }) };
+      });
     }
-    return { statusCode: 200, body: JSON.stringify({ success: true, id: data.id }) };
+
+    return { statusCode: 200, body: JSON.stringify({ success: true }) };
   } catch(err) {
     return { statusCode: 500, body: JSON.stringify({ error: err.message }) };
   }

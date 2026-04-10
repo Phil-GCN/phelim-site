@@ -62,26 +62,26 @@
     <div class="stats-grid">
       <div class="stat-card">
         <div class="stat-label">Episodes Published</div>
-        <div class="stat-val">10</div>
+        <div class="stat-val" id="stat-episodes">—</div>
         <div class="stat-sub">Future Foundations</div>
-        <div class="stat-trend up">+1 this month</div>
+        <div class="stat-trend" id="stat-episodes-sub"></div>
       </div>
       <div class="stat-card">
         <div class="stat-label">Articles Published</div>
-        <div class="stat-val">6</div>
+        <div class="stat-val" id="stat-articles">—</div>
         <div class="stat-sub">Ideas & Frameworks</div>
-        <div class="stat-trend up">2 drafts pending</div>
+        <div class="stat-trend" id="stat-articles-sub"></div>
       </div>
       <div class="stat-card">
         <div class="stat-label">Pre-orders</div>
         <div class="stat-val">—</div>
         <div class="stat-sub">Stripe not connected</div>
-        <div class="stat-trend"><a href="index.html#integrations" style="color:var(--gold);font-size:.7rem;">Connect Stripe →</a></div>
+        <div class="stat-trend"><a href="integrations.html" style="color:var(--gold);font-size:.7rem;">Connect Stripe →</a></div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">New Enquiries</div>
-        <div class="stat-val">4</div>
-        <div class="stat-sub">Last 7 days</div>
+        <div class="stat-label">Enquiries</div>
+        <div class="stat-val" id="stat-enquiries">—</div>
+        <div class="stat-sub" id="stat-enquiries-sub">Loading…</div>
         <div class="stat-trend up"><a href="contacts.html" style="color:var(--green);font-size:.7rem;">View inbox →</a></div>
       </div>
     </div>
@@ -96,11 +96,8 @@
         </div>
         <table class="data-table">
           <thead><tr><th>Name</th><th>Type</th><th>Status</th></tr></thead>
-          <tbody>
-            <tr><td><strong>Sarah K.</strong></td><td>Speaking</td><td><span class="badge badge-new">New</span></td></tr>
-            <tr><td><strong>Marc D.</strong></td><td>Podcast</td><td><span class="badge badge-new">New</span></td></tr>
-            <tr><td><strong>Amara L.</strong></td><td>Partnership</td><td><span class="badge badge-new">New</span></td></tr>
-            <tr><td><strong>James O.</strong></td><td>General</td><td><span class="badge badge-read">Read</span></td></tr>
+          <tbody id="dash-enquiries-tbody">
+            <tr><td colspan="3" style="text-align:center;padding:20px;color:var(--ink30);font-size:.82rem;">Loading…</td></tr>
           </tbody>
         </table>
       </div>
@@ -126,6 +123,72 @@
 
 </div>
 <script src="portal.js"></script>
+<script>
+// ── Live stats from localStorage ──
+function loadLocalStats() {
+  // Articles
+  try {
+    const arts     = JSON.parse(localStorage.getItem('portal-articles') || '[]');
+    const pub      = arts.filter(a => a.status === 'published').length;
+    const drafts   = arts.filter(a => a.status === 'draft').length;
+    document.getElementById('stat-articles').textContent = pub || '—';
+    document.getElementById('stat-articles-sub').textContent =
+      drafts ? `${drafts} draft${drafts > 1 ? 's' : ''} pending` : pub ? 'All published' : 'No articles yet';
+    document.getElementById('stat-articles-sub').className = 'stat-trend' + (drafts ? ' up' : '');
+  } catch(_) {}
 
+  // Episodes
+  try {
+    const eps    = JSON.parse(localStorage.getItem('portal-episodes') || '[]');
+    const count  = eps.length;
+    document.getElementById('stat-episodes').textContent = count || '—';
+    document.getElementById('stat-episodes-sub').textContent = count ? `${count} episodes` : 'No episodes yet';
+  } catch(_) {}
+}
+
+// ── Live enquiries from Netlify ──
+async function loadDashEnquiries() {
+  try {
+    const res  = await fetch('/.netlify/functions/get-submissions');
+    if (!res.ok) { showNoEnquiries('Could not load'); return; }
+    const data = await res.json();
+    const subs = (data.submissions || []).slice(0, 5);
+
+    document.getElementById('stat-enquiries').textContent = data.submissions?.length || '0';
+
+    const readIds = new Set(JSON.parse(localStorage.getItem('portal-read-ids') || '[]'));
+    const unread  = (data.submissions || []).filter(s => !readIds.has(s.id)).length;
+    document.getElementById('stat-enquiries-sub').textContent =
+      unread ? `${unread} unread` : 'All read';
+
+    const tbody = document.getElementById('dash-enquiries-tbody');
+    if (!subs.length) {
+      tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;padding:20px;color:var(--ink30);font-size:.82rem;">No submissions yet.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = subs.map(s => {
+      const isRead = readIds.has(s.id);
+      const label  = s.formName.charAt(0).toUpperCase() + s.formName.slice(1);
+      return `<tr>
+        <td><strong>${s.name.split(' ')[0]} ${s.name.split(' ').slice(-1)[0]?.[0] || ''}.</strong></td>
+        <td>${label}</td>
+        <td>${isRead
+          ? '<span class="badge badge-read">Read</span>'
+          : '<span class="badge badge-new">New</span>'}</td>
+      </tr>`;
+    }).join('');
+  } catch(_) {
+    showNoEnquiries('Unavailable');
+  }
+}
+
+function showNoEnquiries(msg) {
+  const el = document.getElementById('dash-enquiries-tbody');
+  if (el) el.innerHTML = `<tr><td colspan="3" style="text-align:center;padding:20px;color:var(--ink30);font-size:.82rem;">${msg}</td></tr>`;
+}
+
+loadLocalStats();
+loadDashEnquiries();
+</script>
 </body>
 </html>
