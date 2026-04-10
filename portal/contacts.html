@@ -50,7 +50,7 @@
     <div class="page-header">
       <div class="page-header-left">
         <h1>Enquiries</h1>
-        <p>All form submissions from phelim.me, organised by type. Connect Formspree to receive new submissions here.</p>
+        <p>Live form submissions from phelim.me — fetched directly from Netlify Forms.</p>
       </div>
       <div class="page-actions">
         <button class="btn btn-secondary btn-sm" onclick="markAllRead()">Mark all read</button>
@@ -58,58 +58,27 @@
       </div>
     </div>
 
-    <div class="alert alert-info">
-      <span>✓</span>
-      <span>Netlify Forms is active. New submissions appear in your <a href="https://app.netlify.com" target="_blank" style="color:var(--forest);text-decoration:underline;">Netlify dashboard</a> and trigger a branded auto-reply email via Resend.</span>
+    <div class="alert alert-info" id="setup-alert" style="display:none;">
+      <span>⚙</span>
+      <span>To load live submissions, add <strong>NETLIFY_API_TOKEN</strong> and <strong>NETLIFY_SITE_ID</strong> as environment variables in Netlify, then redeploy. <a href="integrations.html" style="color:var(--forest);text-decoration:underline;">See setup guide →</a></span>
     </div>
 
     <div class="portal-tabs">
-      <button class="portal-tab active" id="enq-all-tab" onclick="filterEnq('all')">All <span class="sidebar-badge" style="margin-left:4px;">4</span></button>
-      <button class="portal-tab" onclick="filterEnq('speaking')">Speaking</button>
-      <button class="portal-tab" onclick="filterEnq('podcast')">Podcast</button>
-      <button class="portal-tab" onclick="filterEnq('writing')">Writing</button>
-      <button class="portal-tab" onclick="filterEnq('partnership')">Partnership</button>
-      <button class="portal-tab" onclick="filterEnq('general')">General</button>
+      <button class="portal-tab active" onclick="setFilter('all')">All <span class="sidebar-badge" id="count-all" style="margin-left:4px;">0</span></button>
+      <button class="portal-tab" onclick="setFilter('speaking')">Speaking</button>
+      <button class="portal-tab" onclick="setFilter('podcast')">Podcast</button>
+      <button class="portal-tab" onclick="setFilter('writing')">Writing</button>
+      <button class="portal-tab" onclick="setFilter('partnership')">Partnership</button>
+      <button class="portal-tab" onclick="setFilter('general')">General</button>
     </div>
 
     <div class="table-wrap">
       <table class="data-table">
         <thead>
-          <tr><th>Name</th><th>Type</th><th>Preview</th><th>Received</th><th>Status</th><th style="text-align:right;">Action</th></tr>
+          <tr><th>Name</th><th>Type</th><th>Preview</th><th>Received</th><th style="text-align:right;">Action</th></tr>
         </thead>
         <tbody id="enquiries-tbody">
-          <tr>
-            <td><strong>Sarah Kamara</strong><br><span style="font-size:.72rem;color:var(--ink30);">sarah@company.com</span></td>
-            <td>Speaking</td>
-            <td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Keynote for leadership summit, 200 attendees, Brussels, March 2026...</td>
-            <td>2 hours ago</td>
-            <td><span class="badge badge-new">New</span></td>
-            <td style="text-align:right;"><button class="btn btn-ghost btn-sm" onclick="viewEnq(1)">View</button></td>
-          </tr>
-          <tr>
-            <td><strong>Marc Dupont</strong><br><span style="font-size:.72rem;color:var(--ink30);">marc@podcast.io</span></td>
-            <td>Podcast</td>
-            <td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Would love to have you on The Founders Show — 40k listeners, themes align...</td>
-            <td>Yesterday</td>
-            <td><span class="badge badge-new">New</span></td>
-            <td style="text-align:right;"><button class="btn btn-ghost btn-sm" onclick="viewEnq(2)">View</button></td>
-          </tr>
-          <tr>
-            <td><strong>Amara Leke</strong><br><span style="font-size:.72rem;color:var(--ink30);">amara@brand.co</span></td>
-            <td>Partnership</td>
-            <td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">We build financial tools for diaspora professionals and believe there's a natural...</td>
-            <td>2 days ago</td>
-            <td><span class="badge badge-new">New</span></td>
-            <td style="text-align:right;"><button class="btn btn-ghost btn-sm" onclick="viewEnq(3)">View</button></td>
-          </tr>
-          <tr>
-            <td><strong>James Obi</strong><br><span style="font-size:.72rem;color:var(--ink30);">james@email.com</span></td>
-            <td>General</td>
-            <td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Loved Episode 7. The framing around time horizons changed how I think about...</td>
-            <td>4 days ago</td>
-            <td><span class="badge badge-read">Read</span></td>
-            <td style="text-align:right;"><button class="btn btn-ghost btn-sm" onclick="viewEnq(4)">View</button></td>
-          </tr>
+          <tr><td colspan="5" style="text-align:center;padding:32px;color:var(--ink30);">Loading submissions…</td></tr>
         </tbody>
       </table>
     </div>
@@ -163,24 +132,132 @@
 </div>
 <script src="portal.js"></script>
 <script>
-let currentEnq = null;
+let allSubmissions = [];
+let currentEnq     = null;
+let activeFilter   = 'all';
+const READ_KEY     = 'portal-read-ids';
+
+function getReadIds() {
+  try { return new Set(JSON.parse(localStorage.getItem(READ_KEY) || '[]')); } catch { return new Set(); }
+}
+function markIdRead(id) {
+  const ids = getReadIds(); ids.add(id);
+  localStorage.setItem(READ_KEY, JSON.stringify([...ids]));
+}
+
+function timeAgo(dateStr) {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins  = Math.floor(diff / 60000);
+  const hours = Math.floor(diff / 3600000);
+  const days  = Math.floor(diff / 86400000);
+  if (mins < 2)   return 'Just now';
+  if (mins < 60)  return `${mins} minutes ago`;
+  if (hours < 24) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+  if (days < 7)   return `${days} day${days > 1 ? 's' : ''} ago`;
+  return new Date(dateStr).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+}
+
+function buildMessagePreview(sub) {
+  // Collect all text fields except name/email into a readable preview
+  const skip = new Set(['name','email','bot-field','form-name']);
+  return Object.entries(sub.extra || {})
+    .filter(([k]) => !skip.has(k) && typeof sub.extra[k] === 'string' && sub.extra[k])
+    .map(([, v]) => v).join(' · ').substring(0, 120);
+}
+
+function renderTable() {
+  const readIds = getReadIds();
+  const filtered = activeFilter === 'all'
+    ? allSubmissions
+    : allSubmissions.filter(s => s.formName === activeFilter);
+
+  document.getElementById('count-all').textContent = allSubmissions.length;
+
+  const tbody = document.getElementById('enquiries-tbody');
+  if (!filtered.length) {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--ink30);">${
+      allSubmissions.length ? 'No submissions in this category.' : 'No submissions yet. They will appear here after someone fills in a form on the site.'
+    }</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(s => {
+    const isRead  = readIds.has(s.id);
+    const preview = buildMessagePreview(s);
+    const label   = s.formName.charAt(0).toUpperCase() + s.formName.slice(1);
+    return `<tr style="${isRead ? '' : 'font-weight:500;'}">
+      <td>
+        <strong>${s.name}</strong>
+        ${!isRead ? '<span class="badge badge-new" style="margin-left:6px;vertical-align:middle;">New</span>' : ''}
+        <br><span style="font-size:.72rem;color:var(--ink30);font-weight:400;">${s.email}</span>
+      </td>
+      <td style="font-weight:400;">${label}</td>
+      <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:400;color:var(--ink60);">${preview}</td>
+      <td style="font-weight:400;white-space:nowrap;">${timeAgo(s.created)}</td>
+      <td style="text-align:right;"><button class="btn btn-ghost btn-sm" onclick="viewEnq('${s.id}')">View</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function setFilter(f) {
+  activeFilter = f;
+  document.querySelectorAll('.portal-tab').forEach((t, i) => {
+    const filters = ['all','speaking','podcast','writing','partnership','general'];
+    t.classList.toggle('active', filters[i] === f);
+  });
+  renderTable();
+}
+
+async function loadSubmissions() {
+  try {
+    const res = await fetch('/.netlify/functions/get-submissions');
+    if (res.status === 500) {
+      const data = await res.json();
+      if (data.error?.includes('not set')) {
+        document.getElementById('setup-alert').style.display = 'flex';
+        document.getElementById('enquiries-tbody').innerHTML =
+          '<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--ink30);">Configure NETLIFY_API_TOKEN and NETLIFY_SITE_ID to load live submissions.</td></tr>';
+        return;
+      }
+    }
+    const data = await res.json();
+    allSubmissions = data.submissions || [];
+    renderTable();
+  } catch(err) {
+    document.getElementById('enquiries-tbody').innerHTML =
+      `<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--ink30);">Could not load submissions. ${err.message}</td></tr>`;
+  }
+}
 
 function viewEnq(id) {
-  const enq = ENQUIRY_DATA.find(e => e.id === id);
+  const enq = allSubmissions.find(s => s.id === id);
   if (!enq) return;
   currentEnq = enq;
+  markIdRead(id);
+
   document.getElementById('enq-d-name').textContent = enq.name;
-  document.getElementById('enq-d-meta').textContent = `${enq.type} · ${enq.email} · ${enq.time}`;
-  document.getElementById('enq-d-body').textContent = enq.body;
-  document.getElementById('enq-reply-btn').href = `mailto:${enq.email}?subject=Re: Your ${enq.type} enquiry — Phelim Ekwebe`;
-  document.getElementById('reply-to').value = enq.email;
-  document.getElementById('reply-subject').value = `Re: Your ${enq.type} enquiry — Phelim Ekwebe`;
-  document.getElementById('reply-body').value = '';
-  document.getElementById('reply-panel').style.display = 'none';
-  document.getElementById('reply-status').textContent = '';
+  document.getElementById('enq-d-meta').textContent =
+    `${enq.formName} · ${enq.email} · ${timeAgo(enq.created)}`;
+
+  // Build full message from all fields
+  const skip = new Set(['name','email','bot-field','form-name']);
+  const lines = Object.entries(enq.extra || {})
+    .filter(([k]) => !skip.has(k) && enq.extra[k])
+    .map(([k, v]) => `${k.replace(/-/g,' ')}: ${v}`);
+  document.getElementById('enq-d-body').textContent = lines.join('\n\n');
+
+  document.getElementById('enq-reply-btn').href =
+    `mailto:${enq.email}?subject=Re: Your ${enq.formName} enquiry — Phelim Ekwebe`;
+  document.getElementById('reply-to').value      = enq.email;
+  document.getElementById('reply-subject').value = `Re: Your ${enq.formName} enquiry — Phelim Ekwebe`;
+  document.getElementById('reply-body').value    = '';
+  document.getElementById('reply-panel').style.display  = 'none';
+  document.getElementById('reply-status').textContent   = '';
+
   const detail = document.getElementById('enq-detail');
   detail.style.display = 'block';
   detail.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  renderTable(); // refresh read state in table
 }
 
 function closeEnqDetail() {
@@ -194,7 +271,7 @@ function openReplyPanel() {
 }
 
 function markCurrentRead() {
-  showToast('Marked as read.');
+  if (currentEnq) { markIdRead(currentEnq.id); renderTable(); showToast('Marked as read.'); }
 }
 
 async function sendReply() {
@@ -215,11 +292,11 @@ async function sendReply() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        to: currentEnq.email,
-        name: currentEnq.name,
+        to:        currentEnq.email,
+        name:      currentEnq.name,
         subject,
         replyBody: body,
-        mode: 'custom',
+        mode:      'custom',
       }),
     });
     const data = await res.json();
