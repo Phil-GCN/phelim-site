@@ -211,21 +211,28 @@ function setFilter(f) {
 async function loadSubmissions() {
   try {
     const res = await fetch('/.netlify/functions/get-submissions');
-    if (res.status === 500) {
-      const data = await res.json();
+    const data = await res.json();
+    if (!res.ok) {
       if (data.error?.includes('not set')) {
         document.getElementById('setup-alert').style.display = 'flex';
         document.getElementById('enquiries-tbody').innerHTML =
-          '<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--ink30);">Configure NETLIFY_API_TOKEN and NETLIFY_SITE_ID to load live submissions.</td></tr>';
-        return;
+          '<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--ink30);">Configure NETLIFY_API_TOKEN and NETLIFY_SITE_ID in Netlify environment variables, then redeploy.</td></tr>';
+      } else {
+        document.getElementById('enquiries-tbody').innerHTML =
+          `<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--ink30);">Error: ${data.error || res.status}</td></tr>`;
       }
+      return;
     }
-    const data = await res.json();
     allSubmissions = data.submissions || [];
     renderTable();
+    // Update sidebar unread badge
+    const readIds = getReadIds();
+    const unread = allSubmissions.filter(s => !readIds.has(s.id)).length;
+    const badge = document.getElementById('unread-badge');
+    if (badge) badge.textContent = unread || '';
   } catch(err) {
     document.getElementById('enquiries-tbody').innerHTML =
-      `<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--ink30);">Could not load submissions. ${err.message}</td></tr>`;
+      `<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--ink30);">Could not reach submissions API. ${err.message}</td></tr>`;
   }
 }
 
@@ -272,6 +279,12 @@ function openReplyPanel() {
 
 function markCurrentRead() {
   if (currentEnq) { markIdRead(currentEnq.id); renderTable(); showToast('Marked as read.'); }
+}
+
+function markAllRead() {
+  allSubmissions.forEach(s => markIdRead(s.id));
+  renderTable();
+  showToast('All enquiries marked as read.');
 }
 
 async function sendReply() {
@@ -321,6 +334,8 @@ async function sendReply() {
     console.error(err);
   }
 }
+
+loadSubmissions();
 </script>
 </body>
 </html>
