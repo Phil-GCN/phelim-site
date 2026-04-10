@@ -425,8 +425,10 @@ async function sendReply() {
     });
     const data = await res.json();
     if (res.ok && data.success) {
+      const sentEntry = { subject, body, sentAt: new Date().toISOString() };
       // Save to thread
-      saveThread(currentEnq.id, { subject, body, sentAt: new Date().toISOString() });
+      saveThread(currentEnq.id, sentEntry);
+      recordSent({ to: currentEnq.name, recipientEmail: currentEnq.email, subject, body, sentAt: sentEntry.sentAt, type: 'Reply' });
       renderThread(currentEnq.id);
       renderTable();
       btn.textContent = 'Sent ✓'; btn.style.background = 'var(--forest)';
@@ -468,6 +470,7 @@ async function sendCompose() {
     });
     const data = await res.json();
     if (res.ok && data.success) {
+      recordSent({ to: name, recipientEmail: to, subject: subject || 'A message from Phelim Ekwebe', body, sentAt: new Date().toISOString(), type: 'Outbound' });
       btn.textContent = 'Sent ✓'; btn.style.background = 'var(--forest)';
       status.textContent = `Delivered to ${to}`;
       showToast(`Message sent to ${name}.`);
@@ -485,6 +488,36 @@ async function sendCompose() {
   }
 }
 
+// ── Save sent message to portal-sent ──
+function recordSent(entry) {
+  try {
+    const sent = JSON.parse(localStorage.getItem('portal-sent') || '[]');
+    sent.unshift(entry);
+    localStorage.setItem('portal-sent', JSON.stringify(sent));
+  } catch(_) {}
+}
+
+// ── Deep-link: ?open=<submissionId> ──
+function handleDeepLink() {
+  const id = new URLSearchParams(window.location.search).get('open');
+  if (!id) return;
+  // Wait for submissions to load, then open the matching enquiry
+  window._deepLinkId = id;
+}
+
+// Modified loadSubmissions to handle deep-link after load
+const _origLoad = loadSubmissions;
+loadSubmissions = async function() {
+  await _origLoad();
+  if (window._deepLinkId) {
+    const id = window._deepLinkId;
+    window._deepLinkId = null;
+    // Small delay so table renders first
+    setTimeout(() => viewEnq(id), 200);
+  }
+};
+
+handleDeepLink();
 loadSubmissions();
 </script>
 </body>

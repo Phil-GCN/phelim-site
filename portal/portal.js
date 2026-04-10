@@ -154,11 +154,27 @@ function markAllRead() {
   showToast('All enquiries marked as read.');
 }
 
-// ── SITE CONTENT SAVE ──
+// ── SITE CONTENT SAVE (localStorage — will migrate to Supabase) ──
 function saveContent(section) {
-  const labels = { hero: 'Hero content', about: 'About content', speaking: 'Speaking content', photo: 'Photo' };
-  const label = labels[section] || 'Content';
-  showToast(`${label} saved. Changes go live on next site rebuild.`);
+  const saved = JSON.parse(localStorage.getItem('portal-site-content') || '{}');
+
+  if (section === 'hero') {
+    saved.heroHeading  = document.getElementById('sc-hero-heading')?.value  || saved.heroHeading;
+    saved.heroSub      = document.getElementById('sc-hero-sub')?.value      || saved.heroSub;
+    saved.heroEyebrow  = document.getElementById('sc-hero-eyebrow')?.value  || saved.heroEyebrow;
+  } else if (section === 'about') {
+    saved.aboutP1 = document.getElementById('sc-about-p1')?.value || saved.aboutP1;
+    saved.aboutP2 = document.getElementById('sc-about-p2')?.value || saved.aboutP2;
+  } else if (section === 'speaking') {
+    saved.speakingHeading = document.getElementById('sc-speaking-heading')?.value || saved.speakingHeading;
+    saved.speakingIntro   = document.getElementById('sc-speaking-intro')?.value   || saved.speakingIntro;
+    saved.speakingNote    = document.getElementById('sc-speaking-note')?.value    || saved.speakingNote;
+  }
+
+  localStorage.setItem('portal-site-content', JSON.stringify(saved));
+
+  const labels = { hero: 'Hero content', about: 'About content', speaking: 'Speaking content', photo: 'Portrait photo' };
+  showToast(`${labels[section] || 'Content'} saved.`);
 }
 
 // ── BOOKS: Stripe link save ──

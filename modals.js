@@ -132,7 +132,7 @@ async function handleSubmit(e, type) {
       await fetch('/.netlify/functions/send-reply', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ to: email, name, type: type || 'general', mode: 'auto', fields, templateOverride }),
+        body: JSON.stringify({ to: email, name, type: type || 'general', mode: 'auto', fields, templateOverride, submissionId: null }),
       });
     } catch(_) {}
   }

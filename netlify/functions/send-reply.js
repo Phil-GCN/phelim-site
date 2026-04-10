@@ -78,7 +78,7 @@ function buildCustomReply(name, replyBody) {
   });
 }
 
-function buildNotification(name, email, type, fields) {
+function buildNotification(name, email, type, fields, submissionId) {
   const label = (type || 'general').charAt(0).toUpperCase() + (type || 'general').slice(1);
   const skip  = new Set(['name','email','bot-field','form-name']);
   const rows  = Object.entries(fields || {})
@@ -90,12 +90,17 @@ function buildNotification(name, email, type, fields) {
       </tr>`
     ).join('');
 
+  // Deep-link: if we have a submission ID, link directly to it in the portal
+  const portalUrl = submissionId
+    ? `https://phelim.me/portal/contacts.html?open=${submissionId}`
+    : 'https://phelim.me/portal/contacts.html';
+
   const content = `
     <p style="margin:0 0 18px;font-size:15px;color:#444;line-height:1.6;">
       You have a new <strong>${label}</strong> enquiry from <strong>${name}</strong>
       &lt;<a href="mailto:${email}" style="color:#263d33;">${email}</a>&gt;.
     </p>
-    <table style="width:100%;border-collapse:collapse;border:1px solid #e8e4dd;border-radius:4px;overflow:hidden;margin-bottom:20px;">
+    <table style="width:100%;border-collapse:collapse;border:1px solid #e8e4dd;overflow:hidden;margin-bottom:20px;">
       <tr style="background:#f7f5f0;">
         <td style="padding:8px 12px;font-size:13px;color:#888;">name</td>
         <td style="padding:8px 12px;font-size:14px;color:#1a1a1a;">${name}</td>
@@ -106,9 +111,13 @@ function buildNotification(name, email, type, fields) {
       </tr>
       ${rows}
     </table>
-    <a href="https://phelim.me/portal/contacts.html"
-       style="display:inline-block;background:#263d33;color:#f8f6f1;text-decoration:none;padding:11px 22px;font-size:14px;letter-spacing:.03em;">
-      Open in Portal →
+    <a href="${portalUrl}"
+       style="display:inline-block;background:#263d33;color:#f8f6f1;text-decoration:none;padding:12px 24px;font-size:14px;letter-spacing:.03em;margin-right:10px;">
+      Reply in Portal →
+    </a>
+    <a href="mailto:${email}?subject=Re: Your ${type || 'general'} enquiry — Phelim Ekwebe"
+       style="display:inline-block;background:transparent;color:#263d33;text-decoration:none;padding:12px 24px;font-size:14px;letter-spacing:.03em;border:1px solid #263d33;">
+      Quick reply by email
     </a>`;
 
   return buildEmailHtml({
@@ -192,7 +201,7 @@ exports.handler = async function(event) {
   try { body = JSON.parse(event.body); }
   catch { return { statusCode: 400, body: JSON.stringify({ error: 'Invalid JSON' }) }; }
 
-  const { to, name, subject, type, replyBody, mode, fields, templateOverride } = body;
+  const { to, name, subject, type, replyBody, mode, fields, templateOverride, submissionId } = body;
   const NOTIFY_EMAIL = process.env.NOTIFY_EMAIL || 'hello@phelim.me';
 
   if (!to || !name) {
@@ -216,7 +225,7 @@ exports.handler = async function(event) {
         to: NOTIFY_EMAIL,
         replyTo: to,   // ← replying to this notification goes straight to the submitter
         subject: `New ${(type||'general')} enquiry from ${name}`,
-        html: buildNotification(name, to, type, fields || {}),
+        html: buildNotification(name, to, type, fields || {}, submissionId || null),
       });
 
     } else {

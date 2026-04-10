@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sent — Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="portal.css">
+</head>
+<body>
+<div class="portal-layout">
+
+  <header class="portal-topbar">
+    <div class="topbar-logo">Phelim Ekwebe <span>Content Portal</span></div>
+    <div class="topbar-right">
+      <a href="../index.html" class="topbar-view" target="_blank">View Site ↗</a>
+      <span class="topbar-user">Phelim Ekwebe</span>
+      <button class="topbar-btn" onclick="logout()">Sign Out</button>
+    </div>
+  </header>
+
+  <aside class="portal-sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Overview</div>
+      <a class="sidebar-link" href="index.html"><span class="sidebar-icon">◈</span> Dashboard</a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Content</div>
+      <a class="sidebar-link" href="episodes.html"><span class="sidebar-icon">◎</span> Episodes</a>
+      <a class="sidebar-link" href="articles.html"><span class="sidebar-icon">◉</span> Articles</a>
+      <a class="sidebar-link" href="books.html"><span class="sidebar-icon">▣</span> Books</a>
+      <a class="sidebar-link" href="content.html"><span class="sidebar-icon">◇</span> Site Content</a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Messages</div>
+      <a class="sidebar-link" href="contacts.html"><span class="sidebar-icon">✉</span> Enquiries <span class="sidebar-badge" id="unread-badge"></span></a>
+      <a class="sidebar-link active" href="sent.html"><span class="sidebar-icon">↗</span> Sent</a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Settings</div>
+      <a class="sidebar-link" href="settings.html"><span class="sidebar-icon">⚙</span> Site Settings</a>
+      <a class="sidebar-link" href="integrations.html"><span class="sidebar-icon">🔗</span> Integrations</a>
+    </div>
+  </aside>
+
+  <main class="portal-main">
+    <div class="page-header">
+      <div class="page-header-left">
+        <h1>Sent</h1>
+        <p>All messages and replies sent from this portal.</p>
+      </div>
+      <div class="page-actions">
+        <button class="btn btn-primary btn-sm" onclick="window.location.href='contacts.html'">✉ New Message</button>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr><th>To</th><th>Subject</th><th>Type</th><th>Sent</th><th style="text-align:right;">Action</th></tr>
+        </thead>
+        <tbody id="sent-tbody">
+          <tr><td colspan="5" style="text-align:center;padding:32px;color:var(--ink30);">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Detail panel -->
+    <div id="sent-detail" style="display:none;background:var(--paper);border:1px solid var(--ink12);padding:26px;margin-top:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px;">
+        <div>
+          <div style="font-family:var(--serif);font-size:1.1rem;color:var(--ink);" id="sd-to"></div>
+          <div style="font-size:.74rem;color:var(--ink30);margin-top:3px;" id="sd-meta"></div>
+        </div>
+        <button class="btn btn-ghost" onclick="document.getElementById('sent-detail').style.display='none'">✕ Close</button>
+      </div>
+      <div style="font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink30);margin-bottom:8px;">Message</div>
+      <div id="sd-body" style="font-size:.9rem;color:var(--ink60);line-height:1.75;white-space:pre-wrap;background:var(--paper-mid);padding:14px 16px;border:1px solid var(--ink12);"></div>
+    </div>
+  </main>
+
+</div>
+<script src="portal.js"></script>
+<script>
+const SENT_KEY   = 'portal-sent';
+const THREAD_KEY = 'portal-threads';
+
+function getSent() {
+  try { return JSON.parse(localStorage.getItem(SENT_KEY) || '[]'); } catch { return []; }
+}
+
+// Also pull replies from threads into a flat sent list
+function getAllSent() {
+  const direct = getSent(); // compose messages
+  const threads = JSON.parse(localStorage.getItem(THREAD_KEY) || '{}');
+  const replies = [];
+  for (const [submissionId, msgs] of Object.entries(threads)) {
+    msgs.forEach(m => replies.push({
+      ...m,
+      type: 'Reply',
+      submissionId,
+    }));
+  }
+  const all = [...direct.map(m => ({ ...m, type: m.type || 'Outbound' })), ...replies];
+  all.sort((a, b) => new Date(b.sentAt) - new Date(a.sentAt));
+  return all;
+}
+
+function fmtDate(d) {
+  return new Date(d).toLocaleString('en-GB', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+}
+
+function renderSent() {
+  const all   = getAllSent();
+  const tbody = document.getElementById('sent-tbody');
+  if (!all.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--ink30);">No sent messages yet. Replies and outbound messages will appear here.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = all.map((m, i) => `
+    <tr>
+      <td><strong>${m.to || m.recipientName || '—'}</strong>${m.recipientEmail ? `<br><span style="font-size:.72rem;color:var(--ink30);">${m.recipientEmail}</span>` : ''}</td>
+      <td style="color:var(--ink60);">${m.subject || '—'}</td>
+      <td><span style="font-size:.75rem;color:var(--ink30);">${m.type}</span></td>
+      <td style="white-space:nowrap;color:var(--ink60);">${fmtDate(m.sentAt)}</td>
+      <td style="text-align:right;"><button class="btn btn-ghost btn-sm" onclick="viewSent(${i})">View</button></td>
+    </tr>`).join('');
+  window._sentAll = all;
+}
+
+function viewSent(i) {
+  const m = window._sentAll[i];
+  if (!m) return;
+  document.getElementById('sd-to').textContent   = `To: ${m.to || m.recipientName || '—'}`;
+  document.getElementById('sd-meta').textContent = `${m.subject || '(no subject)'} · ${fmtDate(m.sentAt)} · ${m.type}`;
+  document.getElementById('sd-body').textContent = m.body || m.replyBody || '';
+  const detail = document.getElementById('sent-detail');
+  detail.style.display = 'block';
+  detail.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+renderSent();
+</script>
+</body>
+</html>
