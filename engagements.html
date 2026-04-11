@@ -57,10 +57,10 @@
   <div id="eng-speaking" class="eng-tab-panel active">
     <div class="container">
       <div class="speaking-intro">
-        <div><div class="eyebrow" style="margin-bottom:12px;">Speaking</div><h2>Ideas designed to change how your audience thinks</h2><p style="margin-top:12px;margin-bottom:22px;">Keynotes and sessions on identity, systems thinking, decision architecture, and the structures behind meaningful lives.</p><button class="btn btn-dark" onclick="openModal('speaking')">Book a Talk</button></div>
+        <div><div class="eyebrow" style="margin-bottom:12px;">Speaking</div><h2 id="sc-live-speaking-heading">Ideas designed to change how your audience thinks</h2><p id="sc-live-speaking-intro" style="margin-top:12px;margin-bottom:22px;">Keynotes and sessions on identity, systems thinking, decision architecture, and the structures behind meaningful lives.</p><button class="btn btn-dark" onclick="openModal('speaking')">Book a Talk</button></div>
         <div style="background:var(--paper-mid);border:1px solid var(--ink12);padding:26px;"><p style="font-size:.84rem;color:var(--ink60);line-height:1.75;margin-bottom:12px;">Available globally — in person and virtually.</p><ul class="feat-list"><li>Keynotes, workshops, panels, fireside formats</li><li>Custom talk development for your specific audience</li><li>Corporate, academic, and SME contexts</li><li>Virtual and hybrid formats available</li></ul></div>
       </div>
-      <div class="speaking-note"><p><strong>A note on how I work:</strong> The topics below are not a menu — they are the areas where I have done the deepest thinking. The best sessions I have delivered were shaped around a specific audience and a specific outcome. If you have a clear problem or a particular kind of shift you want your audience to make, that conversation is worth having.</p></div>
+      <div class="speaking-note"><p id="sc-live-speaking-note"><strong>A note on how I work:</strong> The topics below are not a menu — they are the areas where I have done the deepest thinking. The best sessions I have delivered were shaped around a specific audience and a specific outcome. If you have a clear problem or a particular kind of shift you want your audience to make, that conversation is worth having.</p></div>
       <div class="eyebrow" style="margin-bottom:12px;">Areas of Expertise</div><h2 style="margin-bottom:24px;">What I speak on</h2>
       <div class="topics-grid">
         <div class="topic-card"><h3>Identity by Design</h3><p style="font-size:.84rem;">How identity is constructed through decisions, habits, and the environments we choose — not found, but built.</p></div>
@@ -129,7 +129,7 @@
           </div>
           <div class="book-ctas">
             <button class="btn btn-dark" id="book-live-btl-cta" onclick="openCheckout('btl')">Pre-order Now</button>
-            <button class="btn btn-outline" onclick="openModal('waitlist')">Get launch notification</button>
+            <button class="btn btn-outline" onclick="openModal('waitlist','btl','Built to Last')">Get launch notification</button>
           </div>
         </div>
       </div>
@@ -157,7 +157,7 @@
           </div>
           <div class="book-ctas">
             <button class="btn btn-dark" id="book-live-bs-cta" onclick="openCheckout('bs')">Pre-order Now</button>
-            <button class="btn btn-outline" onclick="openModal('waitlist')">Get launch notification</button>
+            <button class="btn btn-outline" onclick="openModal('waitlist','bs','Beyond Survival')">Get launch notification</button>
           </div>
         </div>
       </div>
@@ -166,7 +166,7 @@
       <!-- More coming -->
       <div id="book-more" class="book-tab-panel" style="opacity:.6;">
         <div class="book-cover-wrap"><div class="book-cover" style="background:var(--paper-dark);border:1px dashed var(--ink12);"><div class="book-cover-title" style="color:var(--ink30);font-size:1rem;">Coming next</div></div></div>
-        <div class="book-info-panel"><div class="book-tag">In development</div><div class="book-main-title">More to come</div><p class="book-desc">Future titles in development. There is more to say. Sign up to be the first to know when the next book is announced.</p><button class="btn btn-outline" onclick="openModal('waitlist')">Stay updated</button></div>
+        <div class="book-info-panel"><div class="book-tag">In development</div><div class="book-main-title">More to come</div><p class="book-desc">Future titles in development. There is more to say. Sign up to be the first to know when the next book is announced.</p><button class="btn btn-outline" onclick="openModal('waitlist','upcoming','Future Titles')">Stay updated</button></div>
       </div>
     </div>
   </div>
@@ -289,6 +289,7 @@
         <a href="resources.html">Resources</a>
         <a href="contact.html">Contact</a>
       </div>
+      <div id="newsletter-footer-slot"></div>
       <div class="footer-copy">&copy; 2025 Phelim Ekwebe. All rights reserved.</div>
     </div>
   </div>

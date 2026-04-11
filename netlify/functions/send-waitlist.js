@@ -18,12 +18,13 @@ exports.handler = async function(event) {
   try { body = JSON.parse(event.body); }
   catch { return json(400, { error: 'Invalid JSON' }); }
 
-  const { subject, body: msgBody } = body;
+  const { subject, body: msgBody, item_key } = body;
   if (!subject || !msgBody) return json(400, { error: 'subject and body required' });
 
-  // Fetch all waitlist entries
+  // Fetch waitlist entries — optionally filtered by item_key stored in fields JSONB
+  // Note: Supabase supports filtering on JSONB with ->>, but we do client-side filter as fallback
   const res = await fetch(
-    `${SUP_URL}/rest/v1/submissions?type=eq.waitlist&select=name,email`,
+    `${SUP_URL}/rest/v1/submissions?type=eq.waitlist&select=name,email,fields`,
     { headers: { apikey: SUP_KEY, Authorization: `Bearer ${SUP_KEY}` } }
   );
   if (!res.ok) return json(500, { error: 'Failed to fetch waitlist from DB' });
@@ -33,9 +34,19 @@ exports.handler = async function(event) {
     return json(200, { success: true, count: 0, message: 'No waitlist subscribers found.' });
   }
 
-  // De-duplicate by email
+  // Filter by item_key if specified
+  let filtered = subscribers;
+  if (item_key) {
+    filtered = subscribers.filter(s => (s.fields?.item_key || '') === item_key);
+  }
+
+  if (!filtered.length) {
+    return json(200, { success: true, count: 0, message: `No subscribers for item "${item_key}".` });
+  }
+
+  // De-duplicate by email (same email may have signed up multiple times for different items)
   const seen = new Set();
-  const unique = subscribers.filter(s => {
+  const unique = filtered.filter(s => {
     if (!s.email || seen.has(s.email.toLowerCase())) return false;
     seen.add(s.email.toLowerCase());
     return true;

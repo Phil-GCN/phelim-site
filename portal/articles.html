@@ -83,6 +83,10 @@
       
     </div>
     <div class="sidebar-section">
+      <div class="sidebar-label">Newsletter</div>
+      <a class="sidebar-link" href="newsletter.html"><span class="sidebar-icon">◉</span> Newsletter</a>
+    </div>
+    <div class="sidebar-section">
       <div class="sidebar-label">Settings</div>
       <a class="sidebar-link" href="settings.html"><span class="sidebar-icon">⚙</span> Site Settings</a>
       <a class="sidebar-link" href="integrations.html"><span class="sidebar-icon">🔗</span> Integrations</a>
@@ -235,6 +239,9 @@
             <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px;">
               <button class="btn btn-primary" onclick="saveArticlePortal('published')">Save &amp; Publish</button>
               <button class="btn btn-secondary" onclick="saveArticlePortal('draft')">Save as Draft</button>
+              <label style="display:flex;align-items:center;gap:6px;font-size:.75rem;color:var(--ink60);cursor:pointer;margin-top:2px;">
+                <input type="checkbox" id="art-notify-newsletter"> Notify newsletter subscribers
+              </label>
             </div>
           </div>
           <div class="alert alert-info">
@@ -389,6 +396,25 @@ async function saveArticlePortal(statusOverride) {
     else PORTAL_ARTICLES.unshift(article);
     renderList();
     document.getElementById('editing-id').value = id;
+    // Optionally notify newsletter subscribers (only for published articles)
+    if (status === 'published') {
+      const notifyChk = document.getElementById('art-notify-newsletter');
+      if (notifyChk && notifyChk.checked) {
+        fetch('/.netlify/functions/send-newsletter', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            subject: `New essay: ${article.title}`,
+            body: `A new essay has been published on Future Foundations.\n\n${article.excerpt || ''}`,
+            content_type: 'New Article',
+            content_title: article.title,
+            content_url: 'https://phelim.me/engagements.html#articles',
+          }),
+        }).then(r => r.json()).then(d => {
+          if (d.success) showToast(`Newsletter sent to ${d.count} subscriber${d.count===1?'':'s'}.`);
+        }).catch(() => {});
+        notifyChk.checked = false;
+      }
+    }
     showToast(status === 'published' ? 'Published. Live on the site.' : 'Draft saved.');
   } catch(err) {
     showToast('Save failed: ' + err.message);

@@ -56,6 +56,7 @@ async function loadSiteContent() {
   // Speaking
   setText('sc-live-speaking-heading', sc.speakingHeading);
   set('sc-live-speaking-intro', sc.speakingIntro);
+  if (sc.speakingNote) { const el = document.getElementById('sc-live-speaking-note'); if (el && sc.speakingNote) el.innerHTML = sc.speakingNote; }
 
   // Footer (all pages)
   if (sc.footerCopy) {
@@ -222,7 +223,7 @@ function _renderDynamicBook(b, id, tagText, badgeText, ctaText) {
           <div class="book-meta-row">${metaRows}</div>
           <div class="book-ctas">
             <button class="btn btn-dark" onclick="openCheckout('${id}')">${ctaText}</button>
-            <button class="btn btn-outline" onclick="openModal('waitlist')">Get launch notification</button>
+            <button class="btn btn-outline" onclick="openModal('waitlist','${id}','${b.title}')">Get launch notification</button>
           </div>
         </div>`;
       dynPanels.appendChild(div);
@@ -247,6 +248,56 @@ function _renderDynamicBook(b, id, tagText, badgeText, ctaText) {
   }
 }
 
+// ═══ NEWSLETTER SUBSCRIBE (footer) ═══
+function renderNewsletterFooter() {
+  const slot = document.getElementById('newsletter-footer-slot');
+  if (!slot) return;
+  slot.innerHTML = `
+    <div style="margin:18px 0 10px;padding:18px 20px;background:rgba(38,61,51,.06);border:1px solid rgba(38,61,51,.12);max-width:420px;">
+      <div style="font-family:var(--serif);font-size:.95rem;color:var(--ink);margin-bottom:4px;">Stay in the loop</div>
+      <div style="font-size:.74rem;color:var(--ink60);margin-bottom:12px;line-height:1.6;">New episodes, essays, and resources — when they land, not before.</div>
+      <form id="newsletter-form" onsubmit="handleNewsletterSubscribe(event)" style="display:flex;gap:8px;flex-wrap:wrap;">
+        <input name="name"  type="text"  placeholder="Your name"  required style="flex:1;min-width:120px;padding:8px 10px;font-size:.8rem;border:1px solid rgba(38,61,51,.2);background:transparent;font-family:var(--sans);">
+        <input name="email" type="email" placeholder="your@email.com" required style="flex:1;min-width:160px;padding:8px 10px;font-size:.8rem;border:1px solid rgba(38,61,51,.2);background:transparent;font-family:var(--sans);">
+        <button type="submit" style="padding:8px 16px;background:var(--forest);color:#f8f6f1;border:none;font-size:.78rem;letter-spacing:.04em;cursor:pointer;font-family:var(--sans);">Subscribe</button>
+      </form>
+      <div id="newsletter-confirm" style="display:none;font-size:.8rem;color:var(--forest);margin-top:8px;"></div>
+    </div>`;
+}
+
+async function handleNewsletterSubscribe(e) {
+  e.preventDefault();
+  const form    = e.target;
+  const name    = form.name.value.trim();
+  const email   = form.email.value.trim();
+  const confirm = document.getElementById('newsletter-confirm');
+  const btn     = form.querySelector('button[type="submit"]');
+  if (!name || !email) return;
+
+  btn.textContent = '…'; btn.disabled = true;
+
+  try {
+    const res  = await fetch('/.netlify/functions/subscribe-newsletter', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email }),
+    });
+    const data = await res.json();
+    form.style.display = 'none';
+    confirm.style.display = 'block';
+    if (data.duplicate) {
+      confirm.textContent = `${email} is already subscribed. Thank you.`;
+    } else {
+      confirm.textContent = `Thank you, ${name.split(' ')[0]}. You're subscribed.`;
+    }
+  } catch(_) {
+    btn.textContent = 'Subscribe'; btn.disabled = false;
+    confirm.style.display = 'block';
+    confirm.textContent = 'Something went wrong. Please try again.';
+    confirm.style.color = '#c0392b';
+  }
+}
+
 // Kick off background fetches — page renders immediately with defaults, updates silently
 if (typeof window !== 'undefined') {
   window.addEventListener('DOMContentLoaded', () => {
@@ -254,6 +305,7 @@ if (typeof window !== 'undefined') {
     loadLiveEpisodes();
     loadSiteContent();
     loadLiveBooks();
+    renderNewsletterFooter();
   });
 }
 

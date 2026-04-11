@@ -59,6 +59,10 @@
       <a class="sidebar-link active" href="contacts.html"><span class="sidebar-icon">✉</span> All Messages <span class="sidebar-badge" id="unread-badge"></span></a>
     </div>
     <div class="sidebar-section">
+      <div class="sidebar-label">Newsletter</div>
+      <a class="sidebar-link" href="newsletter.html"><span class="sidebar-icon">◉</span> Newsletter</a>
+    </div>
+    <div class="sidebar-section">
       <div class="sidebar-label">Settings</div>
       <a class="sidebar-link" href="settings.html"><span class="sidebar-icon">⚙</span> Site Settings</a>
       <a class="sidebar-link" href="integrations.html"><span class="sidebar-icon">🔗</span> Integrations</a>
@@ -122,6 +126,7 @@
       <button class="portal-tab active" onclick="setView('all',this)">All</button>
       <button class="portal-tab" onclick="setView('enquiries',this)">Enquiries</button>
       <button class="portal-tab" onclick="setView('sent',this)">Sent</button>
+      <button class="portal-tab" onclick="setView('waitlist',this)">Waitlist</button>
       <button class="portal-tab" onclick="setView('starred',this)">★ Starred</button>
     </div>
 
@@ -133,8 +138,15 @@
       <button class="btn btn-ghost btn-sm" onclick="setTypeFilter('writing',this)">Writing</button>
       <button class="btn btn-ghost btn-sm" onclick="setTypeFilter('partnership',this)">Partnership</button>
       <button class="btn btn-ghost btn-sm" onclick="setTypeFilter('general',this)">General</button>
-      <button class="btn btn-ghost btn-sm" onclick="setTypeFilter('waitlist',this)">Waitlist</button>
-      <button class="btn btn-primary btn-sm" id="send-waitlist-btn" style="display:none;margin-left:auto;" onclick="triggerWaitlistNotification()">✉ Send launch notification to all</button>
+    </div>
+
+    <!-- Waitlist sub-filter (only shown when Waitlist tab is active) -->
+    <div id="waitlist-filter" style="display:none;gap:4px;flex-wrap:wrap;padding:8px 0 14px;border-bottom:1px solid var(--ink12);margin-bottom:14px;align-items:center;">
+      <button class="btn btn-ghost btn-sm active" onclick="setItemFilter('all',this)">All items</button>
+      <button class="btn btn-ghost btn-sm" onclick="setItemFilter('btl',this)">Built to Last</button>
+      <button class="btn btn-ghost btn-sm" onclick="setItemFilter('bs',this)">Beyond Survival</button>
+      <button class="btn btn-ghost btn-sm" onclick="setItemFilter('upcoming',this)">Future Titles</button>
+      <button class="btn btn-primary btn-sm" id="send-waitlist-btn" style="margin-left:auto;" onclick="triggerWaitlistNotification()">✉ Send launch notification</button>
     </div>
 
     <div class="table-wrap">
@@ -217,6 +229,7 @@ let allSent        = [];  // outbound from DB
 let currentMsg     = null;  // { type:'in'|'out', data:{} }
 let activeView     = 'all';
 let activeType     = 'all';
+let activeItem     = 'all'; // for waitlist sub-filter
 const READ_KEY    = 'portal-read-ids';
 const THREAD_KEY  = 'portal-threads';
 const STAR_SUB    = 'portal-starred-sub';
@@ -304,13 +317,20 @@ function renderTable() {
 
   // Build unified list: inbound submissions + outbound sent
   let rows = [];
-  if (activeView !== 'sent') {
-    let subs = allSubmissions;
-    if (activeType !== 'all') subs = subs.filter(s => s.type === activeType);
+  if (activeView === 'waitlist') {
+    // Waitlist-only view: filter by type=waitlist, then by item_key if set
+    let subs = allSubmissions.filter(s => s.type === 'waitlist');
+    if (activeItem !== 'all') subs = subs.filter(s => (s.fields?.item_key || '') === activeItem);
     subs.forEach(s => rows.push({ kind:'in', data:s }));
-  }
-  if (activeView !== 'enquiries') {
-    allSent.forEach(s => rows.push({ kind:'out', data:s }));
+  } else {
+    if (activeView !== 'sent') {
+      let subs = allSubmissions.filter(s => s.type !== 'waitlist'); // exclude waitlist from normal views
+      if (activeType !== 'all') subs = subs.filter(s => s.type === activeType);
+      subs.forEach(s => rows.push({ kind:'in', data:s }));
+    }
+    if (activeView !== 'enquiries') {
+      allSent.forEach(s => rows.push({ kind:'out', data:s }));
+    }
   }
   if (activeView === 'starred') {
     rows = rows.filter(r =>
@@ -352,8 +372,8 @@ function renderTable() {
       ? '<span class="msg-dir in">↓ In</span>'
       : '<span class="msg-dir out">↑ Out</span>';
 
-    return `<tr style="${!isRead?'font-weight:500;':''}" id="row-${id}">
-      <td><button class="star-btn ${starClass}" onclick="toggleStar(event,'${id}','${r.kind}')" title="${isStarred?'Unstar':'Star'}">${starIcon}</button></td>
+    return `<tr style="${!isRead?'font-weight:500;':''}cursor:pointer;" id="row-${id}" onclick="toggleMsg(event,'${id}','${r.kind}')">
+      <td onclick="event.stopPropagation()"><button class="star-btn ${starClass}" onclick="toggleStar(event,'${id}','${r.kind}')" title="${isStarred?'Unstar':'Star'}">${starIcon}</button></td>
       <td>
         ${kindHtml}
         <strong>${name}</strong>
@@ -364,7 +384,7 @@ function renderTable() {
       <td style="font-weight:400;font-size:.82rem;">${label}</td>
       <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:400;color:var(--ink60);font-size:.85rem;">${preview}</td>
       <td style="font-weight:400;white-space:nowrap;font-size:.82rem;color:var(--ink60);">${date}</td>
-      <td style="text-align:right;"><button class="btn btn-ghost btn-sm" onclick="viewMsg('${id}','${r.kind}')">View</button></td>
+      <td style="text-align:right;" onclick="event.stopPropagation()"><button class="btn btn-ghost btn-sm" onclick="toggleMsg(event,'${id}','${r.kind}')" id="view-btn-${id}">${currentMsg&&currentMsg.data.id===id?'Close':'View'}</button></td>
     </tr>`;
   }).join('');
 }
@@ -373,9 +393,16 @@ function setView(v, btn) {
   activeView = v;
   document.querySelectorAll('.portal-tab').forEach(t=>t.classList.remove('active'));
   if(btn) btn.classList.add('active');
-  // Sub-filters only make sense for Enquiries tab
-  document.getElementById('sub-filter').style.display = (v === 'enquiries') ? 'flex' : 'none';
+  document.getElementById('sub-filter').style.display        = (v === 'enquiries') ? 'flex' : 'none';
+  document.getElementById('waitlist-filter').style.display   = (v === 'waitlist')   ? 'flex' : 'none';
   closeDetail();
+  renderTable();
+}
+
+function setItemFilter(item, btn) {
+  activeItem = item;
+  document.querySelectorAll('#waitlist-filter .btn-ghost').forEach(b => b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
   renderTable();
 }
 
@@ -389,10 +416,11 @@ function setTypeFilter(t, btn) {
 }
 
 async function triggerWaitlistNotification() {
-  const subject = window.prompt('Email subject line:', 'It is here — the book is now available');
+  const itemLabel = activeItem === 'all' ? 'all waitlist subscribers' : `"${activeItem}" waitlist`;
+  const subject = window.prompt(`Subject line (sending to ${itemLabel}):`, 'It is here — the book is now available');
   if (!subject) return;
-  const body = window.prompt('Email body (plain text):', 'The wait is over.\n\nThe book is now available at phelim.me — head over to secure your copy.\n\nThank you for your patience.\n\nPhelim');
-  if (!body) return;
+  const msgBody = window.prompt('Email body (plain text):', 'The wait is over.\n\nThe book is now available at phelim.me — head over to secure your copy.\n\nThank you for your patience.\n\nPhelim');
+  if (!msgBody) return;
 
   const btn = document.getElementById('send-waitlist-btn');
   const orig = btn.textContent;
@@ -402,7 +430,7 @@ async function triggerWaitlistNotification() {
     const res = await fetch('/.netlify/functions/send-waitlist', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ subject, body }),
+      body: JSON.stringify({ subject, body: msgBody, item_key: activeItem === 'all' ? null : activeItem }),
     });
     const data = await res.json();
     if (res.ok && data.success) {
@@ -431,6 +459,16 @@ function toggleStar(e, id, kind) {
   if(currentMsg && currentMsg.data.id===id) updateDetailStar();
 }
 
+// ── Toggle message (open if closed, close if same row already open) ──
+function toggleMsg(event, id, kind) {
+  if (event) event.stopPropagation();
+  if (currentMsg && currentMsg.data.id === id) {
+    closeDetail();
+  } else {
+    viewMsg(id, kind);
+  }
+}
+
 // ── View message ──
 async function viewMsg(id, kind) {
   const data = kind==='in'
@@ -439,8 +477,18 @@ async function viewMsg(id, kind) {
   if(!data) return;
   currentMsg = { kind, data };
 
+  // Reset previous row's View button
+  if (currentMsg && currentMsg.data.id !== id) {
+    const prevBtn = document.getElementById('view-btn-' + currentMsg.data.id);
+    if (prevBtn) prevBtn.textContent = 'View';
+  }
+
   // Mark as read
   if(kind==='in') { markIdRead(id); updateUnreadBadge(); renderTable(); }
+
+  // Update this row's View button to "Close"
+  const newBtn = document.getElementById('view-btn-' + id);
+  if (newBtn) newBtn.textContent = 'Close';
 
   // Populate detail
   const name  = kind==='in' ? (data.name||'—') : (data.to_name||'—');
@@ -499,23 +547,44 @@ function updateDetailStar() {
   btn.style.color = isStarred ? '#c89b3c' : '';
 }
 
-async function renderThread(id) {
-  const entries = await getThread(id);
+async function renderThread(subId) {
+  const replies = await getThread(subId);
   const wrap    = document.getElementById('thread-wrap');
   const list    = document.getElementById('thread-list');
-  if(!entries.length){ wrap.style.display='none'; return; }
+
+  // Build full thread: original inbound message first, then replies in chronological order
+  const sub     = allSubmissions.find(s => s.id === subId);
+  const items   = [];
+
+  if (sub) {
+    const skip   = new Set(['name','email','bot-field','form-name']);
+    const msgTxt = Object.entries(sub.fields||{})
+      .filter(([k]) => !skip.has(k) && sub.fields[k])
+      .map(([k,v]) => `${k.replace(/-/g,' ')}: ${v}`)
+      .join('\n\n') || '(no additional message)';
+    items.push({ from:'them', name: sub.name||'Visitor', body: msgTxt, sentAt: sub.created_at });
+  }
+
+  // replies sorted oldest first
+  const sorted = [...replies].sort((a,b) => new Date(a.sentAt) - new Date(b.sentAt));
+  sorted.forEach(e => items.push({ from:'you', name:'Phelim Ekwebe', body: e.body, sentAt: e.sentAt }));
+
+  if (items.length <= 1 && !replies.length) { wrap.style.display='none'; return; }
+
   wrap.style.display='block';
-  list.innerHTML = entries.map(e=>`
-    <div class="thread-item">
-      <div class="thread-avatar you">PE</div>
+  list.innerHTML = items.map(item => {
+    const isYou = item.from === 'you';
+    return `<div class="thread-item">
+      <div class="thread-avatar ${isYou ? 'you' : 'them'}">${isYou ? 'PE' : (item.name.charAt(0)||'?').toUpperCase()}</div>
       <div class="thread-bubble">
         <div class="thread-bubble-header">
-          <span class="thread-bubble-name">Phelim Ekwebe</span>
-          <span class="thread-bubble-time">${fmtDate(e.sentAt)}</span>
+          <span class="thread-bubble-name">${item.name}</span>
+          <span class="thread-bubble-time">${fmtDate(item.sentAt)}</span>
         </div>
-        <div class="thread-bubble-body">${e.body}</div>
+        <div class="thread-bubble-body">${item.body}</div>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 function _showInlineDetail() {
@@ -554,16 +623,21 @@ function _showInlineDetail() {
 }
 
 function closeDetail() {
+  const prevId = currentMsg ? currentMsg.data.id : null;
   const detail = document.getElementById('msg-detail');
   detail.style.display = 'none';
   // Move detail panel back to main if it was placed in an inline row
   const inlineRow = document.getElementById('inline-detail-row');
   if (inlineRow) {
-    // Put the panel back in main before removing the row
     document.querySelector('.portal-main').appendChild(detail);
     inlineRow.remove();
   }
   currentMsg = null;
+  // Reset the View button for the row that was just closed
+  if (prevId) {
+    const btn = document.getElementById('view-btn-' + prevId);
+    if (btn) btn.textContent = 'View';
+  }
 }
 
 function openReplyPanel() {

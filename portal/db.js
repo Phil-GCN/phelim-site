@@ -93,6 +93,10 @@ const DB = {
   async getSubmissions()           { return this.get('submissions'); },
   async patchSubmission(id, data)  { return this.patch('submissions', id, data); },
 
+  // ── Newsletter subscribers ──
+  async getNewsletterSubscribers() { return this.get('newsletter_subscribers'); },
+  async unsubscribeNewsletter(id)  { return this.patch('newsletter_subscribers', id, { active: false }); },
+
   // ── Sent messages ──
   async getSent()              { return this.get('sent_messages'); },
   async patchSent(id, data)   { return this.patch('sent_messages', id, data); },
@@ -115,3 +119,6 @@ const DB = {
     });
   },
 };
+
+// Expose on window so portal pages can check `if (window.DB)`
+window.DB = DB;

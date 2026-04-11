@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Newsletter — Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="portal.css">
+</head>
+<body>
+<div class="portal-layout">
+
+  <header class="portal-topbar">
+    <div class="topbar-logo">Phelim Ekwebe <span>Content Portal</span></div>
+    <div class="topbar-right">
+      <a href="../index.html" class="topbar-view" target="_blank">View Site ↗</a>
+      <span class="topbar-user">Phelim Ekwebe</span>
+      <button class="topbar-btn" onclick="logout()">Sign Out</button>
+    </div>
+  </header>
+
+  <aside class="portal-sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Overview</div>
+      <a class="sidebar-link" href="index.html"><span class="sidebar-icon">◈</span> Dashboard</a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Content</div>
+      <a class="sidebar-link" href="episodes.html"><span class="sidebar-icon">◎</span> Episodes</a>
+      <a class="sidebar-link" href="articles.html"><span class="sidebar-icon">◉</span> Articles</a>
+      <a class="sidebar-link" href="books.html"><span class="sidebar-icon">▣</span> Books</a>
+      <a class="sidebar-link" href="content.html"><span class="sidebar-icon">◇</span> Site Content</a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Messages</div>
+      <a class="sidebar-link" href="contacts.html"><span class="sidebar-icon">✉</span> All Messages</a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Newsletter</div>
+      <a class="sidebar-link active" href="newsletter.html"><span class="sidebar-icon">◉</span> Newsletter</a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Settings</div>
+      <a class="sidebar-link" href="settings.html"><span class="sidebar-icon">⚙</span> Site Settings</a>
+      <a class="sidebar-link" href="integrations.html"><span class="sidebar-icon">🔗</span> Integrations</a>
+    </div>
+  </aside>
+
+  <main class="portal-main">
+    <div class="page-header">
+      <div class="page-header-left">
+        <h1>Newsletter</h1>
+        <p>Manage subscribers and send newsletters. Subscribers come from the subscribe form on the site footer.</p>
+      </div>
+      <div class="page-actions">
+        <span id="sub-count-badge" style="font-size:.8rem;color:var(--ink60);"></span>
+        <button class="btn btn-primary btn-sm" onclick="showCompose()">✉ New Newsletter</button>
+      </div>
+    </div>
+
+    <!-- ── TABS ── -->
+    <div class="portal-tabs" style="margin-bottom:0;">
+      <button class="portal-tab active" id="nl-tab-subscribers" onclick="showTab('subscribers',this)">Subscribers</button>
+      <button class="portal-tab" id="nl-tab-compose" onclick="showTab('compose',this)">Compose & Send</button>
+      <button class="portal-tab" id="nl-tab-history" onclick="showTab('history',this)">Send History</button>
+    </div>
+
+    <!-- ── SUBSCRIBERS TAB ── -->
+    <div class="portal-tab-panel active" id="nl-panel-subscribers" style="padding-top:16px;">
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Name</th><th>Email</th><th>Subscribed</th><th>Status</th><th style="text-align:right;">Action</th></tr></thead>
+          <tbody id="sub-tbody">
+            <tr><td colspan="5" style="text-align:center;padding:32px;color:var(--ink30);">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── COMPOSE TAB ── -->
+    <div class="portal-tab-panel" id="nl-panel-compose" style="padding-top:16px;">
+      <div class="alert alert-info"><span>ℹ</span><span>This will send to all <strong id="compose-sub-count">–</strong> active subscribers. Preview your email carefully before sending.</span></div>
+
+      <div class="form-group">
+        <label class="form-label">Subject line</label>
+        <input class="form-input" id="nl-subject" placeholder="e.g. New episode: Systems That Outlast Motivation">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Preview text <span style="color:var(--ink30);font-weight:400;">· shown in email client preview (optional)</span></label>
+        <input class="form-input" id="nl-preview" placeholder="Short teaser shown after subject in inbox">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Message body <span style="color:var(--ink30);font-weight:400;">· plain text, double line break = new paragraph</span></label>
+        <textarea class="form-textarea" id="nl-body" style="min-height:200px;" placeholder="Write your newsletter here…&#10;&#10;Use double line breaks for new paragraphs."></textarea>
+      </div>
+
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-header"><div class="card-title">Optional: Link to new content</div></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+          <div class="form-group">
+            <label class="form-label">Content type</label>
+            <select class="form-input" id="nl-content-type">
+              <option value="">None</option>
+              <option value="New Episode">New Episode</option>
+              <option value="New Article">New Article</option>
+              <option value="New Book">New Book</option>
+              <option value="New Resource">New Resource</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Title</label>
+            <input class="form-input" id="nl-content-title" placeholder="Title of the new item">
+          </div>
+          <div class="form-group">
+            <label class="form-label">URL</label>
+            <input class="form-input" id="nl-content-url" placeholder="https://phelim.me/...">
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;align-items:center;">
+        <button class="btn btn-primary" id="nl-send-btn" onclick="sendNewsletter()">Send to All Subscribers</button>
+        <button class="btn btn-secondary" onclick="previewNewsletter()">Preview Email</button>
+        <span id="nl-send-status" style="font-size:.78rem;color:var(--ink60);margin-left:6px;"></span>
+      </div>
+
+      <!-- Preview modal -->
+      <div id="nl-preview-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;overflow-y:auto;" onclick="if(event.target===this)document.getElementById('nl-preview-modal').style.display='none'">
+        <div style="max-width:640px;margin:40px auto;background:#fff;padding:32px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+            <div style="font-family:var(--serif);font-size:1rem;">Email Preview</div>
+            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('nl-preview-modal').style.display='none'">✕ Close</button>
+          </div>
+          <iframe id="nl-preview-frame" style="width:100%;height:560px;border:1px solid var(--ink12);" srcdoc=""></iframe>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── HISTORY TAB ── -->
+    <div class="portal-tab-panel" id="nl-panel-history" style="padding-top:16px;">
+      <div id="nl-history-list">
+        <div style="text-align:center;padding:32px;color:var(--ink30);">No newsletters sent yet.</div>
+      </div>
+    </div>
+
+  </main>
+
+</div>
+<script src="portal.js"></script>
+<script src="db.js"></script>
+<script>
+let allSubscribers = [];
+let sendHistory    = [];
+
+// ── Tab switching ──
+function showTab(id, btn) {
+  document.querySelectorAll('.portal-tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.portal-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('nl-panel-' + id).classList.add('active');
+  if (btn) btn.classList.add('active');
+}
+function showCompose() { showTab('compose', document.getElementById('nl-tab-compose')); }
+
+// ── Load subscribers ──
+async function loadSubscribers() {
+  const tbody = document.getElementById('sub-tbody');
+  try {
+    const rows = await DB.getNewsletterSubscribers();
+    allSubscribers = (rows || []).sort((a, b) => new Date(b.subscribed_at) - new Date(a.subscribed_at));
+    renderSubscribers();
+  } catch(e) {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--ink30);">Error: ${e.message}</td></tr>`;
+  }
+}
+
+function renderSubscribers() {
+  const tbody  = document.getElementById('sub-tbody');
+  const active = allSubscribers.filter(s => s.active !== false);
+  const badge  = document.getElementById('sub-count-badge');
+  const csBadge = document.getElementById('compose-sub-count');
+  if (badge) badge.textContent = `${active.length} active subscriber${active.length === 1 ? '' : 's'}`;
+  if (csBadge) csBadge.textContent = active.length;
+
+  if (!allSubscribers.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--ink30);">No subscribers yet.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = allSubscribers.map(s => {
+    const isActive = s.active !== false;
+    const date     = new Date(s.subscribed_at).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+    return `<tr style="${!isActive ? 'opacity:.5;' : ''}">
+      <td>${s.name || '—'}</td>
+      <td><a href="mailto:${s.email}" style="color:var(--ink60);">${s.email}</a></td>
+      <td style="font-size:.82rem;color:var(--ink60);">${date}</td>
+      <td><span class="badge ${isActive ? 'badge-published' : 'badge-draft'}">${isActive ? 'Active' : 'Unsubscribed'}</span></td>
+      <td style="text-align:right;">
+        ${isActive ? `<button class="btn btn-ghost btn-sm" style="color:#c0392b;" onclick="unsubscribe('${s.id}','${s.email}')">Unsubscribe</button>` : ''}
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+async function unsubscribe(id, email) {
+  if (!window.confirm(`Unsubscribe ${email}?\n\nThey will no longer receive newsletters.`)) return;
+  try {
+    await DB.unsubscribeNewsletter(id);
+    allSubscribers = allSubscribers.map(s => s.id === id ? {...s, active: false} : s);
+    renderSubscribers();
+    showToast(`${email} unsubscribed.`);
+  } catch(e) {
+    showToast('Failed: ' + e.message);
+  }
+}
+
+// ── Send newsletter ──
+async function sendNewsletter() {
+  const subject = document.getElementById('nl-subject').value.trim();
+  const body    = document.getElementById('nl-body').value.trim();
+  const status  = document.getElementById('nl-send-status');
+
+  if (!subject) { status.textContent = 'Subject line is required.'; return; }
+  if (!body)    { status.textContent = 'Message body is required.'; return; }
+
+  const active = allSubscribers.filter(s => s.active !== false);
+  if (!active.length) { status.textContent = 'No active subscribers to send to.'; return; }
+
+  if (!window.confirm(`Send this newsletter to ${active.length} subscriber${active.length === 1 ? '' : 's'}?\n\nSubject: "${subject}"\n\nThis cannot be undone.`)) return;
+
+  const btn = document.getElementById('nl-send-btn');
+  btn.disabled = true; btn.textContent = 'Sending…'; status.textContent = '';
+
+  const payload = {
+    subject,
+    body,
+    preview_text:  document.getElementById('nl-preview').value.trim() || undefined,
+    content_type:  document.getElementById('nl-content-type').value   || undefined,
+    content_title: document.getElementById('nl-content-title').value.trim() || undefined,
+    content_url:   document.getElementById('nl-content-url').value.trim()   || undefined,
+  };
+
+  try {
+    const res  = await fetch('/.netlify/functions/send-newsletter', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (res.ok && data.success) {
+      status.textContent = `Sent to ${data.count} subscriber${data.count === 1 ? '' : 's'}.`;
+      btn.textContent = 'Sent ✓'; btn.style.background = 'var(--forest)';
+      // Save to local history
+      const entry = { subject, sentAt: new Date().toISOString(), count: data.count };
+      sendHistory.unshift(entry);
+      try { const h = JSON.parse(localStorage.getItem('nl-history') || '[]'); h.unshift(entry); localStorage.setItem('nl-history', JSON.stringify(h.slice(0,50))); } catch(_){}
+      renderHistory();
+      showToast(`Newsletter sent to ${data.count} subscribers.`);
+      setTimeout(() => { btn.textContent = 'Send to All Subscribers'; btn.style.background = ''; btn.disabled = false; }, 3000);
+    } else {
+      throw new Error(data.error || 'Send failed');
+    }
+  } catch(err) {
+    btn.textContent = 'Send to All Subscribers'; btn.disabled = false;
+    status.textContent = 'Error: ' + err.message;
+  }
+}
+
+// ── Preview ──
+function previewNewsletter() {
+  const subject = document.getElementById('nl-subject').value.trim() || '(No subject)';
+  const body    = document.getElementById('nl-body').value.trim()    || '(No body)';
+  const bodyHtml = body.split('\n\n').map(p =>
+    `<p style="margin:0 0 16px;color:#444;font-size:15px;line-height:1.7;">${p.replace(/\n/g,'<br>')}</p>`
+  ).join('');
+  const html = `<!DOCTYPE html><html><body style="margin:0;padding:20px;background:#f0ede6;font-family:sans-serif;">
+    <div style="max-width:560px;margin:0 auto;background:#fff;">
+      <div style="background:#263d33;padding:28px 32px;"><p style="margin:0;font-family:Georgia,serif;font-size:22px;color:#f8f6f1;">${subject}</p></div>
+      <div style="padding:28px 32px;">${bodyHtml}</div>
+      <div style="border-top:1px solid #f0ede6;padding:16px 32px;font-size:11px;color:#999;">You are receiving this because you subscribed at phelim.me</div>
+    </div>
+  </body></html>`;
+  document.getElementById('nl-preview-frame').srcdoc = html;
+  document.getElementById('nl-preview-modal').style.display = 'block';
+}
+
+// ── History ──
+function renderHistory() {
+  const el = document.getElementById('nl-history-list');
+  const history = sendHistory.length ? sendHistory : (JSON.parse(localStorage.getItem('nl-history') || '[]'));
+  if (!history.length) { el.innerHTML = '<div style="text-align:center;padding:32px;color:var(--ink30);">No newsletters sent yet.</div>'; return; }
+  el.innerHTML = history.map(h => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--ink12);">
+      <div>
+        <div style="font-size:.9rem;font-weight:500;color:var(--ink);">${h.subject}</div>
+        <div style="font-size:.74rem;color:var(--ink30);margin-top:2px;">${new Date(h.sentAt).toLocaleString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})} · ${h.count} recipient${h.count===1?'':'s'}</div>
+      </div>
+    </div>`).join('');
+}
+
+// ── Init ──
+loadSubscribers();
+renderHistory();
+</script>
+</body>
+</html>

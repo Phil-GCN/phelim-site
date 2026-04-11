@@ -32,15 +32,24 @@ const MODAL_FORMS={
   },
   waitlist:{
     eyebrow:'Launch Notification',title:'Be the first to know',
-    html:`<div class="form"><p style="font-size:.88rem;color:#555;margin:0 0 18px;line-height:1.65;">Sign up below and you'll receive a notification as soon as this book launches — along with any early-access offers.</p><div class="frow"><div class="fg"><label class="flabel">Name</label><input class="finput" type="text" placeholder="Full name"></div><div class="fg"><label class="flabel">Email</label><input class="finput" type="email" placeholder="your@email.com"></div></div><button type="button" class="btn btn-dark" style="width:100%;justify-content:center;margin-top:6px;" onclick="handleModalSubmit(this)">Notify Me at Launch</button></div>`
+    html:`<div class="form"><p id="waitlist-desc" style="font-size:.88rem;color:#555;margin:0 0 18px;line-height:1.65;">Sign up below and you'll be notified as soon as this launches — along with any early-access offers.</p><div class="frow"><div class="fg"><label class="flabel">Name</label><input class="finput" type="text" placeholder="Full name"></div><div class="fg"><label class="flabel">Email</label><input class="finput" type="email" placeholder="your@email.com"></div></div><button type="button" class="btn btn-dark" style="width:100%;justify-content:center;margin-top:6px;" onclick="handleModalSubmit(this)">Notify Me at Launch</button></div>`
   }
 };
-function openModal(ctx){
+// openModal(ctx, itemKey, itemTitle)
+// itemKey/itemTitle only used for waitlist to identify which item
+function openModal(ctx, itemKey, itemTitle){
   const c=MODAL_FORMS[ctx]||MODAL_FORMS.general;
-  window._modalType = ctx || 'general';
+  window._modalType    = ctx || 'general';
+  window._modalItemKey = itemKey   || null;
+  window._modalItemTitle = itemTitle || null;
   document.getElementById('m-eyebrow').textContent=c.eyebrow;
   document.getElementById('m-title').textContent=c.title;
   document.getElementById('m-form-body').innerHTML=c.html;
+  // Personalise waitlist description with item title
+  if (ctx === 'waitlist' && itemTitle) {
+    const desc = document.getElementById('waitlist-desc');
+    if (desc) desc.textContent = `Sign up to be notified when "${itemTitle}" launches — along with any early-access offers.`;
+  }
   document.getElementById('modal').classList.add('open');
   document.body.style.overflow='hidden';
 }
@@ -71,15 +80,47 @@ function handleModalSubmit(btn){
     if (val.trim() && key !== 'text' && key !== 'email') fields[key] = val.trim();
   });
 
-  const orig = btn.textContent;
+  const orig    = btn.textContent;
+  const mType   = window._modalType    || 'general';
+  const itemKey = window._modalItemKey || null;
+  const itemTitle = window._modalItemTitle || null;
+
   btn.textContent = 'Sending…'; btn.disabled = true;
 
-  // Call the real backend
+  // For waitlist, check dedup server-side; await response before showing confirm
+  if (mType === 'waitlist') {
+    fetch('/.netlify/functions/submit-form', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, type: 'waitlist', fields, item_key: itemKey, item_title: itemTitle }),
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.duplicate) {
+        btn.textContent = orig; btn.disabled = false;
+        const formDiv2 = btn.closest('.form');
+        let msg = formDiv2.querySelector('.waitlist-dup-msg');
+        if (!msg) { msg = document.createElement('p'); msg.className = 'waitlist-dup-msg'; msg.style.cssText = 'font-size:.83rem;color:#c0392b;margin:10px 0 0;text-align:center;'; formDiv2.appendChild(msg); }
+        msg.textContent = `${email} is already on the waitlist${itemTitle ? ' for ' + itemTitle : ''}. We'll notify you when it launches.`;
+      } else {
+        btn.textContent = 'You\'re on the list ✓'; btn.style.background = 'var(--forest)';
+        setTimeout(() => { closeModal(); btn.textContent = orig; btn.style.background = ''; btn.disabled = false; }, 2200);
+      }
+    })
+    .catch(() => {
+      // Show success anyway so user isn't left hanging
+      btn.textContent = 'You\'re on the list ✓'; btn.style.background = 'var(--forest)';
+      setTimeout(() => { closeModal(); btn.textContent = orig; btn.style.background = ''; btn.disabled = false; }, 2200);
+    });
+    return;
+  }
+
+  // Non-waitlist: fire and forget
   fetch('/.netlify/functions/submit-form', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, email, type: window._modalType || 'general', fields }),
-  }).catch(() => {}); // best-effort; show success regardless
+    body: JSON.stringify({ name, email, type: mType, fields }),
+  }).catch(() => {});
 
   btn.textContent = 'Sent ✓'; btn.style.background = 'var(--forest)';
   setTimeout(() => { closeModal(); btn.textContent = orig; btn.style.background = ''; btn.disabled = false; }, 2200);

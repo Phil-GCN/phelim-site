@@ -40,6 +40,10 @@
       
     </div>
     <div class="sidebar-section">
+      <div class="sidebar-label">Newsletter</div>
+      <a class="sidebar-link" href="newsletter.html"><span class="sidebar-icon">◉</span> Newsletter</a>
+    </div>
+    <div class="sidebar-section">
       <div class="sidebar-label">Settings</div>
       <a class="sidebar-link" href="settings.html"><span class="sidebar-icon">⚙</span> Site Settings</a>
       <a class="sidebar-link" href="integrations.html"><span class="sidebar-icon">🔗</span> Integrations</a>
@@ -103,9 +107,12 @@
         <input class="form-input" id="ep-color" type="color" value="#1a3028" style="height:40px;padding:4px;">
         <div class="form-hint">Used for the episode card background in the carousel.</div>
       </div>
-      <div style="display:flex;gap:10px;margin-top:6px;">
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:6px;">
         <button class="btn btn-primary" onclick="saveEpisode()">Save Episode</button>
         <button class="btn btn-secondary" onclick="cancelEpisode()">Cancel</button>
+        <label style="display:flex;align-items:center;gap:6px;font-size:.78rem;color:var(--ink60);cursor:pointer;">
+          <input type="checkbox" id="ep-notify-newsletter"> Notify newsletter subscribers
+        </label>
       </div>
     </div>
 
@@ -242,6 +249,22 @@ async function saveEpisode() {
     const idx = EPISODES.findIndex(e => e.id === episode.id);
     if (idx >= 0) EPISODES[idx] = episode; else EPISODES.unshift(episode);
     renderEpisodes();
+    // Optionally notify newsletter subscribers
+    const notifyChk = document.getElementById('ep-notify-newsletter');
+    if (notifyChk && notifyChk.checked) {
+      fetch('/.netlify/functions/send-newsletter', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          subject: `New episode: ${title}`,
+          body: `Episode ${num} of Future Foundations is now live.\n\n${episode.description || ''}`,
+          content_type: 'New Episode',
+          content_title: title,
+          content_url: episode.spotify_url || episode.youtube_url || 'https://phelim.me/podcast.html',
+        }),
+      }).then(r => r.json()).then(d => {
+        if (d.success) showToast(`Newsletter sent to ${d.count} subscriber${d.count===1?'':'s'}.`);
+      }).catch(() => {});
+    }
     cancelEpisode();
     showToast('Episode saved. Live on the site.');
   } catch(err) {

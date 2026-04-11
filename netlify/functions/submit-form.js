@@ -46,8 +46,8 @@ const DEFAULT_TEMPLATES = {
   waitlist: {
     colour: '#1a3028', eyebrow: 'Launch Notification',
     heading: "You're on the list",
-    intro: n => `Dear ${n},\n\nThank you for signing up for launch notifications.`,
-    body: `You will be among the first to hear when the book is available — along with any early-access offers or pre-launch pricing. No spam, no noise. Just the announcement when it matters.`,
+    intro: (n, itemTitle) => `Dear ${n},\n\nThank you for signing up${itemTitle ? ` for launch notifications for "${itemTitle}"` : ' for launch notifications'}.`,
+    body: `You will be among the first to hear when it is available — along with any early-access offers or pre-launch pricing. No other emails, no noise. Just the one announcement when it matters.`,
     closing: "I appreciate your interest and look forward to sharing it with you.",
   },
 };
@@ -63,9 +63,16 @@ async function getSiteContent(supabaseUrl, supabaseKey) {
   } catch { return null; }
 }
 
-// Kept for backward compat — same as getSiteContent
-async function getSignature(supabaseUrl, supabaseKey) {
-  return getSiteContent(supabaseUrl, supabaseKey);
+async function getEmailTemplates(supabaseUrl, supabaseKey) {
+  try {
+    const res = await fetch(`${supabaseUrl}/rest/v1/email_templates?select=*`, {
+      headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` },
+    });
+    if (!res.ok) return {};
+    const rows = await res.json();
+    // rows is [{type, heading, intro, body, closing, ...}]
+    return Object.fromEntries((rows || []).map(r => [r.type, r]));
+  } catch { return {}; }
 }
 
 function resolveNotifyEmail(sc, type, fallback) {
@@ -120,9 +127,12 @@ function buildEmailHtml({ colour, eyebrow, heading, content, closing, signatureH
 </body></html>`;
 }
 
-function buildAutoReply(name, type, override, signatureHtml) {
-  const base = DEFAULT_TEMPLATES[type] || DEFAULT_TEMPLATES.general;
-  const intro   = override?.intro  ? override.intro.replace(/{name}/g, name) : base.intro(name);
+function buildAutoReply(name, type, override, signatureHtml, extraCtx) {
+  const base    = DEFAULT_TEMPLATES[type] || DEFAULT_TEMPLATES.general;
+  const introFn = override?.intro ? (n => override.intro.replace(/{name}/g, n)) : base.intro;
+  const intro   = typeof introFn === 'function'
+    ? introFn(name, extraCtx?.item_title)
+    : String(introFn).replace(/{name}/g, name);
   const bodyTxt = override?.body   || base.body;
   const closing = override?.closing !== undefined ? override.closing : base.closing;
   const heading = override?.heading || base.heading;
@@ -201,12 +211,32 @@ exports.handler = async function(event) {
   try { body = JSON.parse(event.body); }
   catch { return json(400, { error: 'Invalid JSON' }); }
 
-  const { name, email, type, fields, templateOverride } = body;
+  const { name, email, type, fields, templateOverride, item_key, item_title } = body;
   if (!name || !email) return json(400, { error: 'name and email required' });
+
+  // Waitlist duplicate check — same email + same item_key already exists
+  if (type === 'waitlist' && SUP_URL && SUP_KEY) {
+    try {
+      const filter = item_key
+        ? `?type=eq.waitlist&email=eq.${encodeURIComponent(email)}&fields->>item_key=eq.${encodeURIComponent(item_key)}&select=id&limit=1`
+        : `?type=eq.waitlist&email=eq.${encodeURIComponent(email)}&select=id&limit=1`;
+      const dupRes = await fetch(`${SUP_URL}/rest/v1/submissions${filter}`, {
+        headers: { apikey: SUP_KEY, Authorization: `Bearer ${SUP_KEY}` },
+      });
+      const dupRows = dupRes.ok ? await dupRes.json() : [];
+      if (dupRows && dupRows.length > 0) {
+        return json(200, { success: true, duplicate: true });
+      }
+    } catch(_) {}
+  }
 
   const submissionId = 'sub-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
 
   // 1. Save to Supabase (best-effort — don't fail if DB is down)
+  const enrichedFields = { ...(fields || {}) };
+  if (item_key)   enrichedFields.item_key   = item_key;
+  if (item_title) enrichedFields.item_title = item_title;
+
   if (SUP_URL && SUP_KEY) {
     try {
       await saveSubmission(SUP_URL, SUP_KEY, {
@@ -214,7 +244,7 @@ exports.handler = async function(event) {
         name,
         email,
         type: type || 'general',
-        fields: fields || {},
+        fields: enrichedFields,
         status: 'new',
         starred: false,
         created_at: new Date().toISOString(),
@@ -222,9 +252,15 @@ exports.handler = async function(event) {
     } catch(e) { console.warn('Supabase save failed:', e.message); }
   }
 
-  // Fetch site_content for signature + email routing
-  const sc = (SUP_URL && SUP_KEY) ? await getSiteContent(SUP_URL, SUP_KEY) : null;
+  // Fetch site_content for signature + email routing, and email templates from DB
+  const [sc, dbTemplates] = await Promise.all([
+    (SUP_URL && SUP_KEY) ? getSiteContent(SUP_URL, SUP_KEY) : Promise.resolve(null),
+    (SUP_URL && SUP_KEY) ? getEmailTemplates(SUP_URL, SUP_KEY) : Promise.resolve({}),
+  ]);
   const signatureHtml = buildSignatureHtml(sc);
+
+  // Merge: DB template overrides client-passed templateOverride
+  const resolvedTemplate = dbTemplates[type] || templateOverride || null;
 
   // Resolve routing
   const NOTIFY   = resolveNotifyEmail(sc, type, NOTIFY_DEFAULT);
@@ -241,7 +277,7 @@ exports.handler = async function(event) {
       to: email,
       replyTo: NOTIFY,
       subject: templateOverride?.subject || `Thank you for your ${type || 'general'} enquiry — Phelim Ekwebe`,
-      html: buildAutoReply(name, type || 'general', templateOverride || null, signatureHtml),
+      html: buildAutoReply(name, type || 'general', resolvedTemplate, signatureHtml, { item_key, item_title }),
     });
   } catch(e) {
     errors.push('auto-reply: ' + e.message);
