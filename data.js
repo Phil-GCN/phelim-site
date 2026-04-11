@@ -66,71 +66,177 @@ async function loadSiteContent() {
 // Books: load from Supabase and update checkout modal + all displayed book cards
 async function loadLiveBooks() {
   const rows = await fetchFromDB('books');
-  if (!rows || !rows.length) return;
+  // If DB is empty, hide hardcoded books (they are fictitious until DB is populated)
+  // If DB has data, show only DB books
+  if (!rows) return; // network error — keep hardcoded defaults
 
-  const set = (id, val) => { const el = document.getElementById(id); if (el && val) el.textContent = val; };
-  const setHTML = (id, val) => { const el = document.getElementById(id); if (el && val) el.innerHTML = val; };
+  const set     = (id, val) => { const el = document.getElementById(id); if (el && val !== undefined && val !== null && val !== '') el.textContent = val; };
+  const setHTML = (id, val) => { const el = document.getElementById(id); if (el && val !== undefined && val !== null && val !== '') el.innerHTML = val; };
+
+  // Known hardcoded book IDs
+  const knownIds = new Set(['btl', 'bs']);
+
+  // Hide hardcoded books that are no longer in DB
+  if (rows.length > 0) {
+    const dbIds = new Set(rows.map(b => b.id));
+    knownIds.forEach(kid => {
+      if (!dbIds.has(kid)) {
+        // Remove tab button + panel
+        const btn   = document.getElementById(`bt-${kid}`);
+        const panel = document.getElementById(`book-${kid}`);
+        const resCard = document.querySelector(`#book-live-res-${kid}-title`)?.closest('.bres-card');
+        if (btn)     btn.style.display = 'none';
+        if (panel)   panel.style.display = 'none';
+        if (resCard) resCard.style.display = 'none';
+      }
+    });
+  }
 
   rows.forEach(b => {
-    const id = b.id; // 'btl' or 'bs' or custom
+    const id     = b.id;
     const isLive = b.mode === 'live';
-    const badgeText = isLive ? 'Available Now' : 'Pre-order';
-    const tagText   = isLive ? 'Available Now' : `Coming Soon · Pre-order open`;
-    const ctaText   = isLive ? 'Buy Now' : 'Pre-order Now';
+    const stockStatus = b.stock_status || 'preorder';
+    // Status badge on book card
+    const badgeText = stockStatus === 'in_stock' ? 'Available Now'
+                    : stockStatus === 'out_of_stock' ? 'Out of Stock'
+                    : 'Pre-order';
+    const tagText   = isLive ? (stockStatus === 'out_of_stock' ? 'Temporarily unavailable' : 'Available Now') : 'Coming Soon · Pre-order open';
+    const ctaText   = isLive && stockStatus === 'in_stock' ? 'Buy Now'
+                    : isLive && stockStatus === 'out_of_stock' ? 'Join waitlist'
+                    : 'Pre-order Now';
 
     // Update window.BOOKS_DATA for checkout modal
-    if (window.BOOKS_DATA && window.BOOKS_DATA[id]) {
+    if (!window.BOOKS_DATA) window.BOOKS_DATA = {};
+    if (!window.BOOKS_DATA[id]) {
+      window.BOOKS_DATA[id] = { title: b.title, subtitle: b.subtitle || '', price: b.price || '0', color: 'var(--forest)', mode: b.mode };
+    } else {
       if (b.title)    window.BOOKS_DATA[id].title    = b.title;
       if (b.subtitle) window.BOOKS_DATA[id].subtitle = b.subtitle;
       if (b.price)    window.BOOKS_DATA[id].price    = b.price;
-      if (b.mode === 'live') window.BOOKS_DATA[id].mode = 'live';
+      window.BOOKS_DATA[id].mode        = b.mode;
+      window.BOOKS_DATA[id].stockStatus = stockStatus;
     }
 
-    // Update engagements.html book display
-    set(`book-live-${id}-title`,       b.title);
-    set(`book-live-${id}-subtitle`,    b.subtitle);
-    // Long description for engagements page
-    setHTML(`book-live-${id}-desc`,    b.long_description || b.description);
-    set(`book-live-${id}-cover-title`, b.title);
-    set(`book-live-${id}-tag`,         tagText);
-    set(`book-live-${id}-badge`,       badgeText);
-    if (b.pub_date) set(`book-live-${id}-pubdate`, b.pub_date);
-    if (b.author)   set(`book-live-${id}-author`,  b.author);
-    if (b.audience) set(`book-live-${id}-audience`,b.audience);
-    if (b.format_options) set(`book-live-${id}-format`, b.format_options);
-    // Hook text (italic callout box)
-    if (b.hook_text) {
-      const hookEl = document.getElementById(`book-live-${id}-hook`);
-      if (hookEl) hookEl.textContent = b.hook_text;
-    }
-    // Stock status badge
-    const stockEl = document.getElementById(`book-live-${id}-stock`);
-    if (stockEl) {
-      const sMap = { in_stock:'Available Now', preorder:'Pre-order open', out_of_stock:'Temporarily unavailable' };
-      stockEl.textContent = sMap[b.stock_status] || 'Pre-order open';
-    }
+    if (knownIds.has(id)) {
+      // ── Update existing hardcoded book elements ──
+      set(`book-live-${id}-title`,       b.title);
+      set(`book-live-${id}-subtitle`,    b.subtitle);
+      setHTML(`book-live-${id}-desc`,    b.long_description || b.description);
+      set(`book-live-${id}-cover-title`, b.title);
+      set(`book-live-${id}-tag`,         tagText);
+      set(`book-live-${id}-badge`,       badgeText);
+      if (b.pub_date) set(`book-live-${id}-pubdate`, b.pub_date);
+      if (b.author)   set(`book-live-${id}-author`,  b.author);
+      // Always set audience & format — show/hide row for BTL audience
+      set(`book-live-${id}-audience`, b.audience || '');
+      set(`book-live-${id}-format`,   b.format_options || '');
+      // Show BTL audience row only if value exists
+      if (id === 'btl') {
+        const audRow = document.getElementById('book-live-btl-audience-row');
+        if (audRow) audRow.style.display = b.audience ? '' : 'none';
+      }
+      if (b.hook_text) {
+        const hookEl = document.getElementById(`book-live-${id}-hook`);
+        if (hookEl) hookEl.textContent = b.hook_text;
+      }
+      // CTA buttons
+      const ctaEl    = document.getElementById(`book-live-${id}-cta`);
+      const resCtaEl = document.getElementById(`book-live-res-${id}-cta`);
+      if (ctaEl)    ctaEl.textContent    = ctaText;
+      if (resCtaEl) resCtaEl.textContent = ctaText;
 
-    // Update resources.html book cards
-    set(`book-live-res-${id}-title`,        b.title);
-    set(`book-live-res-${id}-cover-title`,  b.title);
-    setHTML(`book-live-res-${id}-desc`,     b.description);
-    if (b.price || b.pub_date) {
-      set(`book-live-res-${id}-label`, `${badgeText}${b.pub_date ? ' · ' + b.pub_date : ''}`);
-    }
-    const ctaEl = document.getElementById(`book-live-res-${id}-cta`);
-    if (ctaEl) ctaEl.textContent = ctaText;
+      // Resources page
+      set(`book-live-res-${id}-title`,       b.title);
+      set(`book-live-res-${id}-cover-title`, b.title);
+      setHTML(`book-live-res-${id}-desc`,    b.description);
+      set(`book-live-res-${id}-label`,       `${badgeText}${b.pub_date ? ' · ' + b.pub_date : ''}`);
 
-    // If book has a cover image, update cover backgrounds
-    if (b.cover_data) {
-      [`book-live-${id}-cover`, `book-live-res-${id}-cover`].forEach(coverId => {
-        const el = document.getElementById(coverId);
-        if (el) {
-          el.style.backgroundImage = `url(${b.cover_data})`;
-          el.style.backgroundSize  = 'cover';
-        }
-      });
+      // Cover image
+      if (b.cover_data) {
+        [`book-live-${id}-cover`, `book-live-res-${id}-cover`].forEach(covId => {
+          const el = document.getElementById(covId);
+          if (el) { el.style.backgroundImage = `url(${b.cover_data})`; el.style.backgroundSize = 'cover'; }
+        });
+      }
+    } else {
+      // ── Dynamically render new book (not in hardcoded HTML) ──
+      _renderDynamicBook(b, id, tagText, badgeText, ctaText);
     }
   });
+}
+
+function _renderDynamicBook(b, id, tagText, badgeText, ctaText) {
+  const coverBg  = b.cover_data ? `background-image:url(${b.cover_data});background-size:cover;` : 'background:var(--forest);';
+  const hookHtml = b.hook_text
+    ? `<div style="background:var(--forest-faint);border:1px solid rgba(38,61,51,.15);padding:15px 18px;margin-bottom:16px;"><p style="font-size:.83rem;color:var(--ink60);margin:0;line-height:1.7;font-style:italic;">${b.hook_text}</p></div>`
+    : '';
+  const descHtml = b.long_description || b.description || '';
+  const metaRows = [
+    b.author        ? `<div class="book-meta"><strong>Author</strong> <span>${b.author}</span></div>` : '',
+    b.pub_date      ? `<div class="book-meta"><strong>Est. publication</strong> <span>${b.pub_date}</span></div>` : '',
+    b.audience      ? `<div class="book-meta"><strong>Audience</strong> <span>${b.audience}</span></div>` : '',
+    b.format_options? `<div class="book-meta"><strong>Format</strong> <span>${b.format_options}</span></div>` : '',
+  ].join('');
+
+  // ── Engagements page ──
+  const tabNav = document.querySelector('.book-tabs-nav');
+  const dynPanels = document.getElementById('dynamic-book-panels');
+  if (tabNav && dynPanels) {
+    // Add tab button before "More coming" btn
+    const moreBtn = document.getElementById('bt-more');
+    if (!document.getElementById(`bt-${id}`)) {
+      const btn = document.createElement('button');
+      btn.className = 'book-tab-btn';
+      btn.id = `bt-${id}`;
+      btn.textContent = b.title;
+      btn.onclick = function() { switchBookTab(id, this); };
+      tabNav.insertBefore(btn, moreBtn || null);
+    }
+    // Add tab panel
+    if (!document.getElementById(`book-${id}`)) {
+      const div = document.createElement('div');
+      div.id = `book-${id}`;
+      div.className = 'book-tab-panel';
+      div.innerHTML = `
+        <div class="book-cover-wrap">
+          <div class="book-cover" style="${coverBg}">
+            <div class="book-cover-badge">${badgeText}</div>
+            <div class="book-cover-title">${b.title}</div>
+            <div class="book-cover-author">${b.author || 'Phelim Ekwebe'}</div>
+          </div>
+        </div>
+        <div class="book-info-panel">
+          <div class="book-tag">${tagText}</div>
+          <div class="book-main-title">${b.title}</div>
+          <div class="book-subtitle">${b.subtitle || ''}</div>
+          <p class="book-desc">${descHtml}</p>
+          ${hookHtml}
+          <div class="book-meta-row">${metaRows}</div>
+          <div class="book-ctas">
+            <button class="btn btn-dark" onclick="openCheckout('${id}')">${ctaText}</button>
+            <button class="btn btn-outline" onclick="openModal('general')">Get launch notification</button>
+          </div>
+        </div>`;
+      dynPanels.appendChild(div);
+    }
+  }
+
+  // ── Resources page ──
+  const dynCards = document.getElementById('dynamic-book-res-cards');
+  if (dynCards && !document.getElementById(`book-live-res-${id}-title`)) {
+    const card = document.createElement('div');
+    card.className = 'bres-card';
+    const coverStyle = b.cover_data ? `background-image:url(${b.cover_data});background-size:cover;` : 'background:var(--forest);';
+    card.innerHTML = `
+      <div class="bres-cover" style="${coverStyle}"><span>${b.title}</span></div>
+      <div>
+        <div class="bres-label">${badgeText}${b.pub_date ? ' · ' + b.pub_date : ''}</div>
+        <div class="bres-title" id="book-live-res-${id}-title">${b.title}</div>
+        <p class="bres-desc">${b.description || ''}</p>
+        <button class="btn btn-dark" onclick="openCheckout('${id}')">${ctaText}</button>
+      </div>`;
+    dynCards.appendChild(card);
+  }
 }
 
 // Kick off background fetches — page renders immediately with defaults, updates silently

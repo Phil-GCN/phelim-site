@@ -125,8 +125,8 @@
       <button class="portal-tab" onclick="setView('starred',this)">★ Starred</button>
     </div>
 
-    <!-- Enquiry sub-filter (only shown in Enquiries/All view) -->
-    <div id="sub-filter" style="display:flex;gap:4px;flex-wrap:wrap;padding:8px 0 14px;border-bottom:1px solid var(--ink12);margin-bottom:14px;">
+    <!-- Enquiry sub-filter (only shown when Enquiries tab is active) -->
+    <div id="sub-filter" style="display:none;gap:4px;flex-wrap:wrap;padding:8px 0 14px;border-bottom:1px solid var(--ink12);margin-bottom:14px;">
       <button class="btn btn-ghost btn-sm active" onclick="setTypeFilter('all',this)">All types</button>
       <button class="btn btn-ghost btn-sm" onclick="setTypeFilter('speaking',this)">Speaking</button>
       <button class="btn btn-ghost btn-sm" onclick="setTypeFilter('podcast',this)">Podcast</button>
@@ -364,7 +364,9 @@ function setView(v, btn) {
   activeView = v;
   document.querySelectorAll('.portal-tab').forEach(t=>t.classList.remove('active'));
   if(btn) btn.classList.add('active');
-  document.getElementById('sub-filter').style.display = (v==='sent'||v==='starred') ? 'none' : 'flex';
+  // Sub-filters only make sense for Enquiries tab
+  document.getElementById('sub-filter').style.display = (v === 'enquiries') ? 'flex' : 'none';
+  closeDetail();
   renderTable();
 }
 
@@ -445,9 +447,8 @@ async function viewMsg(id, kind) {
   // Thread (only for inbound)
   if(kind==='in') renderThread(id);
 
-  const detail = document.getElementById('msg-detail');
-  detail.style.display='block';
-  detail.scrollIntoView({behavior:'smooth',block:'start'});
+  // Open inline: insert an expansion row below the clicked row
+  _showInlineDetail();
 }
 
 function updateDetailStar() {
@@ -478,9 +479,48 @@ async function renderThread(id) {
     </div>`).join('');
 }
 
+function _showInlineDetail() {
+  if(!currentMsg) return;
+  const id = currentMsg.data.id;
+  // Remove any existing inline expansion row
+  const existing = document.getElementById('inline-detail-row');
+  if (existing) existing.remove();
+
+  const detail = document.getElementById('msg-detail');
+  detail.style.display = 'block';
+
+  // Wrap detail panel in a <tr> and insert it below the clicked row
+  const tr = document.createElement('tr');
+  tr.id = 'inline-detail-row';
+  const td = document.createElement('td');
+  td.colSpan = 6;
+  td.style.padding = '0 2px 2px';
+  // Move the actual detail div into the TD so handlers stay attached
+  td.appendChild(detail);
+  tr.appendChild(td);
+
+  const sourceRow = document.getElementById('row-' + id);
+  if (sourceRow && sourceRow.parentNode) {
+    sourceRow.parentNode.insertBefore(tr, sourceRow.nextSibling);
+    tr.scrollIntoView({ behavior:'smooth', block:'nearest' });
+  } else {
+    // Fallback: put it back in main and show
+    document.querySelector('.portal-main').appendChild(detail);
+    detail.scrollIntoView({ behavior:'smooth', block:'start' });
+  }
+}
+
 function closeDetail() {
-  document.getElementById('msg-detail').style.display='none';
-  currentMsg=null;
+  const detail = document.getElementById('msg-detail');
+  detail.style.display = 'none';
+  // Move detail panel back to main if it was placed in an inline row
+  const inlineRow = document.getElementById('inline-detail-row');
+  if (inlineRow) {
+    // Put the panel back in main before removing the row
+    document.querySelector('.portal-main').appendChild(detail);
+    inlineRow.remove();
+  }
+  currentMsg = null;
 }
 
 function openReplyPanel() {

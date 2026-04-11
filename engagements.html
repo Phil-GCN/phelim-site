@@ -118,6 +118,7 @@
             <div class="book-meta"><strong>Author</strong> <span id="book-live-btl-author">Phelim Ekwebe</span></div>
             <div class="book-meta"><strong>Est. publication</strong> <span id="book-live-btl-pubdate">February 2027</span></div>
             <div class="book-meta"><strong>Format</strong> <span id="book-live-btl-format">Hardcover · eBook · Audiobook</span></div>
+            <div class="book-meta" id="book-live-btl-audience-row" style="display:none;"><strong>Audience</strong> <span id="book-live-btl-audience"></span></div>
           </div>
           <div style="font-size:.78rem;color:var(--ink30);margin-bottom:14px;">Countdown to launch</div>
           <div class="countdown-row">
@@ -127,7 +128,7 @@
             <div class="countdown-unit"><div class="countdown-num" id="cd-secs">--</div><div class="countdown-lbl">Secs</div></div>
           </div>
           <div class="book-ctas">
-            <button class="btn btn-dark" onclick="openCheckout('btl')">Pre-order Now</button>
+            <button class="btn btn-dark" id="book-live-btl-cta" onclick="openCheckout('btl')">Pre-order Now</button>
             <button class="btn btn-outline" onclick="openModal('general')">Get launch notification</button>
           </div>
         </div>
@@ -152,13 +153,16 @@
             <div class="book-meta"><strong>Author</strong> <span id="book-live-bs-author">Phelim Ekwebe</span></div>
             <div class="book-meta"><strong>Est. publication</strong> <span id="book-live-bs-pubdate">January 2027</span></div>
             <div class="book-meta"><strong>Audience</strong> <span id="book-live-bs-audience">African diaspora &amp; first-gen immigrants</span></div>
+            <div class="book-meta"><strong>Format</strong> <span id="book-live-bs-format">Hardcover · eBook · Audiobook</span></div>
           </div>
           <div class="book-ctas">
-            <button class="btn btn-dark" onclick="openCheckout('bs')">Pre-order Now</button>
+            <button class="btn btn-dark" id="book-live-bs-cta" onclick="openCheckout('bs')">Pre-order Now</button>
             <button class="btn btn-outline" onclick="openModal('general')">Get launch notification</button>
           </div>
         </div>
       </div>
+      <!-- Dynamic books (added via portal) — injected by loadLiveBooks() -->
+      <div id="dynamic-book-panels"></div>
       <!-- More coming -->
       <div id="book-more" class="book-tab-panel" style="opacity:.6;">
         <div class="book-cover-wrap"><div class="book-cover" style="background:var(--paper-dark);border:1px dashed var(--ink12);"><div class="book-cover-title" style="color:var(--ink30);font-size:1rem;">Coming next</div></div></div>

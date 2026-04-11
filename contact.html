@@ -45,6 +45,17 @@
     <div class="container"><div class="eyebrow" style="margin-bottom:12px;">Contact</div><h1>Let's connect</h1><p style="max-width:420px;margin-top:10px;">Choose the type of enquiry below — each form is tailored to that context.</p></div>
   </section>
   <div style="border-top:1px solid var(--ink12);"><div class="container" style="padding-bottom:80px;">
+
+    <!-- Direct contact info (loaded from site_content) -->
+    <div id="direct-contact-bar" style="display:none;padding:18px 0 8px;border-bottom:1px solid var(--ink06);margin-bottom:24px;">
+      <div style="font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink30);margin-bottom:10px;">Direct Contact</div>
+      <div id="contact-email-row" style="display:none;margin-bottom:10px;">
+        <a id="contact-email-link" href="#" style="font-size:.9rem;color:var(--ink);text-decoration:none;border-bottom:1px solid var(--ink30);padding-bottom:1px;"></a>
+        <span style="font-size:.74rem;color:var(--ink30);margin-left:8px;">— for those who prefer email directly</span>
+      </div>
+      <div id="contact-socials-row" style="display:flex;gap:12px;flex-wrap:wrap;"></div>
+    </div>
+
     <div class="contact-enquiry-tabs">
       <button class="enq-tab active" id="enq-btn-speaking" onclick="switchEnqTab('speaking')">Speaking & Events</button>
       <button class="enq-tab" id="enq-btn-podcast" onclick="switchEnqTab('podcast')">Podcast</button>
@@ -170,6 +181,59 @@
   // Check URL hash
   const hash = window.location.hash.replace('#','');
   if (['speaking','podcast','writing','partnership','general'].includes(hash)) switchEnqTab(hash);
+
+  // Load contact details & socials from site_content
+  async function loadContactInfo() {
+    try {
+      const res = await fetch('/.netlify/functions/db?table=site_content');
+      if (!res.ok) return;
+      const rows = await res.json();
+      const sc = Object.fromEntries((rows||[]).map(r => [r.key, r.value]));
+
+      let hasAny = false;
+
+      // Email
+      if (sc.contactEmail) {
+        const link = document.getElementById('contact-email-link');
+        const row  = document.getElementById('contact-email-row');
+        if (link && row) {
+          link.href = 'mailto:' + sc.contactEmail;
+          link.textContent = sc.contactEmail;
+          row.style.display = 'block';
+          hasAny = true;
+        }
+      }
+
+      // Socials
+      const socials = [
+        { key:'socialLinkedin',  label:'LinkedIn',   icon:'in' },
+        { key:'socialTwitter',   label:'Twitter / X', icon:'𝕏' },
+        { key:'socialInstagram', label:'Instagram',  icon:'ig' },
+        { key:'socialFacebook',  label:'Facebook',   icon:'f'  },
+        { key:'socialYoutube',   label:'YouTube',    icon:'▶'  },
+        { key:'socialTiktok',    label:'TikTok',     icon:'♪'  },
+      ];
+      const row = document.getElementById('contact-socials-row');
+      socials.forEach(s => {
+        if (sc[s.key]) {
+          hasAny = true;
+          const a = document.createElement('a');
+          a.href = sc[s.key];
+          a.target = '_blank';
+          a.rel = 'noopener noreferrer';
+          a.style.cssText = 'font-size:.8rem;color:var(--ink);text-decoration:none;border:1px solid var(--ink12);padding:5px 11px;display:inline-flex;align-items:center;gap:5px;';
+          a.innerHTML = `<span style="font-size:.7rem;opacity:.5;">${s.icon}</span> ${s.label}`;
+          if (row) row.appendChild(a);
+        }
+      });
+
+      if (hasAny) {
+        const bar = document.getElementById('direct-contact-bar');
+        if (bar) bar.style.display = 'block';
+      }
+    } catch(_) {}
+  }
+  loadContactInfo();
 </script>
 <script src="data.js"></script>
 </body>

@@ -8,6 +8,18 @@
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="portal.css">
   <style>
+    /* ── List view ── */
+    .book-list-item { display:flex;align-items:flex-start;gap:16px;padding:18px 0;border-bottom:1px solid var(--ink06); }
+    .book-list-item:last-child { border-bottom:none; }
+    .book-thumb { width:44px;aspect-ratio:2/3;background:var(--forest);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center; }
+    .book-thumb img { width:100%;height:100%;object-fit:cover; }
+    .book-thumb-lbl { font-size:.5rem;color:rgba(248,246,241,.6);text-align:center;padding:3px; }
+    .book-list-meta { flex:1;min-width:0; }
+    .book-list-title { font-family:var(--serif);font-size:1rem;color:var(--ink);margin-bottom:2px; }
+    .book-list-subtitle { font-size:.76rem;color:var(--ink30);margin-bottom:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+    .book-list-badges { display:flex;gap:6px;flex-wrap:wrap;margin-bottom:7px; }
+    .book-list-desc { font-size:.8rem;color:var(--ink60);line-height:1.55;max-width:480px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden; }
+    .book-list-actions { display:flex;gap:6px;flex-shrink:0;align-items:flex-start; }
     /* ── Order mode toggle ── */
     .order-toggle-row{display:flex;align-items:center;gap:12px;margin-bottom:18px;padding:12px 14px;background:var(--paper-mid);border:1px solid var(--ink12);border-radius:var(--r);}
     .order-toggle-label{font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--ink60);}
@@ -34,8 +46,11 @@
     .upload-preview-size{font-size:.7rem;color:var(--ink30);}
     .upload-preview-remove{font-size:.8rem;color:var(--ink30);cursor:pointer;padding:2px 6px;border:none;background:none;}
     .upload-preview-remove:hover{color:#c0392b;}
-    /* ── Section divider ── */
     .section-divider{font-size:.63rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink30);border-bottom:1px solid var(--ink06);padding-bottom:8px;margin:20px 0 16px;}
+    /* ── Edit drawer ── */
+    #edit-drawer { display:none;margin-top:20px; }
+    .drawer-header { display:flex;justify-content:space-between;align-items:center;margin-bottom:18px; }
+    .drawer-title { font-family:var(--serif);font-size:1.1rem;color:var(--ink); }
   </style>
 </head>
 <body>
@@ -65,7 +80,6 @@
     <div class="sidebar-section">
       <div class="sidebar-label">Messages</div>
       <a class="sidebar-link" href="contacts.html"><span class="sidebar-icon">✉</span> All Messages</a>
-      
     </div>
     <div class="sidebar-section">
       <div class="sidebar-label">Settings</div>
@@ -90,14 +104,28 @@
       <span>Stripe is not yet connected. Checkout UI is active but no payment is processed. <a href="integrations.html" style="color:var(--amber);text-decoration:underline;">Connect Stripe →</a></span>
     </div>
 
-    <div id="books-list"></div>
+    <!-- ── Book list ── -->
+    <div class="card" style="margin-bottom:16px;">
+      <div id="books-list-inner">
+        <div style="text-align:center;padding:32px;color:var(--ink30);">Loading books…</div>
+      </div>
+    </div>
+
+    <!-- ── Edit drawer (shown below list when editing) ── -->
+    <div id="edit-drawer" class="card">
+      <div class="drawer-header">
+        <div class="drawer-title" id="edit-drawer-title">Edit Book</div>
+        <button class="btn btn-ghost btn-sm" onclick="closeEditor()">✕ Close</button>
+      </div>
+      <div id="edit-form-body"></div>
+    </div>
   </main>
 
 </div>
 <script src="portal.js"></script>
 <script src="db.js"></script>
 <script>
-// ── Book data (loaded from localStorage or defaults) ──
+// ── Book data ──
 const DEFAULT_BOOKS = [
   {
     id: 'btl', title: 'Built to Last', subtitle: 'The Modern Guide to Wealth, Freedom, and Legacy',
@@ -165,11 +193,57 @@ async function saveBooks(books) {
   }
 }
 
-let BOOKS = DEFAULT_BOOKS; // will be replaced by async init
+let BOOKS = DEFAULT_BOOKS;
+let activeEditId = null;
 
-function renderBooks() {
-  document.getElementById('books-list').innerHTML = BOOKS.map(renderBookCard).join('');
-  // re-attach drag-over listeners
+// ── List rendering ──
+function renderList() {
+  const container = document.getElementById('books-list-inner');
+  if (!BOOKS.length) {
+    container.innerHTML = '<div style="text-align:center;padding:32px;color:var(--ink30);">No books yet. Click + Add Book to create one.</div>';
+    return;
+  }
+  container.innerHTML = BOOKS.map(b => {
+    const isLive   = b.mode === 'live';
+    const stock    = b.stockStatus || 'preorder';
+    const badgeCls = isLive ? 'badge-live' : 'badge-preorder';
+    const badgeTxt = isLive ? 'Live' : 'Pre-order';
+    const stockMap = { in_stock:'In Stock', preorder:'Pre-order', out_of_stock:'Out of Stock' };
+    const stockTxt = stockMap[stock] || 'Pre-order';
+    const thumbHtml = b.coverData
+      ? `<img src="${b.coverData}" alt="Cover">`
+      : `<span class="book-thumb-lbl">${b.id.toUpperCase()}</span>`;
+    return `<div class="book-list-item" id="list-item-${b.id}">
+      <div class="book-thumb">${thumbHtml}</div>
+      <div class="book-list-meta">
+        <div class="book-list-title">${b.title}</div>
+        <div class="book-list-subtitle">${b.subtitle || 'No subtitle'}</div>
+        <div class="book-list-badges">
+          <span class="badge ${badgeCls}">${badgeTxt}</span>
+          <span class="badge" style="background:var(--ink06);color:var(--ink60);">${stockTxt}</span>
+          ${b.price ? `<span style="font-size:.72rem;color:var(--ink60);padding:2px 0;">€ ${b.price}</span>` : ''}
+        </div>
+        <div class="book-list-desc">${b.description || b.longDescription || ''}</div>
+      </div>
+      <div class="book-list-actions">
+        <button class="btn btn-ghost btn-sm" onclick="window.open('../resources.html','_blank')" title="View as summary card">View Summary ↗</button>
+        <button class="btn btn-ghost btn-sm" onclick="window.open('../engagements.html','_blank')" title="View full book page">View Full ↗</button>
+        <button class="btn btn-secondary btn-sm" onclick="openEditor('${b.id}')">Edit</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Editor ──
+function openEditor(id) {
+  activeEditId = id;
+  const b = BOOKS.find(x => x.id === id);
+  if (!b) return;
+  document.getElementById('edit-drawer-title').textContent = `Editing: ${b.title}`;
+  document.getElementById('edit-form-body').innerHTML = renderEditForm(b);
+  document.getElementById('edit-drawer').style.display = 'block';
+  document.getElementById('edit-drawer').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  // Re-attach drag-drop
   document.querySelectorAll('.upload-zone').forEach(zone => {
     zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
     zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
@@ -177,38 +251,25 @@ function renderBooks() {
       e.preventDefault(); zone.classList.remove('drag-over');
       const file = e.dataTransfer.files[0];
       if (!file) return;
-      const bookId = zone.dataset.book;
-      const type   = zone.dataset.type;
-      handleFileInput(file, bookId, type);
+      handleFileInput(file, zone.dataset.book, zone.dataset.type);
     });
   });
 }
 
-function renderBookCard(b) {
-  const isLive     = b.mode === 'live';
-  const badgeCls   = isLive ? 'badge-live' : 'badge-preorder';
-  const badgeTxt   = isLive ? 'Live' : 'Pre-order';
-  const modeLabel  = isLive ? 'Live / Available' : 'Pre-order';
+function closeEditor() {
+  document.getElementById('edit-drawer').style.display = 'none';
+  activeEditId = null;
+}
+
+function renderEditForm(b) {
+  const isLive    = b.mode === 'live';
+  const modeLabel = isLive ? 'Live / Available' : 'Pre-order';
   const coverThumb = b.coverData
     ? `<img class="upload-preview-thumb" src="${b.coverData}" alt="Cover">`
     : `<div class="upload-preview-pdf" style="background:var(--forest-l);"><span>IMG</span></div>`;
-  const pdfThumb   = `<div class="upload-preview-pdf"><span>PDF</span></div>`;
+  const pdfThumb = `<div class="upload-preview-pdf"><span>PDF</span></div>`;
 
   return `
-  <div class="card" style="margin-bottom:16px;" id="book-card-${b.id}">
-    <div class="card-header">
-      <div style="display:flex;align-items:center;gap:14px;">
-        <div style="width:44px;aspect-ratio:2/3;background:var(--forest);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;">
-          ${b.coverData ? `<img src="${b.coverData}" style="width:100%;height:100%;object-fit:cover;">` : `<span style="font-size:.5rem;color:rgba(248,246,241,.6);text-align:center;padding:3px;">${b.id.toUpperCase()}</span>`}
-        </div>
-        <div>
-          <div style="font-family:var(--serif);font-size:1.05rem;color:var(--ink);">${b.title}</div>
-          <div style="font-size:.72rem;color:var(--ink30);">Book ${b.bookNum} · ${modeLabel}</div>
-        </div>
-      </div>
-      <span class="badge ${badgeCls}">${badgeTxt}</span>
-    </div>
-
     <!-- ORDER MODE + STOCK STATUS -->
     <div class="order-toggle-row">
       <span class="order-toggle-label">Order mode</span>
@@ -220,13 +281,12 @@ function renderBookCard(b) {
       <span style="font-size:.72rem;color:var(--ink30);margin-left:8px;">·</span>
       <span class="order-toggle-label" style="margin-left:8px;">Stock</span>
       <select class="form-input" id="stock-${b.id}" style="width:auto;font-size:.78rem;padding:3px 8px;margin-left:4px;" onchange="updateStock('${b.id}',this.value)">
-        <option value="preorder"    ${(b.stockStatus||'preorder')==='preorder'    ?'selected':''}>Pre-order</option>
-        <option value="in_stock"    ${(b.stockStatus||'')==='in_stock'            ?'selected':''}>In Stock</option>
-        <option value="out_of_stock"${(b.stockStatus||'')==='out_of_stock'        ?'selected':''}>Out of Stock</option>
+        <option value="preorder"     ${(b.stockStatus||'preorder')==='preorder'    ?'selected':''}>Pre-order</option>
+        <option value="in_stock"     ${(b.stockStatus||'')==='in_stock'            ?'selected':''}>In Stock</option>
+        <option value="out_of_stock" ${(b.stockStatus||'')==='out_of_stock'        ?'selected':''}>Out of Stock</option>
       </select>
     </div>
 
-    <!-- DETAILS -->
     <div class="form-row">
       <div class="form-group">
         <label class="form-label">Full Title</label>
@@ -266,12 +326,12 @@ function renderBookCard(b) {
     <div class="form-row">
       <div class="form-group">
         <label class="form-label">${isLive ? 'Publication / Release Date' : 'Target Publication Date'}</label>
-        <input class="form-input" type="date" id="pubdate-${b.id}" value="${b.pubDate}">
+        <input class="form-input" type="date" id="pubdate-${b.id}" value="${b.pubDate || ''}">
         ${!isLive ? '<div class="form-hint">Used for the countdown timer on the site.</div>' : ''}
       </div>
       <div class="form-group">
         <label class="form-label">${isLive ? 'Price (€)' : 'Pre-order Price (€)'}</label>
-        <input class="form-input" type="number" step="0.01" id="price-${b.id}" value="${b.price}">
+        <input class="form-input" type="number" step="0.01" id="price-${b.id}" value="${b.price || ''}">
       </div>
     </div>
 
@@ -293,7 +353,6 @@ function renderBookCard(b) {
 
     <div class="section-divider">Files</div>
     <div class="form-row">
-      <!-- Cover Image -->
       <div class="form-group">
         <label class="form-label">Cover Image</label>
         <div class="upload-zone" data-book="${b.id}" data-type="cover" onclick="document.getElementById('cover-input-${b.id}').click()">
@@ -303,7 +362,6 @@ function renderBookCard(b) {
         </div>
         ${b.coverData ? `<div class="upload-preview">${coverThumb}<div class="upload-preview-info"><div class="upload-preview-name">${b.coverName || 'Cover image'}</div></div><button class="upload-preview-remove" onclick="removeFile('${b.id}','cover')">✕</button></div>` : ''}
       </div>
-      <!-- PDF -->
       <div class="form-group">
         <label class="form-label">PDF Copy (eBook / Sample)</label>
         <div class="upload-zone" data-book="${b.id}" data-type="pdf" onclick="document.getElementById('pdf-input-${b.id}').click()">
@@ -311,27 +369,22 @@ function renderBookCard(b) {
           <div class="upload-zone-icon">📄</div>
           <div class="upload-zone-label">Drop PDF here or <strong>browse</strong><br><span style="font-size:.7rem;">PDF only · max 50MB</span></div>
         </div>
-        ${b.pdfData ? `<div class="upload-preview">${pdfThumb}<div class="upload-preview-info"><div class="upload-preview-name">${b.pdfName || 'Book PDF'}</div><div class="upload-preview-size">Stored locally</div></div><button class="upload-preview-remove" onclick="removeFile('${b.id}','pdf')">✕</button></div>` : ''}
+        ${b.pdfData ? `<div class="upload-preview">${pdfThumb}<div class="upload-preview-info"><div class="upload-preview-name">${b.pdfName || 'Book PDF'}</div><div class="upload-preview-size">Stored</div></div><button class="upload-preview-remove" onclick="removeFile('${b.id}','pdf')">✕</button></div>` : ''}
       </div>
     </div>
 
     <div style="display:flex;gap:9px;margin-top:8px;">
       <button class="btn btn-primary btn-sm" onclick="saveBook('${b.id}')">Save Changes</button>
-      <button class="btn btn-secondary btn-sm" onclick="window.open('../resources.html','_blank')">Preview on Site ↗</button>
-    </div>
-  </div>`;
+      <button class="btn btn-ghost btn-sm" onclick="closeEditor()">Cancel</button>
+    </div>`;
 }
 
 function toggleOrderMode(id, isLive) {
   const b = BOOKS.find(x => x.id === id);
   if (!b) return;
   b.mode = isLive ? 'live' : 'preorder';
-  // update badge & text without full re-render
-  const card = document.getElementById('book-card-' + id);
-  const badge = card.querySelector('.badge');
-  badge.className = 'badge ' + (isLive ? 'badge-live' : 'badge-preorder');
-  badge.textContent = isLive ? 'Live' : 'Pre-order';
-  document.getElementById('mode-text-' + id).textContent = isLive ? 'Live / Available' : 'Pre-order';
+  const el = document.getElementById('mode-text-' + id);
+  if (el) el.textContent = isLive ? 'Live / Available' : 'Pre-order';
 }
 
 function handleFileChange(input, bookId, type) {
@@ -352,7 +405,8 @@ function handleFileInput(file, bookId, type) {
     if (!b) return;
     if (type === 'cover') { b.coverData = e.target.result; b.coverName = file.name; }
     else                  { b.pdfData   = e.target.result; b.pdfName   = file.name; }
-    renderBooks();
+    // Re-render just the edit form content (keep drawer open)
+    document.getElementById('edit-form-body').innerHTML = renderEditForm(b);
     showToast((type === 'cover' ? 'Cover image' : 'PDF') + ' attached. Click Save to keep.');
   };
   reader.readAsDataURL(file);
@@ -363,7 +417,7 @@ function removeFile(bookId, type) {
   if (!b) return;
   if (type === 'cover') { b.coverData = null; b.coverName = null; }
   else                  { b.pdfData   = null; b.pdfName   = null; }
-  renderBooks();
+  document.getElementById('edit-form-body').innerHTML = renderEditForm(b);
 }
 
 function updateStock(id, val) {
@@ -388,22 +442,29 @@ function saveBook(id) {
   b.stripeEbook     = document.getElementById('stripe-eb-' + id)?.value || '';
   b.stripeAudio     = document.getElementById('stripe-au-' + id)?.value || '';
   b.stockStatus     = document.getElementById('stock-' + id)?.value || b.stockStatus;
-  saveBooks(BOOKS);
-  renderBooks();
+  saveBooks(BOOKS).then(() => {
+    renderList();
+    // Re-render edit form to reflect saved state
+    document.getElementById('edit-form-body').innerHTML = renderEditForm(b);
+    document.getElementById('edit-drawer-title').textContent = `Editing: ${b.title}`;
+  });
 }
 
 function addBook() {
   const id = 'book-' + Date.now();
   BOOKS.push({
     id, title: 'New Book', subtitle: '', bookNum: BOOKS.length + 1,
-    mode: 'preorder', pubDate: '', price: '', stripeHardcover: '', stripeEbook: '', stripeAudio: '',
-    description: '', coverData: null, coverName: null, pdfData: null, pdfName: null,
+    mode: 'preorder', stockStatus: 'preorder', pubDate: '', price: '',
+    stripeHardcover: '', stripeEbook: '', stripeAudio: '',
+    author: 'Phelim Ekwebe', audience: '', formatOptions: 'Hardcover · eBook · Audiobook',
+    description: '', longDescription: '', hookText: '',
+    coverData: null, coverName: null, pdfData: null, pdfName: null,
   });
-  renderBooks();
-  document.getElementById('book-card-' + id)?.scrollIntoView({ behavior: 'smooth' });
+  renderList();
+  openEditor(id);
 }
 
-loadBooks().then(books => { BOOKS = books; renderBooks(); });
+loadBooks().then(books => { BOOKS = books; renderList(); });
 </script>
 </body>
 </html>

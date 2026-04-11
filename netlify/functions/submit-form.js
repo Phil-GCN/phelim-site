@@ -45,7 +45,7 @@ const DEFAULT_TEMPLATES = {
   },
 };
 
-async function getSignature(supabaseUrl, supabaseKey) {
+async function getSiteContent(supabaseUrl, supabaseKey) {
   try {
     const res = await fetch(`${supabaseUrl}/rest/v1/site_content?select=*`, {
       headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` },
@@ -54,6 +54,22 @@ async function getSignature(supabaseUrl, supabaseKey) {
     const rows = await res.json();
     return Object.fromEntries(rows.map(r => [r.key, r.value]));
   } catch { return null; }
+}
+
+// Kept for backward compat — same as getSiteContent
+async function getSignature(supabaseUrl, supabaseKey) {
+  return getSiteContent(supabaseUrl, supabaseKey);
+}
+
+function resolveNotifyEmail(sc, type, fallback) {
+  // Per-type routing keys stored in site_content
+  const routeMap = {
+    speaking:    sc?.routeSpeaking,
+    podcast:     sc?.routePodcast,
+    writing:     sc?.routeWriting,
+    partnership: sc?.routePartnership,
+  };
+  return routeMap[type] || sc?.routeDefault || fallback;
 }
 
 function buildSignatureHtml(sc) {
@@ -167,10 +183,10 @@ async function saveSubmission(supabaseUrl, supabaseKey, submission) {
 exports.handler = async function(event) {
   if (event.httpMethod !== 'POST') return { statusCode: 405, body: 'Method not allowed' };
 
-  const RESEND_KEY  = process.env.RESEND_API_KEY;
-  const SUP_URL     = process.env.SUPABASE_URL;
-  const SUP_KEY     = process.env.SUPABASE_SERVICE_KEY;
-  const NOTIFY      = process.env.NOTIFY_EMAIL || 'hello@phelim.me';
+  const RESEND_KEY    = process.env.RESEND_API_KEY;
+  const SUP_URL       = process.env.SUPABASE_URL;
+  const SUP_KEY       = process.env.SUPABASE_SERVICE_KEY;
+  const NOTIFY_DEFAULT = process.env.NOTIFY_EMAIL || 'hello@phelim.me';
 
   if (!RESEND_KEY) return json(500, { error: 'RESEND_API_KEY not set' });
 
@@ -199,16 +215,22 @@ exports.handler = async function(event) {
     } catch(e) { console.warn('Supabase save failed:', e.message); }
   }
 
-  // Fetch signature from site_content for personalised emails
-  const sc = (SUP_URL && SUP_KEY) ? await getSignature(SUP_URL, SUP_KEY) : null;
+  // Fetch site_content for signature + email routing
+  const sc = (SUP_URL && SUP_KEY) ? await getSiteContent(SUP_URL, SUP_KEY) : null;
   const signatureHtml = buildSignatureHtml(sc);
+
+  // Resolve routing
+  const NOTIFY   = resolveNotifyEmail(sc, type, NOTIFY_DEFAULT);
+  const fromAddr = sc?.routeNoreply
+    ? `Phelim Ekwebe <${sc.routeNoreply}>`
+    : 'Phelim Ekwebe <hello@phelim.me>';
 
   const errors = [];
 
   // 2. Send auto-reply to submitter
   try {
     await sendEmail(RESEND_KEY, {
-      from: 'Phelim Ekwebe <hello@phelim.me>',
+      from: fromAddr,
       to: email,
       replyTo: NOTIFY,
       subject: templateOverride?.subject || `Thank you for your ${type || 'general'} enquiry — Phelim Ekwebe`,
@@ -222,7 +244,7 @@ exports.handler = async function(event) {
   // 3. Send owner notification
   try {
     await sendEmail(RESEND_KEY, {
-      from: 'phelim.me <hello@phelim.me>',
+      from: fromAddr,
       to: NOTIFY,
       replyTo: email,
       subject: `New ${type || 'general'} enquiry from ${name}`,

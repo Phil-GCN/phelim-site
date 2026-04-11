@@ -54,13 +54,25 @@ window.BOOKS_DATA={
 };
 function openCheckout(id){
   const b=window.BOOKS_DATA[id]||window.BOOKS_DATA.btl;
+  const stock   = b.stockStatus || (b.mode === 'live' ? 'in_stock' : 'preorder');
+  const isLive  = b.mode === 'live';
+  const eyebrow = isLive && stock === 'in_stock' ? 'Buy Now'
+                : isLive && stock === 'out_of_stock' ? 'Out of Stock — Join Waitlist'
+                : 'Pre-order';
+  const itemType= isLive ? b.subtitle + ' · Available' : b.subtitle + ' · Pre-order';
+  const submitTxt = isLive && stock === 'in_stock' ? 'Complete Purchase'
+                  : isLive && stock === 'out_of_stock' ? 'Join Waitlist'
+                  : 'Complete Pre-order';
   document.getElementById('co-title').textContent=b.title;
+  document.getElementById('co-eyebrow').textContent=eyebrow;
   document.getElementById('co-price').textContent='€ '+b.price;
-  document.getElementById('co-cover').style.background=b.color;
+  document.getElementById('co-cover').style.background=b.color||'var(--forest)';
   document.getElementById('co-cover-text').textContent=b.title;
   document.getElementById('co-item-name').textContent=b.title;
-  document.getElementById('co-item-type').textContent=b.subtitle+' · Pre-order';
+  document.getElementById('co-item-type').textContent=itemType;
   document.getElementById('co-item-price').textContent='€ '+b.price;
+  const submitBtn=document.querySelector('#checkout-form button[type="submit"]');
+  if(submitBtn) submitBtn.textContent=submitTxt;
   // Reset format select for correct book
   const sel=document.getElementById('co-format');
   if(sel){sel.options[0].value=b.price;sel.selectedIndex=0;}
@@ -82,14 +94,64 @@ function updateCoPrice(){
   document.getElementById('co-item-price').textContent='€ '+price;
   document.getElementById('co-price').textContent='€ '+price;
 }
-function handleCheckout(e){
+async function handleCheckout(e){
   e.preventDefault();
-  const btn=e.target.querySelector('button[type="submit"]');
-  btn.textContent='Processing...';btn.disabled=true;
-  setTimeout(()=>{
-    btn.textContent='Order placed ✓';btn.style.background='var(--forest)';
-    setTimeout(()=>{closeCheckout();btn.textContent='Complete Pre-order';btn.style.background='';btn.disabled=false;},2400);
-  },1600);
+  const form    = e.target;
+  const btn     = form.querySelector('button[type="submit"]');
+  const origTxt = btn.textContent;
+  btn.textContent='Processing…'; btn.disabled=true;
+
+  // Collect form values
+  const inputs = form.querySelectorAll('.finput');
+  const firstName = inputs[0]?.value?.trim() || '';
+  const lastName  = inputs[1]?.value?.trim() || '';
+  const email     = inputs[2]?.value?.trim() || '';
+  const formatSel = document.getElementById('co-format');
+  const format    = formatSel ? formatSel.options[formatSel.selectedIndex].text.split(' — ')[0] : 'Hardcover';
+  const price     = document.getElementById('co-item-price')?.textContent?.replace(/[^0-9.]/g,'') || '0';
+  const payMethod = document.querySelector('.pay-method.selected')?.dataset?.type || 'card';
+
+  // Resolve which book is being ordered from current checkout state
+  const bookTitle = document.getElementById('co-title')?.textContent || '';
+  const bookId    = Object.keys(window.BOOKS_DATA||{}).find(k => window.BOOKS_DATA[k].title === bookTitle) || '';
+  const orderType = (window.BOOKS_DATA[bookId]?.mode === 'live') ? 'purchase' : 'preorder';
+
+  if (!firstName || !email) {
+    btn.textContent = origTxt; btn.disabled = false;
+    alert('Please fill in your first name and email before proceeding.');
+    return;
+  }
+
+  try {
+    const res  = await fetch('/.netlify/functions/book-order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ firstName, lastName, email, bookId, bookTitle, format, price, paymentMethod: payMethod, orderType }),
+    });
+    const data = await res.json();
+    if (res.ok && data.success) {
+      btn.textContent='Order placed ✓'; btn.style.background='var(--forest)';
+      // Show confirmation inside the checkout modal
+      const bodyEl = document.querySelector('.checkout-body');
+      if (bodyEl) {
+        bodyEl.innerHTML = `<div style="padding:32px 24px;text-align:center;">
+          <div style="font-family:Georgia,serif;font-size:1.4rem;color:#263d33;margin-bottom:12px;">Thank you, ${firstName}.</div>
+          <div style="font-size:.88rem;color:#555;line-height:1.7;margin-bottom:10px;">Your ${orderType === 'purchase' ? 'order' : 'pre-order'} for <strong>${bookTitle}</strong> has been confirmed.</div>
+          <div style="font-size:.78rem;color:#888;margin-bottom:22px;">Order number: <strong>${data.orderId}</strong><br>A confirmation has been sent to <strong>${email}</strong>.</div>
+          <button onclick="closeCheckout()" style="font-size:.8rem;color:#263d33;background:none;border:1px solid #263d33;padding:9px 22px;cursor:pointer;">Close</button>
+        </div>`;
+      }
+      setTimeout(()=>{ closeCheckout(); form.reset(); btn.textContent=origTxt; btn.style.background=''; btn.disabled=false; },4000);
+    } else {
+      throw new Error(data.error || 'Order failed');
+    }
+  } catch(err) {
+    console.error('Checkout error:', err.message);
+    btn.textContent='Try again'; btn.disabled=false; btn.style.background='';
+    // Still show a local confirmation so the user isn't left hanging
+    alert(`Thank you, ${firstName}. Your order has been received. We will send a confirmation to ${email} shortly.\n\nIf you don't hear from us within 24 hours, please email hello@phelim.me with reference: ${bookTitle}.`);
+    setTimeout(()=>{ closeCheckout(); form.reset(); btn.textContent=origTxt; },300);
+  }
 }
 
 // ═══ FORMS ═══

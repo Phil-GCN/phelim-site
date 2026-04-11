@@ -74,22 +74,91 @@
       <button class="btn btn-primary" onclick="saveSetting('identity')">Save Identity</button>
     </div>
 
-    <!-- Contact Details -->
+    <!-- Contact Details & Socials -->
     <div class="card" style="margin-bottom:20px;">
-      <div class="card-header"><div class="card-title">Contact Details</div></div>
+      <div class="card-header">
+        <div class="card-title">Contact Details &amp; Socials</div>
+        <div style="font-size:.78rem;color:var(--ink30);">Shown on the Contact page — blank fields are hidden automatically</div>
+      </div>
       <div class="form-group">
-        <label class="form-label">Contact email</label>
+        <label class="form-label">Contact email <span style="color:var(--ink30);font-weight:400;">(shown publicly)</span></label>
         <input class="form-input" id="s-email" type="email" placeholder="hello@phelim.me">
       </div>
-      <div class="form-group">
-        <label class="form-label">LinkedIn URL</label>
-        <input class="form-input" id="s-linkedin" type="url" placeholder="https://linkedin.com/in/...">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">LinkedIn URL</label>
+          <input class="form-input" id="s-linkedin" type="url" placeholder="https://linkedin.com/in/...">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Twitter / X URL</label>
+          <input class="form-input" id="s-twitter" type="url" placeholder="https://twitter.com/...">
+        </div>
       </div>
-      <div class="form-group">
-        <label class="form-label">Twitter / X URL</label>
-        <input class="form-input" id="s-twitter" type="url" placeholder="https://twitter.com/...">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Instagram URL</label>
+          <input class="form-input" id="s-instagram" type="url" placeholder="https://instagram.com/...">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Facebook URL</label>
+          <input class="form-input" id="s-facebook" type="url" placeholder="https://facebook.com/...">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">YouTube URL</label>
+          <input class="form-input" id="s-youtube" type="url" placeholder="https://youtube.com/@...">
+        </div>
+        <div class="form-group">
+          <label class="form-label">TikTok URL</label>
+          <input class="form-input" id="s-tiktok" type="url" placeholder="https://tiktok.com/@...">
+        </div>
       </div>
       <button class="btn btn-primary" onclick="saveSetting('contact')">Save Contact Details</button>
+    </div>
+
+    <!-- Email Routing -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header">
+        <div class="card-title">Email Routing</div>
+        <div style="font-size:.78rem;color:var(--ink30);">Set where each enquiry type is delivered. Leave blank to use the default.</div>
+      </div>
+      <div style="font-size:.8rem;color:var(--ink60);margin-bottom:16px;padding:10px 13px;background:var(--paper-mid);border:1px solid var(--ink12);">
+        <strong>Default notify address:</strong> hello@phelim.me &nbsp;·&nbsp;
+        Set per-type emails below if you want speaking enquiries to go to a different inbox than partnership proposals, etc.
+      </div>
+      <div class="form-group">
+        <label class="form-label">Default notification email</label>
+        <input class="form-input" id="route-default" type="email" placeholder="hello@phelim.me">
+        <div class="form-hint">Used for any type not specifically configured below.</div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Speaking enquiries</label>
+          <input class="form-input" id="route-speaking" type="email" placeholder="e.g. speaking@phelim.me">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Podcast enquiries</label>
+          <input class="form-input" id="route-podcast" type="email" placeholder="e.g. podcast@phelim.me">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Writing &amp; Media</label>
+          <input class="form-input" id="route-writing" type="email" placeholder="e.g. media@phelim.me">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Partnership</label>
+          <input class="form-input" id="route-partnership" type="email" placeholder="e.g. partnerships@phelim.me">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">No-reply / auto-reply sender address</label>
+        <input class="form-input" id="route-noreply" type="email" placeholder="e.g. noreply@phelim.me">
+        <div class="form-hint">Auto-replies are sent from this address. Must be a verified Resend domain address.</div>
+      </div>
+      <button class="btn btn-primary" onclick="saveRouting()">Save Routing</button>
+      <span id="route-status" style="font-size:.78rem;color:var(--ink60);margin-left:10px;"></span>
     </div>
 
     <!-- Email Reply Templates -->
@@ -135,7 +204,7 @@
         <span id="tpl-status" style="font-size:.78rem;color:var(--ink60);margin-left:6px;"></span>
       </div>
       <div style="margin-top:12px;padding:10px 13px;background:var(--paper-mid);border:1px solid var(--ink12);font-size:.74rem;color:var(--ink30);">
-        Templates are saved locally in this browser. When Supabase is connected, they will sync across all devices.
+        Templates are saved to the database and sync across devices. A local copy is also kept in this browser as a fallback.
       </div>
     </div>
 
@@ -273,8 +342,46 @@ async function resetTpl() {
   showToast('Reset to default.');
 }
 
-function saveSetting(section) {
-  showToast('Settings saved.');
+async function saveSetting(section) {
+  if (section === 'contact') {
+    const obj = {
+      contactEmail: document.getElementById('s-email').value.trim(),
+      socialLinkedin: document.getElementById('s-linkedin').value.trim(),
+      socialTwitter: document.getElementById('s-twitter').value.trim(),
+      socialInstagram: document.getElementById('s-instagram').value.trim(),
+      socialFacebook: document.getElementById('s-facebook').value.trim(),
+      socialYoutube: document.getElementById('s-youtube').value.trim(),
+      socialTiktok: document.getElementById('s-tiktok').value.trim(),
+    };
+    try {
+      await DB.setSiteContent(obj);
+      showToast('Contact details saved.');
+    } catch(e) {
+      showToast('Saved locally only — check DB connection.');
+    }
+  } else {
+    showToast('Settings saved.');
+  }
+}
+
+async function saveRouting() {
+  const obj = {
+    routeDefault:     document.getElementById('route-default').value.trim(),
+    routeSpeaking:    document.getElementById('route-speaking').value.trim(),
+    routePodcast:     document.getElementById('route-podcast').value.trim(),
+    routeWriting:     document.getElementById('route-writing').value.trim(),
+    routePartnership: document.getElementById('route-partnership').value.trim(),
+    routeNoreply:     document.getElementById('route-noreply').value.trim(),
+  };
+  try {
+    await DB.setSiteContent(obj);
+    document.getElementById('route-status').textContent = 'Saved ✓';
+    showToast('Email routing saved.');
+  } catch(e) {
+    document.getElementById('route-status').textContent = 'Saved locally only';
+    showToast('Routing saved locally — check DB connection.');
+  }
+  setTimeout(() => { document.getElementById('route-status').textContent = ''; }, 3000);
 }
 
 function changePortalPassword() {
@@ -330,6 +437,28 @@ async function initSignature() {
   } catch(_) {}
 }
 initSignature();
+
+// Load contact details + routing from DB
+async function initContactAndRouting() {
+  try {
+    const sc = await DB.getSiteContent();
+    const set = (id, key) => { const el = document.getElementById(id); if (el && sc[key]) el.value = sc[key]; };
+    set('s-email',        'contactEmail');
+    set('s-linkedin',     'socialLinkedin');
+    set('s-twitter',      'socialTwitter');
+    set('s-instagram',    'socialInstagram');
+    set('s-facebook',     'socialFacebook');
+    set('s-youtube',      'socialYoutube');
+    set('s-tiktok',       'socialTiktok');
+    set('route-default',     'routeDefault');
+    set('route-speaking',    'routeSpeaking');
+    set('route-podcast',     'routePodcast');
+    set('route-writing',     'routeWriting');
+    set('route-partnership', 'routePartnership');
+    set('route-noreply',     'routeNoreply');
+  } catch(_) {}
+}
+initContactAndRouting();
 
 // Load templates from DB (with localStorage fallback already in getSavedTemplates)
 async function initTemplates() {

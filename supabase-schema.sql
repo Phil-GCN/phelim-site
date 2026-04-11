@@ -128,6 +128,24 @@ alter table books add column if not exists stock_status     text default 'preord
 alter table sent_messages add column if not exists starred boolean default false;
 alter table sent_messages add column if not exists status  text default 'read';
 
+-- ── Book orders ──
+create table if not exists book_orders (
+  id             text primary key,
+  book_id        text,
+  book_title     text,
+  format         text,
+  price          text,
+  first_name     text,
+  last_name      text,
+  email          text,
+  payment_method text default 'card',
+  order_type     text default 'preorder',
+  status         text default 'pending',
+  created_at     timestamptz default now()
+);
+alter table book_orders enable row level security;
+-- No public read — portal only via service key
+
 -- ── Submissions: inbound form submissions (replaces Netlify Forms) ──
 create table if not exists submissions (
   id         text primary key,
