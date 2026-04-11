@@ -229,6 +229,7 @@ function renderList() {
         <button class="btn btn-ghost btn-sm" onclick="window.open('../resources.html','_blank')" title="View as summary card">View Summary ↗</button>
         <button class="btn btn-ghost btn-sm" onclick="window.open('../engagements.html','_blank')" title="View full book page">View Full ↗</button>
         <button class="btn btn-secondary btn-sm" onclick="openEditor('${b.id}')">Edit</button>
+        <button class="btn btn-ghost btn-sm" style="color:#c0392b;border-color:#f0d0cc;" onclick="removeBook('${b.id}')" title="Remove this book from the site">Remove</button>
       </div>
     </div>`;
   }).join('');
@@ -272,19 +273,25 @@ function renderEditForm(b) {
   return `
     <!-- ORDER MODE + STOCK STATUS -->
     <div class="order-toggle-row">
-      <span class="order-toggle-label">Order mode</span>
+      <span class="order-toggle-label">Mode</span>
       <label class="toggle-switch">
         <input type="checkbox" ${isLive ? 'checked' : ''} onchange="toggleOrderMode('${b.id}', this.checked)">
         <span class="toggle-slider"></span>
       </label>
       <span class="order-mode-text" id="mode-text-${b.id}">${modeLabel}</span>
-      <span style="font-size:.72rem;color:var(--ink30);margin-left:8px;">·</span>
-      <span class="order-toggle-label" style="margin-left:8px;">Stock</span>
+    </div>
+    <div style="font-size:.74rem;color:var(--ink30);margin:-10px 0 14px;padding:8px 12px;background:var(--paper-mid);border:1px solid var(--ink06);line-height:1.6;">
+      <strong>Pre-order mode</strong>: Book shows as "Coming Soon — Pre-order open" with a <em>Pre-order Now</em> button, regardless of stock.<br>
+      <strong>Live mode</strong>: Book is available for purchase. The <strong>Stock status</strong> below controls the button — <em>In Stock</em> = "Buy Now", <em>Out of Stock</em> = "Join Waitlist".
+    </div>
+    <div class="order-toggle-row" style="margin-bottom:4px;">
+      <span class="order-toggle-label">Stock status</span>
       <select class="form-input" id="stock-${b.id}" style="width:auto;font-size:.78rem;padding:3px 8px;margin-left:4px;" onchange="updateStock('${b.id}',this.value)">
-        <option value="preorder"     ${(b.stockStatus||'preorder')==='preorder'    ?'selected':''}>Pre-order</option>
-        <option value="in_stock"     ${(b.stockStatus||'')==='in_stock'            ?'selected':''}>In Stock</option>
-        <option value="out_of_stock" ${(b.stockStatus||'')==='out_of_stock'        ?'selected':''}>Out of Stock</option>
+        <option value="preorder"     ${(b.stockStatus||'preorder')==='preorder'    ?'selected':''}>Pre-order (not yet available)</option>
+        <option value="in_stock"     ${(b.stockStatus||'')==='in_stock'            ?'selected':''}>In Stock — Buy Now</option>
+        <option value="out_of_stock" ${(b.stockStatus||'')==='out_of_stock'        ?'selected':''}>Out of Stock — Join Waitlist</option>
       </select>
+      <span style="font-size:.72rem;color:var(--ink30);margin-left:8px;">(only used in Live mode)</span>
     </div>
 
     <div class="form-row">
@@ -448,6 +455,22 @@ function saveBook(id) {
     document.getElementById('edit-form-body').innerHTML = renderEditForm(b);
     document.getElementById('edit-drawer-title').textContent = `Editing: ${b.title}`;
   });
+}
+
+async function removeBook(id) {
+  const b = BOOKS.find(x => x.id === id);
+  if (!b) return;
+  const confirmed = window.confirm(`Remove "${b.title}" from the site?\n\nThis will delete the book from the database. The action cannot be undone.`);
+  if (!confirmed) return;
+  try {
+    await DB.deleteBook(id);
+    BOOKS = BOOKS.filter(x => x.id !== id);
+    if (activeEditId === id) closeEditor();
+    renderList();
+    showToast(`"${b.title}" removed.`);
+  } catch(err) {
+    showToast('Remove failed: ' + err.message);
+  }
 }
 
 function addBook() {

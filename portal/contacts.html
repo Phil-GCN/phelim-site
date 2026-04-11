@@ -288,6 +288,13 @@ async function loadAll() {
 
 // ── Render ──
 function renderTable() {
+  // Rescue msg-detail from any inline row before re-rendering tbody
+  const existingInline = document.getElementById('inline-detail-row');
+  if (existingInline) {
+    const det = document.getElementById('msg-detail');
+    if (det) document.querySelector('.portal-main').appendChild(det);
+    existingInline.remove();
+  }
   const readIds    = getReadIds();
   const starSub    = getStarredSub();
   const starSent   = getStarredSent();
@@ -482,9 +489,13 @@ async function renderThread(id) {
 function _showInlineDetail() {
   if(!currentMsg) return;
   const id = currentMsg.data.id;
-  // Remove any existing inline expansion row
+  // Remove any existing inline expansion row — rescue msg-detail first
   const existing = document.getElementById('inline-detail-row');
-  if (existing) existing.remove();
+  if (existing) {
+    const detail = document.getElementById('msg-detail');
+    if (detail) document.querySelector('.portal-main').appendChild(detail);
+    existing.remove();
+  }
 
   const detail = document.getElementById('msg-detail');
   detail.style.display = 'block';

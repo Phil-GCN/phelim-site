@@ -63,6 +63,7 @@ const DB = {
   // ── Books ──
   async getBooks()             { return this.get('books'); },
   async saveBook(book)         { return this.upsert('books', book); },
+  async deleteBook(id)         { return this.delete('books', id); },
 
   // ── Site content (key-value) ──
   async getSiteContent() {

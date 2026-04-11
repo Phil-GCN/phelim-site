@@ -80,12 +80,13 @@
 
     <!-- ABOUT TAB -->
     <div class="portal-tab-panel" id="sc-panel-about">
+      <div class="alert alert-info"><span>ℹ</span><span>Changes here update the two main paragraphs on the <strong>About page</strong> (about.html).</span></div>
       <div class="form-group">
-        <label class="form-label">Opening paragraph</label>
+        <label class="form-label">Opening paragraph <span style="color:var(--ink30);font-weight:400;">· about.html — first body paragraph</span></label>
         <textarea class="form-textarea" id="sc-about-p1">Phelim Ekwebe is a life strategist, systems thinker, speaker, and author. His work asks a precise question: why do some people build lives that compound over time — and what is the structural difference between those who do and those who do not?</textarea>
       </div>
       <div class="form-group">
-        <label class="form-label">Second paragraph</label>
+        <label class="form-label">Second paragraph <span style="color:var(--ink30);font-weight:400;">· about.html — second body paragraph</span></label>
         <textarea class="form-textarea" id="sc-about-p2">The answer is rarely talent or effort. It is structure — the invisible architecture of decisions, environments, and habits that most people never examine. That is what the podcast, the writing, and the speaking are built around.</textarea>
       </div>
       <button class="btn btn-primary" onclick="saveContent('about')">Save About Content</button>
@@ -109,7 +110,7 @@
           </div>
         </div>
       </div>
-      <div class="alert alert-info"><span>💡</span><span style="font-size:.78rem;">After saving, the photo will appear in the hero, about page, and sidebar profile card. Use a PNG with transparent background for best results.</span></div>
+      <div class="alert alert-info"><span>💡</span><span style="font-size:.78rem;"><strong>Where it appears:</strong> The About page (about.html) sidebar profile card. Use a PNG with a transparent or clean background for best results. Recommended: square or 4:5 ratio, min 800×800px. After saving, reload the About page to see the update.</span></div>
     </div>
 
     <!-- SPEAKING TAB -->
@@ -131,11 +132,11 @@
 
     <!-- BRANDING TAB -->
     <div class="portal-tab-panel" id="sc-panel-branding">
-      <div class="alert alert-info"><span>ℹ</span><span>Changes here update global branding elements across the site.</span></div>
+      <div class="alert alert-info"><span>ℹ</span><span>Changes here update global branding elements across the site. After saving, reload any public page to see the update.</span></div>
       <div class="form-group">
-        <label class="form-label">Footer copyright text</label>
+        <label class="form-label">Footer copyright text <span style="color:var(--ink30);font-weight:400;">· footer of every page</span></label>
         <input class="form-input" id="sc-footer-copy" value="© 2025 Phelim Ekwebe. All rights reserved.">
-        <div class="form-hint">Appears in the footer of every page.</div>
+        <div class="form-hint">Appears in the footer of every site page (index, about, contact, resources, engagements, podcast).</div>
       </div>
       <button class="btn btn-primary" onclick="saveContent('branding')">Save Branding</button>
     </div>
@@ -200,14 +201,25 @@ async function loadContentFromDB() {
 }
 document.addEventListener('DOMContentLoaded', () => { if (window.DB) loadContentFromDB(); else setTimeout(loadContentFromDB, 400); });
 
-// Override saveContent for photo to include the data URL
+// Override saveContent for photo to include the data URL + save to DB
 const _origSaveContent = saveContent;
-window.saveContent = function(section) {
-  if (section === 'photo' && window._pendingPhoto) {
+window.saveContent = async function(section) {
+  if (section === 'photo') {
+    const data = window._pendingPhoto;
+    if (!data) { showToast('No photo selected.'); return; }
     const saved = JSON.parse(localStorage.getItem('portal-site-content') || '{}');
-    saved.portraitPhoto = window._pendingPhoto;
+    saved.portraitPhoto = data;
     localStorage.setItem('portal-site-content', JSON.stringify(saved));
-    showToast('Portrait photo saved.');
+    if (window.DB) {
+      try {
+        await DB.setSiteContent({ portraitPhoto: data });
+        showToast('Portrait photo saved and live on site.');
+      } catch(e) {
+        showToast('Photo saved locally. DB save failed: ' + e.message);
+      }
+    } else {
+      showToast('Portrait photo saved (local only — DB not connected).');
+    }
     return;
   }
   _origSaveContent(section);

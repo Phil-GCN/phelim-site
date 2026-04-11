@@ -202,11 +202,14 @@ async function handleSubmit(e, type) {
     confirm.id = confirmId;
     form.parentNode.insertBefore(confirm, form.nextSibling);
   }
+  // Assign a stable ID to the form so we can reliably restore it
+  if (!form.id) form.id = 'contact-form-' + (formName || 'unknown');
+  const formId = form.id;
   confirm.style.cssText = 'padding:32px 24px;background:#f0f5f2;border:1px solid rgba(38,61,51,.18);text-align:center;';
   confirm.innerHTML = `
     <div style="font-family:Georgia,serif;font-size:1.25rem;color:#263d33;margin-bottom:10px;">Message sent.</div>
     <p style="font-size:.9rem;color:#555;margin:0 0 18px;line-height:1.65;">Thank you${name ? ', ' + name.split(' ')[0] : ''}. A confirmation has been sent to ${email || 'your email'}.</p>
-    <button type="button" onclick="document.getElementById('${confirmId}').remove();document.querySelector('[name=${formName}]').style.display=''" style="font-size:.8rem;color:#263d33;background:none;border:1px solid #263d33;padding:7px 18px;cursor:pointer;">Send another message</button>`;
+    <button type="button" onclick="window._restoreContactForm('${confirmId}','${formId}')" style="font-size:.8rem;color:#263d33;background:none;border:1px solid #263d33;padding:7px 18px;cursor:pointer;">Send another message</button>`;
   form.style.display = 'none';
 
   btn.textContent = orig;
@@ -214,6 +217,14 @@ async function handleSubmit(e, type) {
   btn.disabled = false;
   return false;
 }
+
+// Restore contact form after "Send another message" is clicked
+window._restoreContactForm = function(confirmId, formId) {
+  const c = document.getElementById(confirmId);
+  if (c) c.remove();
+  const f = document.getElementById(formId);
+  if (f) { f.style.display = ''; f.reset(); }
+};
 
 // ═══ COUNTDOWN ═══
 const launchDate=new Date('2027-02-01T00:00:00');

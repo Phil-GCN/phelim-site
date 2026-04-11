@@ -61,6 +61,14 @@ async function loadSiteContent() {
   if (sc.footerCopy) {
     document.querySelectorAll('.footer-copy').forEach(el => el.textContent = sc.footerCopy);
   }
+
+  // Portrait photo — replaces silhouette placeholder on About page sidebar
+  if (sc.portraitPhoto) {
+    const photoSlot = document.querySelector('.spc-photo');
+    if (photoSlot) {
+      photoSlot.innerHTML = `<img src="${sc.portraitPhoto}" alt="Phelim Ekwebe" style="width:100%;height:100%;object-fit:cover;display:block;">`;
+    }
+  }
 }
 
 // Books: load from Supabase and update checkout modal + all displayed book cards
