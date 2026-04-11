@@ -222,7 +222,7 @@ function _renderDynamicBook(b, id, tagText, badgeText, ctaText) {
           <div class="book-meta-row">${metaRows}</div>
           <div class="book-ctas">
             <button class="btn btn-dark" onclick="openCheckout('${id}')">${ctaText}</button>
-            <button class="btn btn-outline" onclick="openModal('general')">Get launch notification</button>
+            <button class="btn btn-outline" onclick="openModal('waitlist')">Get launch notification</button>
           </div>
         </div>`;
       dynPanels.appendChild(div);

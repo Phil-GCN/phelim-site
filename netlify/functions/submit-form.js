@@ -43,6 +43,13 @@ const DEFAULT_TEMPLATES = {
     body: `I read every message personally and respond to general enquiries within 3–5 business days. Whether you have a question about the podcast, a reaction to an essay, or simply want to start a conversation — I will get back to you.`,
     closing: 'Thank you again for reaching out.',
   },
+  waitlist: {
+    colour: '#1a3028', eyebrow: 'Launch Notification',
+    heading: "You're on the list",
+    intro: n => `Dear ${n},\n\nThank you for signing up for launch notifications.`,
+    body: `You will be among the first to hear when the book is available — along with any early-access offers or pre-launch pricing. No spam, no noise. Just the announcement when it matters.`,
+    closing: "I appreciate your interest and look forward to sharing it with you.",
+  },
 };
 
 async function getSiteContent(supabaseUrl, supabaseKey) {

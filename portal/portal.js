@@ -182,14 +182,20 @@ async function saveContent(section) {
   localStorage.setItem('portal-site-content', JSON.stringify(saved));
 
   // Persist to DB if available
+  const labels = { hero: 'Hero content', about: 'About content', speaking: 'Speaking content', photo: 'Portrait photo', branding: 'Branding' };
   if (window.DB && Object.keys(dbUpdates).length) {
     try {
       await DB.setSiteContent(dbUpdates);
-    } catch(e) { console.warn('DB save failed, localStorage only:', e); }
+      showToast(`${labels[section] || 'Content'} saved and live on site.`);
+    } catch(e) {
+      showToast(`Saved locally only — DB not connected. Set SUPABASE_URL and SUPABASE_SERVICE_KEY in Netlify to sync live.`);
+      console.warn('DB save failed:', e);
+    }
+  } else if (!window.DB) {
+    showToast(`Saved locally only — DB not connected. Changes will not appear on the live site until Supabase is configured.`);
+  } else {
+    showToast(`${labels[section] || 'Content'} saved.`);
   }
-
-  const labels = { hero: 'Hero content', about: 'About content', speaking: 'Speaking content', photo: 'Portrait photo', branding: 'Branding' };
-  showToast(`${labels[section] || 'Content'} saved.`);
 }
 
 // ── BOOKS: Stripe link save ──

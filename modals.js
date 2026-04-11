@@ -29,10 +29,15 @@ const MODAL_FORMS={
   general:{
     eyebrow:'Get in touch',title:'Work With Phelim',
     html:`<div class="form"><div class="frow"><div class="fg"><label class="flabel">Name</label><input class="finput" type="text" placeholder="Full name"></div><div class="fg"><label class="flabel">Email</label><input class="finput" type="email" placeholder="your@email.com"></div></div><div class="fg"><label class="flabel">Message</label><textarea class="ftextarea" style="min-height:110px;" placeholder="Tell me what's on your mind..."></textarea></div><button type="button" class="btn btn-dark" style="width:100%;justify-content:center;" onclick="handleModalSubmit(this)">Send Message</button></div>`
+  },
+  waitlist:{
+    eyebrow:'Launch Notification',title:'Be the first to know',
+    html:`<div class="form"><p style="font-size:.88rem;color:#555;margin:0 0 18px;line-height:1.65;">Sign up below and you'll receive a notification as soon as this book launches — along with any early-access offers.</p><div class="frow"><div class="fg"><label class="flabel">Name</label><input class="finput" type="text" placeholder="Full name"></div><div class="fg"><label class="flabel">Email</label><input class="finput" type="email" placeholder="your@email.com"></div></div><button type="button" class="btn btn-dark" style="width:100%;justify-content:center;margin-top:6px;" onclick="handleModalSubmit(this)">Notify Me at Launch</button></div>`
   }
 };
 function openModal(ctx){
   const c=MODAL_FORMS[ctx]||MODAL_FORMS.general;
+  window._modalType = ctx || 'general';
   document.getElementById('m-eyebrow').textContent=c.eyebrow;
   document.getElementById('m-title').textContent=c.title;
   document.getElementById('m-form-body').innerHTML=c.html;
@@ -42,9 +47,42 @@ function openModal(ctx){
 function closeModal(){document.getElementById('modal').classList.remove('open');document.body.style.overflow='';}
 function closeModalOuter(e){if(e.target===document.getElementById('modal'))closeModal();}
 function handleModalSubmit(btn){
-  const orig=btn.textContent;
-  btn.textContent='Sent ✓';btn.style.background='var(--forest)';
-  setTimeout(()=>{closeModal();btn.textContent=orig;btn.style.background='';},2200);
+  const formDiv = btn.closest('.form');
+  if (!formDiv) return;
+
+  // Collect name (first text input) and email
+  const nameIn  = formDiv.querySelector('input[type="text"]');
+  const emailIn = formDiv.querySelector('input[type="email"]');
+  const name    = nameIn?.value?.trim()  || '';
+  const email   = emailIn?.value?.trim() || '';
+
+  // Validate required fields
+  let valid = true;
+  [nameIn, emailIn].forEach(el => { if (el) el.style.borderColor = ''; });
+  if (!name)  { if (nameIn)  { nameIn.style.borderColor  = '#c0392b'; nameIn.focus();  } valid = false; }
+  if (!email) { if (emailIn) { emailIn.style.borderColor = '#c0392b'; if (name) emailIn.focus(); } valid = false; }
+  if (!valid) return;
+
+  // Collect all field values for the notification
+  const fields = {};
+  formDiv.querySelectorAll('input, select, textarea').forEach(inp => {
+    const key = inp.placeholder || inp.type || 'field';
+    const val = inp.tagName === 'SELECT' ? (inp.options[inp.selectedIndex]?.text || '') : (inp.value || '');
+    if (val.trim() && key !== 'text' && key !== 'email') fields[key] = val.trim();
+  });
+
+  const orig = btn.textContent;
+  btn.textContent = 'Sending…'; btn.disabled = true;
+
+  // Call the real backend
+  fetch('/.netlify/functions/submit-form', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, email, type: window._modalType || 'general', fields }),
+  }).catch(() => {}); // best-effort; show success regardless
+
+  btn.textContent = 'Sent ✓'; btn.style.background = 'var(--forest)';
+  setTimeout(() => { closeModal(); btn.textContent = orig; btn.style.background = ''; btn.disabled = false; }, 2200);
 }
 
 // ═══ CHECKOUT ═══

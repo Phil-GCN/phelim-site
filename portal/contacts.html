@@ -133,6 +133,8 @@
       <button class="btn btn-ghost btn-sm" onclick="setTypeFilter('writing',this)">Writing</button>
       <button class="btn btn-ghost btn-sm" onclick="setTypeFilter('partnership',this)">Partnership</button>
       <button class="btn btn-ghost btn-sm" onclick="setTypeFilter('general',this)">General</button>
+      <button class="btn btn-ghost btn-sm" onclick="setTypeFilter('waitlist',this)">Waitlist</button>
+      <button class="btn btn-primary btn-sm" id="send-waitlist-btn" style="display:none;margin-left:auto;" onclick="triggerWaitlistNotification()">✉ Send launch notification to all</button>
     </div>
 
     <div class="table-wrap">
@@ -381,7 +383,37 @@ function setTypeFilter(t, btn) {
   activeType = t;
   document.querySelectorAll('#sub-filter .btn').forEach(b=>b.classList.remove('active'));
   if(btn) btn.classList.add('active');
+  const wlBtn = document.getElementById('send-waitlist-btn');
+  if (wlBtn) wlBtn.style.display = (t === 'waitlist') ? 'inline-flex' : 'none';
   renderTable();
+}
+
+async function triggerWaitlistNotification() {
+  const subject = window.prompt('Email subject line:', 'It is here — the book is now available');
+  if (!subject) return;
+  const body = window.prompt('Email body (plain text):', 'The wait is over.\n\nThe book is now available at phelim.me — head over to secure your copy.\n\nThank you for your patience.\n\nPhelim');
+  if (!body) return;
+
+  const btn = document.getElementById('send-waitlist-btn');
+  const orig = btn.textContent;
+  btn.textContent = 'Sending…'; btn.disabled = true;
+
+  try {
+    const res = await fetch('/.netlify/functions/send-waitlist', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subject, body }),
+    });
+    const data = await res.json();
+    if (res.ok && data.success) {
+      showToast(`Launch notification sent to ${data.count} subscriber${data.count === 1 ? '' : 's'}.`);
+    } else {
+      showToast('Send failed: ' + (data.error || 'Unknown error'));
+    }
+  } catch(e) {
+    showToast('Send failed: ' + e.message);
+  }
+  btn.textContent = orig; btn.disabled = false;
 }
 
 function updateUnreadBadge() {
