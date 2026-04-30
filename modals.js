@@ -4,7 +4,8 @@
 // Both modal overlays are created here so they don't need to be duplicated
 // across every page's HTML. The script runs at bottom-of-body, so document.body exists.
 (function injectModals() {
-  if (document.getElementById('modal')) return; // already present (shouldn't happen)
+  console.log('[modals] injectModals() running — existing #modal:', !!document.getElementById('modal'), 'body:', !!document.body);
+  if (document.getElementById('modal')) { console.warn('[modals] early return — #modal already exists'); return; }
   const frag = document.createDocumentFragment();
 
   // ── General modal ──
@@ -94,6 +95,7 @@
   frag.appendChild(c);
 
   document.body.appendChild(frag);
+  console.log('[modals] injected — #stripe-card-element:', !!document.getElementById('stripe-card-element'), '#checkout-modal:', !!document.getElementById('checkout-modal'));
 
   // Escape key closes whichever modal is open
   document.addEventListener('keydown', function(e) {
@@ -339,6 +341,7 @@ function openCheckout(id) {
   document.body.style.overflow = 'hidden';
 
   // Mount a fresh Stripe card element each time the modal opens
+  console.log('[modals] calling _initStripe — #stripe-card-element in DOM:', !!document.getElementById('stripe-card-element'));
   _initStripe();
 }
 
