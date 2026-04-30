@@ -105,6 +105,8 @@ async function loadLiveBooks() {
     const _priceMap = { Hardcover: b.price_hardcover, Paperback: b.price_paperback, eBook: b.price_ebook, Audiobook: b.price_audiobook };
     const _variants = {};
     _formats.forEach(f => { _variants[f] = _priceMap[f] || b.price || '0'; });
+    // Bundle: all formats at a discount — only show if price_bundle is set
+    if (b.price_bundle) _variants['Complete Bundle'] = b.price_bundle;
     window.BOOKS_DATA[id] = {
       title: b.title, subtitle: b.subtitle || '', type: 'book',
       price: b.price || '0', variants: _variants,

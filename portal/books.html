@@ -169,6 +169,7 @@ async function loadBooks() {
       price: r.price,
       priceHardcover: r.price_hardcover || '', pricePaperback: r.price_paperback || '',
       priceEbook: r.price_ebook || '',         priceAudiobook: r.price_audiobook || '',
+      priceBundle: r.price_bundle || '',
       coverColor: r.cover_color || '',
       author: r.author || 'Phelim Ekwebe', audience: r.audience || '',
       formatOptions: r.format_options || 'Hardcover · eBook',
@@ -195,6 +196,7 @@ async function saveBooks(books) {
         price: b.price,
         price_hardcover: b.priceHardcover || null, price_paperback: b.pricePaperback || null,
         price_ebook: b.priceEbook || null,         price_audiobook: b.priceAudiobook || null,
+        price_bundle: b.priceBundle || null,
         cover_color: b.coverColor || null,
         author: b.author || 'Phelim Ekwebe', audience: b.audience || '',
         format_options: b.formatOptions || '',
@@ -384,6 +386,10 @@ function renderEditForm(b) {
       </div>
     </div>
     <div class="form-group">
+      <label class="form-label">Complete Bundle price <span style="font-size:.72rem;font-weight:400;color:var(--ink30);">All formats at a discount — leave blank to hide this option</span></label>
+      <input class="form-input" type="number" step="0.01" id="price-bu-${b.id}" placeholder="e.g. 29.99" value="${b.priceBundle || ''}">
+    </div>
+    <div class="form-group">
       <label class="form-label">Cover colour <span style="font-size:.72rem;font-weight:400;color:var(--ink30);">(CSS colour or hex, used on cards and checkout)</span></label>
       <input class="form-input" id="cover-color-${b.id}" placeholder="e.g. #1a2d24 or var(--forest)" value="${b.coverColor || ''}">
     </div>
@@ -492,6 +498,7 @@ async function saveBook(id) {
   b.pricePaperback  = document.getElementById('price-pb-' + id)?.value || '';
   b.priceEbook      = document.getElementById('price-eb-' + id)?.value || '';
   b.priceAudiobook  = document.getElementById('price-au-' + id)?.value || '';
+  b.priceBundle     = document.getElementById('price-bu-' + id)?.value || '';
   b.coverColor      = document.getElementById('cover-color-' + id)?.value || '';
   b.stockStatus     = document.getElementById('stock-' + id)?.value || b.stockStatus;
   try {
@@ -501,6 +508,7 @@ async function saveBook(id) {
       price: b.price,
       price_hardcover: b.priceHardcover || null, price_paperback: b.pricePaperback || null,
       price_ebook: b.priceEbook || null,         price_audiobook: b.priceAudiobook || null,
+      price_bundle: b.priceBundle || null,
       cover_color: b.coverColor || null,
       author: b.author || 'Phelim Ekwebe', audience: b.audience || '',
       format_options: b.formatOptions || '',

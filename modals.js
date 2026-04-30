@@ -325,7 +325,10 @@ async function openCheckout(id) {
       ? item.variants
       : { Standard: item.price || '0' };
     sel.innerHTML = Object.entries(variants)
-      .map(([name, price]) => `<option value="${name}">${name} — € ${price}</option>`)
+      .map(([name, price]) => {
+        const label = name === 'Complete Bundle' ? `${name} (All Formats) — € ${price}` : `${name} — € ${price}`;
+        return `<option value="${name}">${label}</option>`;
+      })
       .join('');
     sel.selectedIndex = 0;
   }

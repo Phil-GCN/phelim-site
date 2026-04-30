@@ -1,5 +1,6 @@
 // Vercel Serverless Function: resend-confirmation
 // Fetches an order from Supabase and resends the confirmation email to the customer.
+// Digital files are served via /api/download — no attachment needed.
 //
 // POST /api/resend-confirmation
 // Body: { orderId }
@@ -15,23 +16,6 @@ async function getOrder(supUrl, supKey, orderId) {
   const rows = await r.json();
   if (!r.ok || !rows.length) return null;
   return rows[0];
-}
-
-async function getBookFile(supUrl, supKey, bookId) {
-  try {
-    const r = await fetch(
-      `${supUrl}/rest/v1/books?id=eq.${encodeURIComponent(bookId)}&select=pdf_data,pdf_name,audio_data,audio_name&limit=1`,
-      { headers: { apikey: supKey, Authorization: `Bearer ${supKey}` } }
-    );
-    const rows = await r.json();
-    if (!r.ok || !rows.length) return null;
-    return {
-      pdfData:   rows[0].pdf_data   || null,
-      pdfName:   rows[0].pdf_name   || 'ebook.pdf',
-      audioData: rows[0].audio_data || null,
-      audioName: rows[0].audio_name || 'audiobook.mp3',
-    };
-  } catch { return null; }
 }
 
 async function getSiteContent(supUrl, supKey) {
@@ -86,6 +70,36 @@ function buildEmailWrapper({ colour, eyebrow, heading, content, closing, sigHtml
 </table></body></html>`;
 }
 
+function buildDownloadBlock(orderId, variant) {
+  const v = (variant || '').toLowerCase();
+  const isBundle    = v === 'complete bundle';
+  const isEbook     = v === 'ebook'     || isBundle;
+  const isAudiobook = v === 'audiobook' || isBundle;
+  if (!isEbook && !isAudiobook) return '';
+
+  const base = 'https://phelim.me';
+  const ebookBtn = isEbook
+    ? `<a href="${base}/api/download?orderId=${encodeURIComponent(orderId)}&type=ebook"
+         style="display:inline-block;background:#263d33;color:#f8f6f1;text-decoration:none;padding:12px 26px;font-size:13px;letter-spacing:.04em;margin-right:10px;margin-bottom:8px;">
+        ↓ Download eBook (PDF)
+       </a>` : '';
+  const audioBtn = isAudiobook
+    ? `<a href="${base}/api/download?orderId=${encodeURIComponent(orderId)}&type=audiobook"
+         style="display:inline-block;background:#263d33;color:#f8f6f1;text-decoration:none;padding:12px 26px;font-size:13px;letter-spacing:.04em;margin-bottom:8px;">
+        ↓ Download Audiobook
+       </a>` : '';
+
+  return `
+    <div style="background:#f7f5f0;border:1px solid #e8e4dd;border-left:3px solid #263d33;padding:20px 22px;margin:20px 0;">
+      <p style="margin:0 0 12px;font-size:13px;font-weight:600;color:#263d33;letter-spacing:.03em;text-transform:uppercase;">Your download is ready</p>
+      <p style="margin:0 0 16px;font-size:13px;color:#555;line-height:1.6;">Click below to download your file. Keep this email — the link is tied to your order and works any time.</p>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;">
+        ${ebookBtn}${audioBtn}
+      </div>
+      <p style="margin:12px 0 0;font-size:11px;color:#999;line-height:1.5;">If a button doesn't work, copy and paste the link into your browser. Links are unique to your order.</p>
+    </div>`;
+}
+
 function buildConfirmationEmail({ firstName, itemTitle, variant, price, orderId, orderType, paymentMethod, sigHtml }) {
   const isPreorder = orderType !== 'purchase';
   const eyebrow    = isPreorder ? 'Order Confirmed — Pre-order' : 'Order Confirmed';
@@ -96,6 +110,8 @@ function buildConfirmationEmail({ firstName, itemTitle, variant, price, orderId,
         <strong>Bank transfer:</strong> Please transfer € ${price} within 5 business days to hold your order. Bank details will follow in a separate email.
        </div>`
     : '';
+
+  const downloadBlock = !isPreorder ? buildDownloadBlock(orderId, variant) : '';
 
   const content = `
     <p style="margin:0 0 18px;font-size:15px;color:#444;line-height:1.7;">Dear ${firstName},</p>
@@ -108,6 +124,7 @@ function buildConfirmationEmail({ firstName, itemTitle, variant, price, orderId,
       <tr style="background:#f7f5f0;"><td style="padding:10px 14px;font-size:13px;color:#888;">Payment</td><td style="padding:10px 14px;font-size:14px;color:#1a1a1a;">${paymentMethod === 'bank' ? 'Bank transfer' : 'Card'}</td></tr>
     </table>
     ${bankNote}
+    ${downloadBlock}
     <p style="margin:0 0 14px;font-size:14px;color:#555;line-height:1.7;">Questions? Simply reply to this email.</p>
     <div style="border-top:1px solid #f0ede6;padding-top:20px;margin-top:24px;">
       <a href="mailto:${SENDER}?subject=Cancel%20order%20${orderId}"
@@ -146,28 +163,13 @@ module.exports = async function(req, res) {
   const sc      = await getSiteContent(SUP_URL, SUP_KEY);
   const sigHtml = buildSignature(sc);
 
-  // Attach digital file if applicable
-  let digitalAttachments;
-  const variant = order.variant || '';
-  if ((variant === 'eBook' || variant === 'Audiobook') && order.item_id) {
-    const bookFile = await getBookFile(SUP_URL, SUP_KEY, order.item_id);
-    if (bookFile) {
-      const raw  = variant === 'eBook' ? bookFile.pdfData  : bookFile.audioData;
-      const name = variant === 'eBook' ? bookFile.pdfName  : bookFile.audioName;
-      if (raw) {
-        const base64Content = raw.replace(/^data:[^;]+;base64,/, '');
-        digitalAttachments = [{ filename: name, content: base64Content }];
-      }
-    }
-  }
-
   const html = buildConfirmationEmail({
-    firstName:     order.first_name  || 'Customer',
-    itemTitle:     order.item_title  || 'your order',
-    variant:       order.variant     || '',
-    price:         order.price       != null ? String(order.price) : '0.00',
+    firstName:     order.first_name     || 'Customer',
+    itemTitle:     order.item_title     || 'your order',
+    variant:       order.variant        || '',
+    price:         order.price != null  ? String(order.price) : '0.00',
     orderId:       order.id,
-    orderType:     order.order_type  || 'purchase',
+    orderType:     order.order_type     || 'purchase',
     paymentMethod: order.payment_method || 'card',
     sigHtml,
   });
@@ -177,12 +179,11 @@ module.exports = async function(req, res) {
       method:  'POST',
       headers: { Authorization: `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
       body:    JSON.stringify({
-        from:        `Phelim Ekwebe <${SENDER}>`,
-        to:          [order.email],
-        reply_to:    SENDER,
-        subject:     `Order confirmation: ${order.item_title || 'your order'} — ${order.id}`,
+        from:     `Phelim Ekwebe <${SENDER}>`,
+        to:       [order.email],
+        reply_to: SENDER,
+        subject:  `Order confirmation (resent): ${order.item_title || 'your order'} — ${order.id}`,
         html,
-        ...(digitalAttachments ? { attachments: digitalAttachments } : {}),
       }),
     });
     const data = await r.json();
