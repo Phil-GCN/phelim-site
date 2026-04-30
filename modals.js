@@ -344,12 +344,13 @@ function openCheckout(id) {
 }
 
 async function _initStripe() {
-  // _stripe (the Stripe instance) is reused — only the card element is recreated per open
+  // _stripe instance is cached; card element is recreated fresh each modal open
   try {
-    // Lazy-load Stripe.js only the first time
+    // Load Stripe.js — always ensure window.Stripe is available before proceeding
     if (!window.Stripe) {
       await new Promise((resolve, reject) => {
-        if (document.querySelector('script[src*="js.stripe.com"]')) { resolve(); return; }
+        // Remove any previous failed script tag before retrying
+        document.querySelectorAll('script[src*="js.stripe.com"]').forEach(s => s.remove());
         const s = document.createElement('script');
         s.src = 'https://js.stripe.com/v3/';
         s.onload  = resolve;
@@ -357,8 +358,8 @@ async function _initStripe() {
         document.head.appendChild(s);
       });
     }
-    // Fetch publishable key from server (never hardcoded in source)
-    // Create the Stripe instance once per page load, reuse on subsequent opens
+
+    // Create the Stripe instance once; reuse on subsequent opens
     if (!_stripe) {
       const cfgRes = await fetch('/api/stripe-config');
       if (!cfgRes.ok) throw new Error('Stripe config unavailable');
@@ -366,6 +367,11 @@ async function _initStripe() {
       if (!publishableKey) throw new Error('No publishable key returned');
       _stripe = window.Stripe(publishableKey);
     }
+
+    // Always mount a fresh card element — #stripe-card-element must exist in DOM
+    const mountTarget = document.getElementById('stripe-card-element');
+    if (!mountTarget) throw new Error('Card mount target missing from DOM');
+
     const elements = _stripe.elements();
     _stripeCard = elements.create('card', {
       style: {
@@ -378,16 +384,20 @@ async function _initStripe() {
         invalid: { color: '#c0392b' },
       },
     });
-    _stripeCard.mount('#stripe-card-element');
+    _stripeCard.mount(mountTarget);
     _stripeCard.on('change', ev => {
       const errEl = document.getElementById('stripe-card-error');
       if (errEl) errEl.textContent = ev.error ? ev.error.message : '';
     });
   } catch(err) {
     console.warn('Stripe init failed:', err.message);
-    const cardFields = document.getElementById('card-fields');
-    if (cardFields) {
-      cardFields.innerHTML = '<p style="font-size:.82rem;color:#c0392b;padding:8px 0;">Card payment is temporarily unavailable. Please use bank transfer or contact us directly.</p>';
+    // Reset so the null-check in handleCheckout correctly blocks submission
+    _stripeCard = null;
+    // Show error WITHOUT destroying #stripe-card-element (preserves DOM for retry)
+    const errEl = document.getElementById('stripe-card-error');
+    if (errEl) {
+      errEl.textContent = 'Card payment is temporarily unavailable. Please use bank transfer or try again.';
+      errEl.style.display = 'block';
     }
   }
 }
