@@ -266,7 +266,7 @@ window.CHECKOUT_CATALOG = {
 window.BOOKS_DATA = window.CHECKOUT_CATALOG;
 
 // ── Stripe state ──
-let _stripe = null, _stripeCard = null, _currentItemId = null;
+let _stripe = null, _stripeElements = null, _stripeCard = null, _currentItemId = null;
 
 function openCheckout(id) {
   const item = window.CHECKOUT_CATALOG[id] || window.CHECKOUT_CATALOG.btl;
@@ -322,10 +322,9 @@ function openCheckout(id) {
   if (cf) cf.style.display = 'block';
   if (bf) bf.style.display = 'none';
 
-  // Destroy any previous card element — Stripe iframes go stale between modal opens
+  // Clear any previous card element — don't destroy, just reset (avoids stale-instance bugs)
   if (_stripeCard) {
-    try { _stripeCard.destroy(); } catch(_) {}
-    _stripeCard = null;
+    try { _stripeCard.clear(); } catch(_) {}
   }
   const errEl = document.getElementById('stripe-card-error');
   if (errEl) { errEl.textContent = ''; errEl.style.display = ''; }
@@ -368,32 +367,38 @@ async function _initStripe() {
       _stripe = window.Stripe(publishableKey);
     }
 
-    // Always mount a fresh card element — #stripe-card-element must exist in DOM
+    // #stripe-card-element must exist in DOM
     const mountTarget = document.getElementById('stripe-card-element');
     if (!mountTarget) throw new Error('Card mount target missing from DOM');
 
-    const elements = _stripe.elements();
-    _stripeCard = elements.create('card', {
-      style: {
-        base: {
-          fontFamily: '"DM Sans", system-ui, sans-serif',
-          fontSize:   '15px',
-          color:      '#0d0d0b',
-          '::placeholder': { color: '#aaa' },
+    // Reuse the elements instance; create the card element only once
+    if (!_stripeElements) {
+      _stripeElements = _stripe.elements();
+    }
+    if (!_stripeCard) {
+      _stripeCard = _stripeElements.create('card', {
+        style: {
+          base: {
+            fontFamily: '"DM Sans", system-ui, sans-serif',
+            fontSize:   '15px',
+            color:      '#0d0d0b',
+            '::placeholder': { color: '#aaa' },
+          },
+          invalid: { color: '#c0392b' },
         },
-        invalid: { color: '#c0392b' },
-      },
-    });
-    _stripeCard.mount(mountTarget);
-    _stripeCard.on('change', ev => {
-      const errEl = document.getElementById('stripe-card-error');
-      if (errEl) errEl.textContent = ev.error ? ev.error.message : '';
-    });
+      });
+      _stripeCard.mount(mountTarget);
+      _stripeCard.on('change', ev => {
+        const errEl = document.getElementById('stripe-card-error');
+        if (errEl) errEl.textContent = ev.error ? ev.error.message : '';
+      });
+    }
   } catch(err) {
     console.warn('Stripe init failed:', err.message);
-    // Reset so the null-check in handleCheckout correctly blocks submission
-    _stripeCard = null;
-    // Show error WITHOUT destroying #stripe-card-element (preserves DOM for retry)
+    // Only null out if card was never successfully created (preserve if it exists)
+    if (!_stripeCard) {
+      _stripeElements = null;
+    }
     const errEl = document.getElementById('stripe-card-error');
     if (errEl) {
       errEl.textContent = 'Card payment is temporarily unavailable. Please use bank transfer or try again.';
