@@ -70,10 +70,14 @@ CREATE TABLE IF NOT EXISTS site_content (
 -- Email templates
 -- ─────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS email_templates (
-  id          text PRIMARY KEY,
-  name        text UNIQUE NOT NULL,
-  subject     text NOT NULL,
-  body        text NOT NULL,
+  id          text PRIMARY KEY,             -- same value as type (e.g. 'speaking', 'podcast')
+  name        text,                         -- human label
+  type        text UNIQUE NOT NULL,         -- 'speaking' | 'podcast' | 'writing' | 'partnership' | 'general'
+  subject     text,
+  body        text,
+  heading     text,
+  intro       text,
+  closing     text,
   updated_at  timestamptz NOT NULL DEFAULT now()
 );
 

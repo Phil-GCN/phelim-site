@@ -338,7 +338,7 @@ async function saveTpl() {
 
 async function resetTpl() {
   try {
-    await DB.delete('email_templates', activeTpl);
+    await DB.deleteTemplate(activeTpl);
   } catch(_) {}
   const all = getSavedTemplates();
   delete all[activeTpl];

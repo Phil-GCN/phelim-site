@@ -14,7 +14,7 @@ module.exports = async function(req, res) {
 
   const formType = req.query?.form || null;
   let url = `${SUP_URL}/rest/v1/submissions?select=*&order=created_at.desc`;
-  if (formType) url += `&form_type=eq.${encodeURIComponent(formType)}`;
+  if (formType) url += `&type=eq.${encodeURIComponent(formType)}`;
 
   try {
     const r = await fetch(url, { headers: { apikey: SUP_KEY, Authorization: `Bearer ${SUP_KEY}` } });
@@ -23,11 +23,11 @@ module.exports = async function(req, res) {
     // Normalise to the shape the portal expects
     const submissions = (rows || []).map(s => ({
       id:       s.id,
-      formName: s.form_type || 'general',
+      formName: s.type || 'general',
       name:     s.name     || 'Unknown',
       email:    s.email    || '',
-      message:  s.data?.message || s.fields?.message || '',
-      extra:    s.data || s.fields || {},
+      message:  s.fields?.message || '',
+      extra:    s.fields || {},
       created:  s.created_at,
       status:   s.status,
     }));

@@ -86,7 +86,11 @@ const DB = {
     return Object.fromEntries((rows || []).map(r => [r.type, r]));
   },
   async saveTemplate(type, tpl) {
-    return this.upsert('email_templates', { type, ...tpl, updated_at: new Date().toISOString() });
+    // id = type so upsert (merge-duplicates) works correctly with text PK
+    return this.upsert('email_templates', { id: type, name: type, type, ...tpl, updated_at: new Date().toISOString() });
+  },
+  async deleteTemplate(type) {
+    return this.delete('email_templates', type);
   },
 
   // ── Submissions (inbound form submissions) ──
