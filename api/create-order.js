@@ -225,7 +225,16 @@ module.exports = async function(req, res) {
   }
 
   const resolvedTitle = itemTitle || catalogItem.title;
-  const orderId = 'ORD-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6).toUpperCase();
+  // Order ID format: PE-YYYYMMDD-XXXX
+  //   PE   = Phelim Ekwebe (brand prefix — easy to identify in email/DB)
+  //   DATE = order date (staff can tell at a glance when the order was placed)
+  //   XXXX = 4 alphanumeric chars from timestamp base-36 (collision-resistant within a day)
+  const now     = new Date();
+  const datePart = now.getFullYear().toString() +
+    String(now.getMonth() + 1).padStart(2, '0') +
+    String(now.getDate()).padStart(2, '0');
+  const randPart = (Date.now() % (36 ** 4)).toString(36).toUpperCase().padStart(4, '0');
+  const orderId  = `PE-${datePart}-${randPart}`;
 
   if (SUP_URL && SUP_KEY) {
     try {

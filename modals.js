@@ -407,6 +407,7 @@ async function _initStripe() {
     }
     if (!_stripeCard) {
       _stripeCard = _stripeElements.create('card', {
+        hidePostalCode: true,   // postal/ZIP not relevant outside the US; we collect name+email instead
         style: {
           base: {
             fontFamily: '"DM Sans", system-ui, sans-serif',
