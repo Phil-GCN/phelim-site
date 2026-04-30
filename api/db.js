@@ -127,3 +127,13 @@ function respond(res, status, body) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.status(status).json(body);
 }
+
+// Raise Vercel's default 4.5 MB body-parser limit so cover images,
+// PDFs, and audio files (stored as base64) can be saved via upsert.
+module.exports.config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '20mb',
+    },
+  },
+};

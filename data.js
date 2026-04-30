@@ -77,126 +77,46 @@ async function loadSiteContent() {
 // Books: load from Supabase and update checkout modal + all displayed book cards
 async function loadLiveBooks() {
   const rows = await fetchFromDB('books');
-  // If DB is empty, hide hardcoded books (they are fictitious until DB is populated)
-  // If DB has data, show only DB books
-  if (!rows) return; // network error — keep hardcoded defaults
+  if (!rows) return; // network error — leave pages as-is
 
-  const set     = (id, val) => { const el = document.getElementById(id); if (el && val !== undefined && val !== null && val !== '') el.textContent = val; };
-  const setHTML = (id, val) => { const el = document.getElementById(id); if (el && val !== undefined && val !== null && val !== '') el.innerHTML = val; };
-
-  // Known hardcoded book IDs
-  const knownIds = new Set(['btl', 'bs']);
-
-  // Hide hardcoded books that are no longer in DB
-  if (rows.length > 0) {
-    const dbIds = new Set(rows.map(b => b.id));
-    knownIds.forEach(kid => {
-      if (!dbIds.has(kid)) {
-        // Remove tab button + panel
-        const btn   = document.getElementById(`bt-${kid}`);
-        const panel = document.getElementById(`book-${kid}`);
-        const resCard = document.querySelector(`#book-live-res-${kid}-title`)?.closest('.bres-card');
-        if (btn)     btn.style.display = 'none';
-        if (panel)   panel.style.display = 'none';
-        if (resCard) resCard.style.display = 'none';
-      }
-    });
-  }
-  // If no rows at all, show empty states
+  // Show empty states if no books in DB
   if (rows.length === 0) {
-    const resEmptyState = document.getElementById('books-empty-state');
-    if (resEmptyState) resEmptyState.style.display = '';
-    const engEmptyState = document.getElementById('eng-books-empty-state');
-    if (engEmptyState) engEmptyState.style.display = '';
+    const el = document.getElementById('books-empty-state');
+    if (el) el.style.display = '';
+    const el2 = document.getElementById('eng-books-empty-state');
+    if (el2) el2.style.display = '';
+    return;
   }
 
-  rows.forEach(b => {
-    const id     = b.id;
-    const isLive = b.mode === 'live';
+  rows.forEach((b, idx) => {
+    const id          = b.id;
+    const isLive      = b.mode === 'live';
     const stockStatus = b.stock_status || 'preorder';
-    // Status badge on book card
-    const badgeText = stockStatus === 'in_stock' ? 'Available Now'
-                    : stockStatus === 'out_of_stock' ? 'Out of Stock'
-                    : 'Pre-order';
-    const tagText   = isLive ? (stockStatus === 'out_of_stock' ? 'Temporarily unavailable' : 'Available Now') : 'Coming Soon · Pre-order open';
-    const ctaText   = isLive && stockStatus === 'in_stock' ? 'Buy Now'
-                    : isLive && stockStatus === 'out_of_stock' ? 'Join waitlist'
-                    : 'Pre-order Now';
+    const badgeText   = stockStatus === 'in_stock'    ? 'Available Now'
+                      : stockStatus === 'out_of_stock' ? 'Out of Stock'
+                      : 'Pre-order';
+    const tagText     = isLive ? (stockStatus === 'out_of_stock' ? 'Temporarily unavailable' : 'Available Now') : 'Coming Soon · Pre-order open';
+    const ctaText     = isLive && stockStatus === 'in_stock'    ? 'Buy Now'
+                      : isLive && stockStatus === 'out_of_stock' ? 'Join waitlist'
+                      : 'Pre-order Now';
 
-    // Update window.BOOKS_DATA for checkout modal
-    if (!window.BOOKS_DATA) window.BOOKS_DATA = {};
-    // Build variants from per-format prices; fall back to single price for all formats
+    // Populate BOOKS_DATA for checkout
     const _formats  = (b.format_options || 'Hardcover · Paperback · eBook').split('·').map(f => f.trim()).filter(Boolean);
     const _priceMap = { Hardcover: b.price_hardcover, Paperback: b.price_paperback, eBook: b.price_ebook, Audiobook: b.price_audiobook };
     const _variants = {};
     _formats.forEach(f => { _variants[f] = _priceMap[f] || b.price || '0'; });
+    window.BOOKS_DATA[id] = {
+      title: b.title, subtitle: b.subtitle || '', type: 'book',
+      price: b.price || '0', variants: _variants,
+      color: b.cover_color || 'var(--forest)', mode: b.mode, stockStatus,
+    };
 
-    if (!window.BOOKS_DATA[id]) {
-      window.BOOKS_DATA[id] = {
-        title: b.title, subtitle: b.subtitle || '', type: 'book',
-        price: b.price || '0', variants: _variants,
-        color: b.cover_color || 'var(--forest)', mode: b.mode,
-        stockStatus,
-      };
-    } else {
-      if (b.title)    window.BOOKS_DATA[id].title    = b.title;
-      if (b.subtitle) window.BOOKS_DATA[id].subtitle = b.subtitle;
-      if (b.price)    window.BOOKS_DATA[id].price    = b.price;
-      window.BOOKS_DATA[id].variants    = _variants;
-      window.BOOKS_DATA[id].color       = b.cover_color || window.BOOKS_DATA[id].color || 'var(--forest)';
-      window.BOOKS_DATA[id].mode        = b.mode;
-      window.BOOKS_DATA[id].stockStatus = stockStatus;
-    }
-
-    if (knownIds.has(id)) {
-      // ── Update existing hardcoded book elements ──
-      set(`book-live-${id}-title`,       b.title);
-      set(`book-live-${id}-subtitle`,    b.subtitle);
-      setHTML(`book-live-${id}-desc`,    b.long_description || b.description);
-      set(`book-live-${id}-cover-title`, b.title);
-      set(`book-live-${id}-tag`,         tagText);
-      set(`book-live-${id}-badge`,       badgeText);
-      if (b.pub_date) set(`book-live-${id}-pubdate`, b.pub_date);
-      if (b.author)   set(`book-live-${id}-author`,  b.author);
-      // Always set audience & format — show/hide row for BTL audience
-      set(`book-live-${id}-audience`, b.audience || '');
-      set(`book-live-${id}-format`,   b.format_options || '');
-      // Show BTL audience row only if value exists
-      if (id === 'btl') {
-        const audRow = document.getElementById('book-live-btl-audience-row');
-        if (audRow) audRow.style.display = b.audience ? '' : 'none';
-      }
-      if (b.hook_text) {
-        const hookEl = document.getElementById(`book-live-${id}-hook`);
-        if (hookEl) hookEl.textContent = b.hook_text;
-      }
-      // CTA buttons
-      const ctaEl    = document.getElementById(`book-live-${id}-cta`);
-      const resCtaEl = document.getElementById(`book-live-res-${id}-cta`);
-      if (ctaEl)    ctaEl.textContent    = ctaText;
-      if (resCtaEl) resCtaEl.textContent = ctaText;
-
-      // Resources page
-      set(`book-live-res-${id}-title`,       b.title);
-      set(`book-live-res-${id}-cover-title`, b.title);
-      setHTML(`book-live-res-${id}-desc`,    b.description);
-      set(`book-live-res-${id}-label`,       `${badgeText}${b.pub_date ? ' · ' + b.pub_date : ''}`);
-
-      // Cover image
-      if (b.cover_data) {
-        [`book-live-${id}-cover`, `book-live-res-${id}-cover`].forEach(covId => {
-          const el = document.getElementById(covId);
-          if (el) { el.style.backgroundImage = `url(${b.cover_data})`; el.style.backgroundSize = 'cover'; }
-        });
-      }
-    } else {
-      // ── Dynamically render new book (not in hardcoded HTML) ──
-      _renderDynamicBook(b, id, tagText, badgeText, ctaText);
-    }
+    // All books render dynamically — no hardcoded HTML to worry about
+    _renderDynamicBook(b, id, tagText, badgeText, ctaText, idx === 0);
   });
 }
 
-function _renderDynamicBook(b, id, tagText, badgeText, ctaText) {
+function _renderDynamicBook(b, id, tagText, badgeText, ctaText, isFirst) {
   const coverBg  = b.cover_data ? `background-image:url(${b.cover_data});background-size:cover;` : 'background:var(--forest);';
   const hookHtml = b.hook_text
     ? `<div style="background:var(--forest-faint);border:1px solid rgba(38,61,51,.15);padding:15px 18px;margin-bottom:16px;"><p style="font-size:.83rem;color:var(--ink60);margin:0;line-height:1.7;font-style:italic;">${b.hook_text}</p></div>`
@@ -210,24 +130,21 @@ function _renderDynamicBook(b, id, tagText, badgeText, ctaText) {
   ].join('');
 
   // ── Engagements page ──
-  const tabNav = document.querySelector('.book-tabs-nav');
+  const tabNav = document.getElementById('book-tabs-nav');
   const dynPanels = document.getElementById('dynamic-book-panels');
   if (tabNav && dynPanels) {
-    // Add tab button before "More coming" btn
-    const moreBtn = document.getElementById('bt-more');
     if (!document.getElementById(`bt-${id}`)) {
       const btn = document.createElement('button');
-      btn.className = 'book-tab-btn';
+      btn.className = 'book-tab-btn' + (isFirst ? ' active' : '');
       btn.id = `bt-${id}`;
       btn.textContent = b.title;
       btn.onclick = function() { switchBookTab(id, this); };
-      tabNav.insertBefore(btn, moreBtn || null);
+      tabNav.appendChild(btn);
     }
-    // Add tab panel
     if (!document.getElementById(`book-${id}`)) {
       const div = document.createElement('div');
       div.id = `book-${id}`;
-      div.className = 'book-tab-panel';
+      div.className = 'book-tab-panel' + (isFirst ? ' active' : '');
       div.innerHTML = `
         <div class="book-cover-wrap">
           <div class="book-cover" style="${coverBg}">

@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Orders — Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="portal.css">
+  <style>
+    .status-badge { display:inline-block;font-size:.64rem;letter-spacing:.06em;text-transform:uppercase;font-weight:600;padding:3px 8px;border-radius:2px; }
+    .status-pending   { background:#fef3c7;color:#92400e; }
+    .status-confirmed { background:#d1fae5;color:#065f46; }
+    .status-fulfilled { background:#e0e7ff;color:#3730a3; }
+    .status-cancelled { background:#fee2e2;color:#991b1b; }
+    .order-detail-grid { display:grid;grid-template-columns:1fr 1fr;gap:16px; }
+    .order-detail-group { margin-bottom:10px; }
+    .order-detail-label { font-size:.68rem;text-transform:uppercase;letter-spacing:.07em;color:var(--ink30);margin-bottom:2px; }
+    .order-detail-value { font-size:.9rem;color:var(--ink); }
+    .action-row { display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;padding-top:14px;border-top:1px solid var(--ink12); }
+    .stat-row { display:flex;gap:12px;margin-bottom:18px;flex-wrap:wrap; }
+    .stat-card { background:var(--paper-mid);border:1px solid var(--ink12);padding:14px 18px;flex:1;min-width:120px; }
+    .stat-card-label { font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink30);margin-bottom:4px; }
+    .stat-card-val { font-family:var(--serif);font-size:1.5rem;color:var(--ink); }
+    .stat-card-sub { font-size:.72rem;color:var(--ink30);margin-top:2px; }
+    .filter-bar { display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px; }
+    .filter-select { padding:6px 10px;font-size:.78rem;border:1px solid var(--ink12);background:var(--paper);font-family:var(--sans);color:var(--ink);cursor:pointer; }
+    .search-input { padding:6px 10px;font-size:.78rem;border:1px solid var(--ink12);background:var(--paper);font-family:var(--sans);color:var(--ink);min-width:200px; }
+  </style>
+</head>
+<body>
+<div class="portal-layout">
+
+  <header class="portal-topbar">
+    <div class="topbar-logo">Phelim Ekwebe <span>Content Portal</span></div>
+    <div class="topbar-right">
+      <a href="../index.html" class="topbar-view" target="_blank">View Site ↗</a>
+      <span class="topbar-user">Phelim Ekwebe</span>
+      <button class="topbar-btn" onclick="logout()">Sign Out</button>
+    </div>
+  </header>
+
+  <aside class="portal-sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Overview</div>
+      <a class="sidebar-link" href="index.html"><span class="sidebar-icon">◈</span> Dashboard</a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Content</div>
+      <a class="sidebar-link" href="episodes.html"><span class="sidebar-icon">◎</span> Episodes</a>
+      <a class="sidebar-link" href="articles.html"><span class="sidebar-icon">◉</span> Articles</a>
+      <a class="sidebar-link" href="books.html"><span class="sidebar-icon">▣</span> Books</a>
+      <a class="sidebar-link" href="content.html"><span class="sidebar-icon">◇</span> Site Content</a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Commerce</div>
+      <a class="sidebar-link active" href="orders.html"><span class="sidebar-icon">◫</span> Orders <span class="sidebar-badge" id="pending-badge"></span></a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Messages</div>
+      <a class="sidebar-link" href="contacts.html"><span class="sidebar-icon">✉</span> All Messages</a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Newsletter</div>
+      <a class="sidebar-link" href="newsletter.html"><span class="sidebar-icon">◉</span> Newsletter</a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Settings</div>
+      <a class="sidebar-link" href="settings.html"><span class="sidebar-icon">⚙</span> Site Settings</a>
+      <a class="sidebar-link" href="integrations.html"><span class="sidebar-icon">🔗</span> Integrations</a>
+    </div>
+  </aside>
+
+  <main class="portal-main">
+    <div class="page-header">
+      <div class="page-header-left">
+        <h1>Orders</h1>
+        <p>Manage all book and resource orders — process, fulfil, refund, or cancel.</p>
+      </div>
+      <div class="page-actions">
+        <button class="btn btn-secondary btn-sm" onclick="exportCSV()">↓ Export CSV</button>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stat-row" id="stats-row">
+      <div class="stat-card"><div class="stat-card-label">Total orders</div><div class="stat-card-val" id="stat-total">—</div></div>
+      <div class="stat-card"><div class="stat-card-label">Pending</div><div class="stat-card-val" id="stat-pending">—</div><div class="stat-card-sub">Awaiting action</div></div>
+      <div class="stat-card"><div class="stat-card-label">Confirmed</div><div class="stat-card-val" id="stat-confirmed">—</div></div>
+      <div class="stat-card"><div class="stat-card-label">Fulfilled</div><div class="stat-card-val" id="stat-fulfilled">—</div></div>
+      <div class="stat-card"><div class="stat-card-label">Revenue</div><div class="stat-card-val" id="stat-revenue">—</div><div class="stat-card-sub">Confirmed + fulfilled</div></div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filter-bar">
+      <input class="search-input" id="search-input" placeholder="Search by name, email, order ID…" oninput="renderTable()">
+      <select class="filter-select" id="filter-status" onchange="renderTable()">
+        <option value="all">All statuses</option>
+        <option value="pending">Pending</option>
+        <option value="confirmed">Confirmed</option>
+        <option value="fulfilled">Fulfilled</option>
+        <option value="cancelled">Cancelled</option>
+      </select>
+      <select class="filter-select" id="filter-type" onchange="renderTable()">
+        <option value="all">All types</option>
+        <option value="preorder">Pre-order</option>
+        <option value="purchase">Purchase</option>
+      </select>
+      <select class="filter-select" id="filter-payment" onchange="renderTable()">
+        <option value="all">All payment methods</option>
+        <option value="card">Card</option>
+        <option value="bank">Bank transfer</option>
+      </select>
+    </div>
+
+    <!-- Table -->
+    <div class="card" style="overflow-x:auto;">
+      <table class="portal-table" style="min-width:760px;">
+        <thead><tr>
+          <th>Order ID</th>
+          <th>Customer</th>
+          <th>Item</th>
+          <th>Format</th>
+          <th>Price</th>
+          <th>Payment</th>
+          <th>Status</th>
+          <th>Date</th>
+          <th></th>
+        </tr></thead>
+        <tbody id="orders-tbody">
+          <tr><td colspan="9" style="text-align:center;padding:28px;color:var(--ink30);">Loading orders…</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Order detail (inline expansion) -->
+    <div id="order-detail" style="display:none;background:var(--paper);border:1px solid var(--ink12);padding:24px;margin-top:2px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px;">
+        <div>
+          <div style="font-family:var(--serif);font-size:1.1rem;" id="od-id"></div>
+          <div style="font-size:.78rem;color:var(--ink30);margin-top:2px;" id="od-date"></div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <span id="od-status-badge"></span>
+          <button class="btn btn-ghost btn-sm" onclick="closeDetail()">✕ Close</button>
+        </div>
+      </div>
+
+      <div class="order-detail-grid">
+        <div>
+          <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink30);margin-bottom:10px;">Customer</div>
+          <div class="order-detail-group"><div class="order-detail-label">Name</div><div class="order-detail-value" id="od-name"></div></div>
+          <div class="order-detail-group"><div class="order-detail-label">Email</div><div class="order-detail-value" id="od-email"></div></div>
+        </div>
+        <div>
+          <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink30);margin-bottom:10px;">Order</div>
+          <div class="order-detail-group"><div class="order-detail-label">Item</div><div class="order-detail-value" id="od-item"></div></div>
+          <div class="order-detail-group"><div class="order-detail-label">Format / Variant</div><div class="order-detail-value" id="od-variant"></div></div>
+          <div class="order-detail-group"><div class="order-detail-label">Price</div><div class="order-detail-value" id="od-price"></div></div>
+          <div class="order-detail-group"><div class="order-detail-label">Payment method</div><div class="order-detail-value" id="od-payment"></div></div>
+          <div class="order-detail-group" id="od-stripe-row" style="display:none;"><div class="order-detail-label">Stripe Payment Intent</div><div class="order-detail-value" id="od-stripe"></div></div>
+        </div>
+      </div>
+
+      <div class="action-row">
+        <div style="flex:1;display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-secondary btn-sm" id="od-btn-confirm"   onclick="updateStatus('confirmed')">✓ Confirm</button>
+          <button class="btn btn-secondary btn-sm" id="od-btn-fulfil"    onclick="updateStatus('fulfilled')">📦 Mark Fulfilled</button>
+          <button class="btn btn-secondary btn-sm" id="od-btn-resend"    onclick="resendConfirmation()">↻ Resend Confirmation</button>
+          <button class="btn btn-secondary btn-sm" id="od-btn-email"     onclick="emailCustomer()">✉ Email Customer</button>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-ghost btn-sm" id="od-btn-cancel" onclick="updateStatus('cancelled')" style="color:#c0392b;">✕ Cancel Order</button>
+        </div>
+      </div>
+      <div id="od-status-msg" style="font-size:.78rem;color:var(--ink60);margin-top:8px;min-height:16px;"></div>
+    </div>
+
+  </main>
+</div>
+
+<script src="portal.js"></script>
+<script src="db.js"></script>
+<script>
+let allOrders  = [];
+let currentOrder = null;
+
+// ── Load ──
+async function loadOrders() {
+  const tbody = document.getElementById('orders-tbody');
+  try {
+    const rows = await DB.get('orders');
+    allOrders = (rows || []).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    renderStats();
+    renderTable();
+    updatePendingBadge();
+  } catch(err) {
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--ink30);">Error loading orders: ${err.message}</td></tr>`;
+  }
+}
+
+// ── Stats ──
+function renderStats() {
+  const active = allOrders.filter(o => o.status !== 'cancelled');
+  document.getElementById('stat-total').textContent     = allOrders.length;
+  document.getElementById('stat-pending').textContent   = allOrders.filter(o => o.status === 'pending').length;
+  document.getElementById('stat-confirmed').textContent = allOrders.filter(o => o.status === 'confirmed').length;
+  document.getElementById('stat-fulfilled').textContent = allOrders.filter(o => o.status === 'fulfilled').length;
+  const revenue = allOrders
+    .filter(o => o.status === 'confirmed' || o.status === 'fulfilled')
+    .reduce((sum, o) => sum + (parseFloat(o.price) || 0), 0);
+  document.getElementById('stat-revenue').textContent = '€ ' + revenue.toFixed(2);
+}
+
+function updatePendingBadge() {
+  const n = allOrders.filter(o => o.status === 'pending').length;
+  const badge = document.getElementById('pending-badge');
+  if (badge) badge.textContent = n || '';
+}
+
+// ── Render table ──
+function renderTable() {
+  const query   = document.getElementById('search-input').value.toLowerCase();
+  const status  = document.getElementById('filter-status').value;
+  const type    = document.getElementById('filter-type').value;
+  const payment = document.getElementById('filter-payment').value;
+
+  let rows = allOrders.filter(o => {
+    if (status  !== 'all' && o.status         !== status)  return false;
+    if (type    !== 'all' && o.order_type      !== type)   return false;
+    if (payment !== 'all' && o.payment_method  !== payment) return false;
+    if (query) {
+      const hay = [o.id, o.first_name, o.last_name, o.email, o.item_title].join(' ').toLowerCase();
+      if (!hay.includes(query)) return false;
+    }
+    return true;
+  });
+
+  const tbody = document.getElementById('orders-tbody');
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:28px;color:var(--ink30);">No orders match these filters.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = rows.map(o => {
+    const name   = [o.first_name, o.last_name].filter(Boolean).join(' ') || '—';
+    const date   = new Date(o.created_at).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+    const price  = o.price ? '€ ' + parseFloat(o.price).toFixed(2) : '—';
+    const pm     = o.payment_method === 'bank' ? 'Bank' : 'Card';
+    const isCurrent = currentOrder?.id === o.id;
+    return `<tr style="cursor:pointer;${isCurrent ? 'background:var(--paper-mid);' : ''}" onclick="toggleDetail('${o.id}')" id="orow-${o.id}">
+      <td style="font-size:.78rem;font-family:monospace;color:var(--ink60);">${o.id}</td>
+      <td><strong>${name}</strong><br><span style="font-size:.72rem;color:var(--ink30);">${o.email || ''}</span></td>
+      <td style="font-size:.85rem;">${o.item_title || o.item_id || '—'}</td>
+      <td style="font-size:.82rem;color:var(--ink60);">${o.variant || '—'}</td>
+      <td style="font-size:.85rem;">${price}</td>
+      <td style="font-size:.82rem;color:var(--ink60);">${pm}</td>
+      <td><span class="status-badge status-${o.status || 'pending'}">${o.status || 'pending'}</span></td>
+      <td style="font-size:.78rem;color:var(--ink60);white-space:nowrap;">${date}</td>
+      <td style="text-align:right;"><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();toggleDetail('${o.id}')">${isCurrent ? 'Close' : 'View'}</button></td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Detail ──
+function toggleDetail(id) {
+  if (currentOrder?.id === id) { closeDetail(); return; }
+  viewOrder(id);
+}
+
+function viewOrder(id) {
+  const o = allOrders.find(o => o.id === id);
+  if (!o) return;
+  currentOrder = o;
+
+  const name  = [o.first_name, o.last_name].filter(Boolean).join(' ') || '—';
+  const date  = new Date(o.created_at).toLocaleString('en-GB', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+
+  document.getElementById('od-id').textContent      = o.id;
+  document.getElementById('od-date').textContent    = date;
+  document.getElementById('od-name').textContent    = name;
+  document.getElementById('od-email').innerHTML     = `<a href="mailto:${o.email}" style="color:var(--forest);">${o.email || '—'}</a>`;
+  document.getElementById('od-item').textContent    = o.item_title || o.item_id || '—';
+  document.getElementById('od-variant').textContent = o.variant || '—';
+  document.getElementById('od-price').textContent   = o.price ? '€ ' + parseFloat(o.price).toFixed(2) : '—';
+  document.getElementById('od-payment').textContent = o.payment_method === 'bank' ? 'Bank transfer' : 'Card (Stripe)';
+  document.getElementById('od-status-msg').textContent = '';
+
+  // Stripe link
+  const stripeRow = document.getElementById('od-stripe-row');
+  if (o.payment_intent_id) {
+    stripeRow.style.display = '';
+    document.getElementById('od-stripe').innerHTML = `<a href="https://dashboard.stripe.com/payments/${o.payment_intent_id}" target="_blank" style="color:var(--forest);font-family:monospace;font-size:.78rem;">${o.payment_intent_id} ↗</a>`;
+  } else {
+    stripeRow.style.display = 'none';
+  }
+
+  // Status badge
+  const badge = document.getElementById('od-status-badge');
+  badge.className = `status-badge status-${o.status || 'pending'}`;
+  badge.textContent = o.status || 'pending';
+
+  // Show/hide action buttons based on current status
+  document.getElementById('od-btn-confirm').style.display  = (o.status === 'pending')   ? '' : 'none';
+  document.getElementById('od-btn-fulfil').style.display   = (o.status !== 'fulfilled' && o.status !== 'cancelled') ? '' : 'none';
+  document.getElementById('od-btn-cancel').style.display   = (o.status !== 'cancelled') ? '' : 'none';
+
+  // Show inline below the clicked row
+  const detail = document.getElementById('order-detail');
+  detail.style.display = 'block';
+  const srcRow = document.getElementById('orow-' + id);
+  if (srcRow) {
+    srcRow.parentNode.insertBefore(
+      (() => {
+        // Wrap detail in a table row
+        const existing = document.getElementById('inline-order-row');
+        if (existing) existing.remove();
+        const tr = document.createElement('tr');
+        tr.id = 'inline-order-row';
+        const td = document.createElement('td');
+        td.colSpan = 9; td.style.padding = '0 2px 2px';
+        td.appendChild(detail);
+        tr.appendChild(td);
+        return tr;
+      })(),
+      srcRow.nextSibling
+    );
+    detail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  renderTable(); // re-render to highlight active row
+}
+
+function closeDetail() {
+  const detail = document.getElementById('order-detail');
+  const inlineRow = document.getElementById('inline-order-row');
+  detail.style.display = 'none';
+  if (inlineRow) {
+    document.querySelector('.portal-main').appendChild(detail);
+    inlineRow.remove();
+  }
+  currentOrder = null;
+  renderTable();
+}
+
+// ── Status update ──
+async function updateStatus(newStatus) {
+  if (!currentOrder) return;
+  const msg = document.getElementById('od-status-msg');
+  msg.textContent = 'Saving…'; msg.style.color = 'var(--ink60)';
+
+  try {
+    await DB.patch('orders', currentOrder.id, { status: newStatus });
+    currentOrder.status = newStatus;
+    // Update in allOrders array
+    const idx = allOrders.findIndex(o => o.id === currentOrder.id);
+    if (idx !== -1) allOrders[idx].status = newStatus;
+
+    // Update badge in detail panel
+    const badge = document.getElementById('od-status-badge');
+    badge.className = `status-badge status-${newStatus}`;
+    badge.textContent = newStatus;
+
+    // Update action button visibility
+    document.getElementById('od-btn-confirm').style.display  = (newStatus === 'pending')   ? '' : 'none';
+    document.getElementById('od-btn-fulfil').style.display   = (newStatus !== 'fulfilled' && newStatus !== 'cancelled') ? '' : 'none';
+    document.getElementById('od-btn-cancel').style.display   = (newStatus !== 'cancelled') ? '' : 'none';
+
+    msg.textContent = 'Status updated to "' + newStatus + '".';
+    msg.style.color = 'var(--forest)';
+    renderStats();
+    updatePendingBadge();
+    renderTable();
+    showToast(`Order ${currentOrder.id} → ${newStatus}`);
+  } catch(err) {
+    msg.textContent = 'Failed: ' + err.message;
+    msg.style.color = '#c0392b';
+  }
+}
+
+// ── Resend confirmation email ──
+async function resendConfirmation() {
+  if (!currentOrder) return;
+  const msg = document.getElementById('od-status-msg');
+  msg.textContent = 'Resending…'; msg.style.color = 'var(--ink60)';
+
+  try {
+    const res  = await fetch('/api/resend-confirmation', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orderId: currentOrder.id }),
+    });
+    const data = await res.json();
+    if (res.ok && data.success) {
+      msg.textContent = 'Confirmation resent to ' + currentOrder.email;
+      msg.style.color = 'var(--forest)';
+      showToast('Confirmation email resent.');
+    } else {
+      throw new Error(data.error || 'Send failed');
+    }
+  } catch(err) {
+    msg.textContent = 'Failed: ' + err.message;
+    msg.style.color = '#c0392b';
+  }
+}
+
+// ── Email customer (opens compose in contacts) ──
+function emailCustomer() {
+  if (!currentOrder) return;
+  const o = currentOrder;
+  window.location.href = `contacts.html?compose=1&name=${encodeURIComponent([o.first_name, o.last_name].filter(Boolean).join(' '))}&email=${encodeURIComponent(o.email || '')}`;
+}
+
+// ── Export CSV ──
+function exportCSV() {
+  const cols = ['id','item_title','variant','price','payment_method','order_type','status','first_name','last_name','email','created_at'];
+  const header = cols.join(',');
+  const rows = allOrders.map(o =>
+    cols.map(c => JSON.stringify(o[c] ?? '')).join(',')
+  );
+  const csv  = [header, ...rows].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = `orders-${new Date().toISOString().slice(0,10)}.csv`;
+  a.click(); URL.revokeObjectURL(url);
+}
+
+// ── Init ──
+loadOrders();
+</script>
+</body>
+</html>

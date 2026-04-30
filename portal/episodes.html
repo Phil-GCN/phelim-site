@@ -41,6 +41,10 @@
       
     </div>
     <div class="sidebar-section">
+      <div class="sidebar-label">Commerce</div>
+      <a class="sidebar-link" href="orders.html"><span class="sidebar-icon">◫</span> Orders <span class="sidebar-badge" id="pending-badge"></span></a>
+    </div>
+    <div class="sidebar-section">
       <div class="sidebar-label">Newsletter</div>
       <a class="sidebar-link" href="newsletter.html"><span class="sidebar-icon">◉</span> Newsletter</a>
     </div>
@@ -276,6 +280,20 @@ async function saveEpisode() {
 }
 
 initEpisodes();
+</script>
+
+<script>
+// Populate Orders pending badge in sidebar
+(async () => {
+  try {
+    const res = await fetch("/api/db?table=orders");
+    if (!res.ok) return;
+    const orders = await res.json();
+    const n = (orders || []).filter(o => o.status === "pending").length;
+    const b = document.getElementById("pending-badge");
+    if (b && n) b.textContent = n;
+  } catch {}
+})();
 </script>
 </body>
 </html>

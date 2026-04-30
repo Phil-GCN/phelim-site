@@ -101,75 +101,9 @@
     <div class="container">
       <div class="eyebrow" style="margin-bottom:12px;">Books</div>
       <h2 style="margin-bottom:28px;">Ideas worth owning</h2>
-      <!-- Per-book tabs -->
-      <div class="book-tabs-nav">
-        <button class="book-tab-btn active" id="bt-btl" onclick="switchBookTab('btl',this)">Built to Last</button>
-        <button class="book-tab-btn" id="bt-bs" onclick="switchBookTab('bs',this)">Beyond Survival</button>
-        <button class="book-tab-btn" id="bt-more" onclick="switchBookTab('more',this)" style="opacity:.5;">More coming</button>
-      </div>
-      <!-- Built to Last -->
-      <div id="book-btl" class="book-tab-panel active">
-        <div class="book-cover-wrap">
-          <div class="book-cover" id="book-live-btl-cover">
-            <div class="book-cover-badge" id="book-live-btl-badge">Pre-order</div>
-            <div class="book-cover-title" id="book-live-btl-cover-title">Built to Last</div>
-            <div class="book-cover-author">Phelim Ekwebe</div>
-            <div class="book-cover-series">Book 2</div>
-          </div>
-        </div>
-        <div class="book-info-panel">
-          <div class="book-tag" id="book-live-btl-tag">Coming Soon · Pre-order open</div>
-          <div class="book-main-title" id="book-live-btl-title">Built to Last</div>
-          <div class="book-subtitle" id="book-live-btl-subtitle">The Modern Guide to Wealth, Freedom, and Legacy</div>
-          <p class="book-desc" id="book-live-btl-desc">Not motivation. Not quick wins. A clear-eyed, personal exploration of the structures behind lives that hold — in meaning, wealth, freedom, and what remains long after the achievements fade. Honest, direct, story-heavy. Written for those who are done surviving and ready to build.</p>
-          <div class="book-meta-row">
-            <div class="book-meta"><strong>Author</strong> <span id="book-live-btl-author">Phelim Ekwebe</span></div>
-            <div class="book-meta"><strong>Est. publication</strong> <span id="book-live-btl-pubdate">February 2027</span></div>
-            <div class="book-meta"><strong>Format</strong> <span id="book-live-btl-format">Hardcover · eBook · Audiobook</span></div>
-            <div class="book-meta" id="book-live-btl-audience-row" style="display:none;"><strong>Audience</strong> <span id="book-live-btl-audience"></span></div>
-          </div>
-          <div style="font-size:.78rem;color:var(--ink30);margin-bottom:14px;">Countdown to launch</div>
-          <div class="countdown-row">
-            <div class="countdown-unit"><div class="countdown-num" id="cd-days">--</div><div class="countdown-lbl">Days</div></div>
-            <div class="countdown-unit"><div class="countdown-num" id="cd-hours">--</div><div class="countdown-lbl">Hours</div></div>
-            <div class="countdown-unit"><div class="countdown-num" id="cd-mins">--</div><div class="countdown-lbl">Mins</div></div>
-            <div class="countdown-unit"><div class="countdown-num" id="cd-secs">--</div><div class="countdown-lbl">Secs</div></div>
-          </div>
-          <div class="book-ctas">
-            <button class="btn btn-dark" id="book-live-btl-cta" onclick="openCheckout('btl')">Pre-order Now</button>
-            <button class="btn btn-outline" onclick="openModal('waitlist','btl','Built to Last')">Get launch notification</button>
-          </div>
-        </div>
-      </div>
-      <!-- Beyond Survival -->
-      <div id="book-bs" class="book-tab-panel">
-        <div class="book-cover-wrap">
-          <div class="book-cover" id="book-live-bs-cover" style="background:#1a2d24;">
-            <div class="book-cover-badge" id="book-live-bs-badge" style="background:var(--ink);">Coming soon</div>
-            <div class="book-cover-title" id="book-live-bs-cover-title">Beyond Survival</div>
-            <div class="book-cover-author">Phelim Ekwebe</div>
-            <div class="book-cover-series">Book 1</div>
-          </div>
-        </div>
-        <div class="book-info-panel">
-          <div class="book-tag" id="book-live-bs-tag">Coming Soon · Book 1</div>
-          <div class="book-main-title" id="book-live-bs-title">Beyond Survival</div>
-          <div class="book-subtitle" id="book-live-bs-subtitle">The Immigrant's Guide to Generational Wealth</div>
-          <p class="book-desc" id="book-live-bs-desc">For the first-generation immigrant who arrived with drive, built a life, and now asks — what's next? This book is rooted in lived experience: the decisions that separate survival from legacy, the financial behaviours that compound across generations, and the identity shifts that make it all possible. Written for African diaspora builders, and for anyone who has navigated building a life across borders.</p>
-          <div style="background:var(--forest-faint);border:1px solid rgba(38,61,51,.15);padding:15px 18px;margin-bottom:16px;"><p id="book-live-bs-hook" style="font-size:.83rem;color:var(--ink60);margin:0;line-height:1.7;">This book is personal. It comes from watching — and living — the journey of first-generation Africans and immigrants who arrive with everything and often leave wealth-building to chance. <em>Beyond Survival</em> is the guide I wished existed.</p></div>
-          <div class="book-meta-row">
-            <div class="book-meta"><strong>Author</strong> <span id="book-live-bs-author">Phelim Ekwebe</span></div>
-            <div class="book-meta"><strong>Est. publication</strong> <span id="book-live-bs-pubdate">January 2027</span></div>
-            <div class="book-meta"><strong>Audience</strong> <span id="book-live-bs-audience">African diaspora &amp; first-gen immigrants</span></div>
-            <div class="book-meta"><strong>Format</strong> <span id="book-live-bs-format">Hardcover · eBook · Audiobook</span></div>
-          </div>
-          <div class="book-ctas">
-            <button class="btn btn-dark" id="book-live-bs-cta" onclick="openCheckout('bs')">Pre-order Now</button>
-            <button class="btn btn-outline" onclick="openModal('waitlist','bs','Beyond Survival')">Get launch notification</button>
-          </div>
-        </div>
-      </div>
-      <!-- Dynamic books (added via portal) — injected by loadLiveBooks() -->
+      <!-- All books and tab buttons rendered dynamically from DB by loadLiveBooks() in data.js -->
+      <div class="book-tabs-nav" id="book-tabs-nav"></div>
+      <!-- Dynamic book panels injected here -->
       <div id="dynamic-book-panels"></div>
       <!-- Empty state shown when no books exist at all -->
       <div id="eng-books-empty-state" style="display:none;padding:36px 28px;background:var(--paper-mid);border:1px solid var(--ink12);text-align:center;margin-bottom:24px;">
