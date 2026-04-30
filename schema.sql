@@ -1,17 +1,19 @@
 -- phelim.me — Supabase schema
 -- Run this in the Supabase SQL editor to create all tables from scratch.
 -- Safe to re-run: all statements use CREATE TABLE IF NOT EXISTS.
+-- Last updated: 2026-04-30
 
 -- ─────────────────────────────────────────────
 -- Articles
 -- ─────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS articles (
-  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  id          text PRIMARY KEY DEFAULT ('art-' || substring(gen_random_uuid()::text, 1, 8)),
   title       text NOT NULL,
   slug        text UNIQUE,
   body        text,
   excerpt     text,
-  category    text,
+  tag         text,
+  meta        text,
   status      text NOT NULL DEFAULT 'draft',   -- 'draft' | 'published'
   created_at  timestamptz NOT NULL DEFAULT now(),
   updated_at  timestamptz NOT NULL DEFAULT now()
@@ -21,7 +23,7 @@ CREATE TABLE IF NOT EXISTS articles (
 -- Episodes
 -- ─────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS episodes (
-  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  id          text PRIMARY KEY DEFAULT ('ep-' || substring(gen_random_uuid()::text, 1, 8)),
   n           integer,                          -- episode number
   title       text NOT NULL,
   description text,
@@ -37,18 +39,22 @@ CREATE TABLE IF NOT EXISTS episodes (
 -- Books
 -- ─────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS books (
-  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  key         text UNIQUE NOT NULL,             -- short key e.g. 'btl', 'bs'
-  title       text NOT NULL,
-  subtitle    text,
-  description text,
-  cover_bg    text,
-  cover_text_color text,
-  label       text,                             -- e.g. 'Pre-order · Feb 2027'
-  cta_text    text,                             -- button label
-  status      text NOT NULL DEFAULT 'draft',
-  created_at  timestamptz NOT NULL DEFAULT now(),
-  updated_at  timestamptz NOT NULL DEFAULT now()
+  id                text PRIMARY KEY,           -- short key e.g. 'btl', 'bs'
+  title             text NOT NULL,
+  subtitle          text,
+  description       text,
+  cover_color       text,                       -- CSS color for book cover
+  format_options    text,                       -- e.g. 'Hardcover · Paperback · eBook'
+  price             text,                       -- default/display price
+  price_hardcover   text,
+  price_paperback   text,
+  price_ebook       text,
+  price_audiobook   text,
+  mode              text NOT NULL DEFAULT 'preorder', -- 'preorder' | 'live'
+  stock_status      text NOT NULL DEFAULT 'preorder', -- 'preorder' | 'available' | 'sold_out'
+  status            text NOT NULL DEFAULT 'draft',    -- 'draft' | 'published'
+  created_at        timestamptz NOT NULL DEFAULT now(),
+  updated_at        timestamptz NOT NULL DEFAULT now()
 );
 
 -- ─────────────────────────────────────────────
@@ -64,7 +70,7 @@ CREATE TABLE IF NOT EXISTS site_content (
 -- Email templates
 -- ─────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS email_templates (
-  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  id          text PRIMARY KEY,
   name        text UNIQUE NOT NULL,
   subject     text NOT NULL,
   body        text NOT NULL,
@@ -72,25 +78,27 @@ CREATE TABLE IF NOT EXISTS email_templates (
 );
 
 -- ─────────────────────────────────────────────
--- Submissions (contact forms)
+-- Submissions (contact forms + waitlist)
 -- ─────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS submissions (
-  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  form_type   text NOT NULL,                    -- 'speaking' | 'podcast' | 'writing' | 'partnership' | 'general'
+  id          text PRIMARY KEY,                 -- e.g. 'sub-1234567890-ab12'
   name        text,
   email       text,
-  data        jsonb,                            -- all form fields
-  status      text NOT NULL DEFAULT 'unread',   -- 'unread' | 'read' | 'replied'
+  type        text NOT NULL DEFAULT 'general',  -- 'speaking' | 'podcast' | 'writing' | 'partnership' | 'waitlist' | 'general'
+  fields      jsonb,                            -- all form fields as key-value pairs
+  status      text NOT NULL DEFAULT 'new',      -- 'new' | 'read' | 'replied'
+  starred     boolean NOT NULL DEFAULT false,
   created_at  timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS submissions_email_idx      ON submissions (email);
+CREATE INDEX IF NOT EXISTS submissions_type_idx       ON submissions (type);
 CREATE INDEX IF NOT EXISTS submissions_created_at_idx ON submissions (created_at DESC);
 
 -- ─────────────────────────────────────────────
 -- Newsletter subscribers
 -- ─────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS newsletter_subscribers (
-  id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  id              text PRIMARY KEY DEFAULT ('ns-' || substring(gen_random_uuid()::text, 1, 8)),
   name            text,
   email           text UNIQUE NOT NULL,
   active          boolean NOT NULL DEFAULT true,
@@ -102,64 +110,43 @@ CREATE INDEX IF NOT EXISTS newsletter_email_idx ON newsletter_subscribers (email
 -- Newsletter send history
 -- ─────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS newsletter_sends (
-  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  subject     text NOT NULL,
-  body        text,
+  id              text PRIMARY KEY DEFAULT ('nls-' || substring(gen_random_uuid()::text, 1, 8)),
+  subject         text NOT NULL,
+  body            text,
   recipient_count integer NOT NULL DEFAULT 0,
-  sent_at     timestamptz NOT NULL DEFAULT now()
-);
-
--- ─────────────────────────────────────────────
--- Book orders
--- ─────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS book_orders (
-  id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  book_key        text NOT NULL,
-  book_title      text,
-  format          text,
-  price           numeric(6,2),
-  payment_method  text,
-  order_type      text NOT NULL DEFAULT 'preorder',
-  name            text,
-  email           text,
-  status          text NOT NULL DEFAULT 'pending',  -- 'pending' | 'confirmed' | 'fulfilled'
-  created_at      timestamptz NOT NULL DEFAULT now()
-);
-CREATE INDEX IF NOT EXISTS book_orders_email_idx ON book_orders (email);
-
--- ─────────────────────────────────────────────
--- Message threads (portal inbox grouping)
--- ─────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS message_threads (
-  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  subject     text,
-  from_name   text,
-  from_email  text,
-  form_type   text,
-  status      text NOT NULL DEFAULT 'unread',
-  created_at  timestamptz NOT NULL DEFAULT now(),
-  updated_at  timestamptz NOT NULL DEFAULT now()
+  sent_at         timestamptz NOT NULL DEFAULT now()
 );
 
 -- ─────────────────────────────────────────────
 -- Sent messages (portal outbox / replies)
 -- ─────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS sent_messages (
-  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  thread_id   text,  -- matches message_threads.id type (text)
-  to_email    text NOT NULL,
-  to_name     text,
-  subject     text NOT NULL,
-  body        text,
-  sent_at     timestamptz NOT NULL DEFAULT now(),
-  created_at  timestamptz NOT NULL DEFAULT now()
+  id              text PRIMARY KEY,             -- e.g. 's-1234567890'
+  to_name         text,
+  to_email        text NOT NULL,
+  subject         text NOT NULL,
+  body            text,
+  type            text,                         -- 'Reply' | 'Outbound'
+  submission_id   text,                         -- FK to submissions.id (soft reference)
+  created_at      timestamptz NOT NULL DEFAULT now()
 );
-CREATE INDEX IF NOT EXISTS sent_messages_thread_idx  ON sent_messages (thread_id);
-CREATE INDEX IF NOT EXISTS sent_messages_created_idx ON sent_messages (created_at DESC);
+CREATE INDEX IF NOT EXISTS sent_messages_submission_idx ON sent_messages (submission_id);
+CREATE INDEX IF NOT EXISTS sent_messages_created_idx    ON sent_messages (created_at DESC);
 
 -- ─────────────────────────────────────────────
--- Orders (generic — replaces book_orders for the new checkout flow)
--- Covers any sellable item: books, toolkits, courses, etc.
+-- Message threads (reply chains per submission)
+-- ─────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS message_threads (
+  id              text PRIMARY KEY,             -- e.g. 't-1234567890'
+  submission_id   text NOT NULL,               -- FK to submissions.id (soft reference)
+  subject         text,
+  body            text,
+  created_at      timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS message_threads_submission_idx ON message_threads (submission_id);
+
+-- ─────────────────────────────────────────────
+-- Orders (checkout — books, toolkits, courses)
 -- ─────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS orders (
   id                  text PRIMARY KEY,              -- e.g. ORD-1234567890-AB12
@@ -183,19 +170,23 @@ CREATE INDEX IF NOT EXISTS orders_created_at_idx ON orders (created_at DESC);
 
 -- ─────────────────────────────────────────────
 -- Row-level security (RLS)
--- Enable RLS on all tables; the Netlify functions use the service role key
--- which bypasses RLS, so no policies are required for portal access.
--- Public-facing reads should go through the Netlify function proxy, not direct.
+-- Portal functions use the service role key (bypasses RLS).
+-- Public reads for books/articles/episodes go through /api/db (server-side).
 -- ─────────────────────────────────────────────
-ALTER TABLE articles              ENABLE ROW LEVEL SECURITY;
-ALTER TABLE episodes              ENABLE ROW LEVEL SECURITY;
-ALTER TABLE books                 ENABLE ROW LEVEL SECURITY;
-ALTER TABLE site_content          ENABLE ROW LEVEL SECURITY;
-ALTER TABLE email_templates       ENABLE ROW LEVEL SECURITY;
-ALTER TABLE submissions           ENABLE ROW LEVEL SECURITY;
+ALTER TABLE articles               ENABLE ROW LEVEL SECURITY;
+ALTER TABLE episodes               ENABLE ROW LEVEL SECURITY;
+ALTER TABLE books                  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE site_content           ENABLE ROW LEVEL SECURITY;
+ALTER TABLE email_templates        ENABLE ROW LEVEL SECURITY;
+ALTER TABLE submissions            ENABLE ROW LEVEL SECURITY;
 ALTER TABLE newsletter_subscribers ENABLE ROW LEVEL SECURITY;
-ALTER TABLE newsletter_sends      ENABLE ROW LEVEL SECURITY;
-ALTER TABLE book_orders           ENABLE ROW LEVEL SECURITY;
-ALTER TABLE orders                ENABLE ROW LEVEL SECURITY;
-ALTER TABLE message_threads       ENABLE ROW LEVEL SECURITY;
-ALTER TABLE sent_messages         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE newsletter_sends       ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sent_messages          ENABLE ROW LEVEL SECURITY;
+ALTER TABLE message_threads        ENABLE ROW LEVEL SECURITY;
+ALTER TABLE orders                 ENABLE ROW LEVEL SECURITY;
+
+-- Public SELECT policy for books (so the public site can read via /api/db)
+CREATE POLICY "public read books" ON books FOR SELECT USING (true);
+-- Public SELECT policy for articles and episodes (published only)
+CREATE POLICY "public read articles" ON articles FOR SELECT USING (status = 'published');
+CREATE POLICY "public read episodes" ON episodes FOR SELECT USING (status = 'published');
