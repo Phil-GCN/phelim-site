@@ -3,8 +3,10 @@
 // ─── MODAL DOM INJECTION ───
 // Both modal overlays are created here so they don't need to be duplicated
 // across every page's HTML. The script runs at bottom-of-body, so document.body exists.
+var _modalsInjected = window._phelimModalsInjected;
+window._phelimModalsInjected = true;
 (function injectModals() {
-  if (document.getElementById('checkout-modal')) return; // already injected
+  if (_modalsInjected) return; // already injected by this script
   const frag = document.createDocumentFragment();
 
   // ── General modal ──
