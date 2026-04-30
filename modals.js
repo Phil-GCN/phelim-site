@@ -4,8 +4,7 @@
 // Both modal overlays are created here so they don't need to be duplicated
 // across every page's HTML. The script runs at bottom-of-body, so document.body exists.
 (function injectModals() {
-  console.log('[modals] injectModals() running — existing #modal:', !!document.getElementById('modal'), 'body:', !!document.body);
-  if (document.getElementById('modal')) { console.warn('[modals] early return — #modal already exists'); return; }
+  if (document.getElementById('checkout-modal')) return; // already injected
   const frag = document.createDocumentFragment();
 
   // ── General modal ──
@@ -95,7 +94,6 @@
   frag.appendChild(c);
 
   document.body.appendChild(frag);
-  console.log('[modals] injected — #stripe-card-element:', !!document.getElementById('stripe-card-element'), '#checkout-modal:', !!document.getElementById('checkout-modal'));
 
   // Escape key closes whichever modal is open
   document.addEventListener('keydown', function(e) {
@@ -341,19 +339,15 @@ function openCheckout(id) {
   document.body.style.overflow = 'hidden';
 
   // Mount a fresh Stripe card element each time the modal opens
-  console.log('[modals] calling _initStripe — #stripe-card-element in DOM:', !!document.getElementById('stripe-card-element'));
   _initStripe();
 }
 
 async function _initStripe() {
   // _stripe instance is cached; card element is recreated fresh each modal open
   try {
-    console.log('[Stripe] _initStripe start — window.Stripe:', typeof window.Stripe, '_stripe:', !!_stripe, '_stripeCard:', !!_stripeCard);
-
     // Load Stripe.js — always ensure window.Stripe is available before proceeding
     if (!window.Stripe) {
       await new Promise((resolve, reject) => {
-        // Remove any previous failed script tag before retrying
         document.querySelectorAll('script[src*="js.stripe.com"]').forEach(s => s.remove());
         const s = document.createElement('script');
         s.src = 'https://js.stripe.com/v3/';
@@ -362,7 +356,6 @@ async function _initStripe() {
         document.head.appendChild(s);
       });
     }
-    console.log('[Stripe] Stripe.js loaded — window.Stripe:', typeof window.Stripe);
 
     // Create the Stripe instance once; reuse on subsequent opens
     if (!_stripe) {
@@ -371,18 +364,15 @@ async function _initStripe() {
       const { publishableKey } = await cfgRes.json();
       if (!publishableKey) throw new Error('No publishable key returned');
       _stripe = window.Stripe(publishableKey);
-      console.log('[Stripe] _stripe instance created');
     }
 
     // #stripe-card-element must exist in DOM
     const mountTarget = document.getElementById('stripe-card-element');
-    console.log('[Stripe] mountTarget:', mountTarget);
     if (!mountTarget) throw new Error('Card mount target missing from DOM');
 
     // Reuse the elements instance; create the card element only once
     if (!_stripeElements) {
       _stripeElements = _stripe.elements();
-      console.log('[Stripe] _stripeElements created');
     }
     if (!_stripeCard) {
       _stripeCard = _stripeElements.create('card', {
@@ -397,17 +387,13 @@ async function _initStripe() {
         },
       });
       _stripeCard.mount(mountTarget);
-      console.log('[Stripe] card mounted — _stripeCard:', !!_stripeCard);
       _stripeCard.on('change', ev => {
         const errEl = document.getElementById('stripe-card-error');
         if (errEl) errEl.textContent = ev.error ? ev.error.message : '';
       });
-    } else {
-      console.log('[Stripe] reusing existing _stripeCard');
     }
-    console.log('[Stripe] _initStripe complete — _stripeCard:', !!_stripeCard);
   } catch(err) {
-    console.warn('[Stripe] init failed:', err.message, err);
+    console.warn('Stripe init failed:', err.message);
     // Only null out if card was never successfully created (preserve if it exists)
     if (!_stripeCard) {
       _stripeElements = null;
@@ -480,7 +466,6 @@ async function handleCheckout(e) {
   try {
     if (payMethod === 'card') {
       // ── Card payment ──────────────────────────────────────────────────────
-      console.log('[Checkout] payMethod=card — _stripe:', !!_stripe, '_stripeCard:', !!_stripeCard);
       if (!_stripe || !_stripeCard) {
         throw new Error('Payment system not ready — please use bank transfer or try again shortly.');
       }
