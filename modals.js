@@ -503,9 +503,14 @@ async function handleCheckout(e) {
   } catch(err) {
     console.error('Checkout error:', err.message);
     btn.textContent = origTxt; btn.disabled = false;
-    // Graceful fallback — never leave the user without acknowledgement
-    alert(`Thank you, ${firstName}. Your order request has been received.\n\nWe'll send a confirmation to ${email}. If you don't receive it within 24 hours, please contact us and mention: ${itemTitle}.`);
-    closeCheckout();
+    // Show error in form — do not pretend success
+    const errEl = document.getElementById('stripe-card-error');
+    if (errEl) {
+      errEl.textContent = err.message || 'Something went wrong. Please try again or contact us.';
+      errEl.style.display = 'block';
+    } else {
+      alert(err.message || 'Something went wrong. Please try again or contact us directly.');
+    }
   }
 }
 

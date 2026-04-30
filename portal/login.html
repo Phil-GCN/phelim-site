@@ -62,7 +62,7 @@
   // If already authenticated with a valid token, go straight to dashboard
   (function() {
     const token = sessionStorage.getItem('portal-token');
-    if (token && isTokenValid(token)) window.location.href = 'index.html';
+    if (token && isTokenValid(token)) window.location.href = '/portal/index.html';
   })();
 
   function isTokenValid(token) {
@@ -98,7 +98,7 @@
       const data = await res.json();
       if (res.ok && data.token) {
         sessionStorage.setItem('portal-token', data.token);
-        window.location.href = 'index.html';
+        window.location.href = '/portal/index.html';
       } else {
         err.textContent = data.error || 'Incorrect password. Please try again.';
         err.style.display = 'block';

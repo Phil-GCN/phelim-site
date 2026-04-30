@@ -1,15 +1,27 @@
 /* phelim.me — Portal JavaScript */
 
 // ── AUTH GUARD ──
+function _isPortalTokenValid(token) {
+  if (!token) return false;
+  try {
+    const payload = token.split('.')[0];
+    const b64  = payload.replace(/-/g, '+').replace(/_/g, '/');
+    const data = JSON.parse(atob(b64));
+    return data.exp && (Date.now() / 1000) < data.exp;
+  } catch { return false; }
+}
+
 function requireAuth() {
-  if (!sessionStorage.getItem('portal-auth')) {
-    window.location.href = 'login.html';
+  const token = sessionStorage.getItem('portal-token');
+  if (!_isPortalTokenValid(token)) {
+    sessionStorage.removeItem('portal-token');
+    window.location.href = '/portal/login.html';
   }
 }
 
 function logout() {
-  sessionStorage.removeItem('portal-auth');
-  window.location.href = 'login.html';
+  sessionStorage.removeItem('portal-token');
+  window.location.href = '/portal/login.html';
 }
 
 // ── MOBILE SIDEBAR TOGGLE ──
