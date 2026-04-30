@@ -116,12 +116,25 @@ async function loadLiveBooks() {
 
     // Update window.BOOKS_DATA for checkout modal
     if (!window.BOOKS_DATA) window.BOOKS_DATA = {};
+    // Build variants from per-format prices; fall back to single price for all formats
+    const _formats  = (b.format_options || 'Hardcover').split('·').map(f => f.trim()).filter(Boolean);
+    const _priceMap = { Hardcover: b.price_hardcover, Paperback: b.price_paperback, eBook: b.price_ebook, Audiobook: b.price_audiobook };
+    const _variants = {};
+    _formats.forEach(f => { _variants[f] = _priceMap[f] || b.price || '0'; });
+
     if (!window.BOOKS_DATA[id]) {
-      window.BOOKS_DATA[id] = { title: b.title, subtitle: b.subtitle || '', price: b.price || '0', color: 'var(--forest)', mode: b.mode };
+      window.BOOKS_DATA[id] = {
+        title: b.title, subtitle: b.subtitle || '', type: 'book',
+        price: b.price || '0', variants: _variants,
+        color: b.cover_color || 'var(--forest)', mode: b.mode,
+        stockStatus,
+      };
     } else {
       if (b.title)    window.BOOKS_DATA[id].title    = b.title;
       if (b.subtitle) window.BOOKS_DATA[id].subtitle = b.subtitle;
       if (b.price)    window.BOOKS_DATA[id].price    = b.price;
+      window.BOOKS_DATA[id].variants    = _variants;
+      window.BOOKS_DATA[id].color       = b.cover_color || window.BOOKS_DATA[id].color || 'var(--forest)';
       window.BOOKS_DATA[id].mode        = b.mode;
       window.BOOKS_DATA[id].stockStatus = stockStatus;
     }

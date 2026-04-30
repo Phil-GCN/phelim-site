@@ -1,25 +1,42 @@
 // Vercel Serverless Function: create-payment-intent
-// Creates a Stripe PaymentIntent for any item in the server-side CATALOG.
-// Price is validated server-side — the client never controls the charge amount.
+// Creates a Stripe PaymentIntent. Price is validated server-side.
+// For known books (btl, bs) uses hardcoded catalog as fallback.
+// For any other book ID, fetches from Supabase books table.
 //
 // POST /api/create-payment-intent
 // Body: { itemId, variant }
 // Returns: { clientSecret, amount, currency }
-// Requires env var: STRIPE_SECRET_KEY
 
 const CATALOG = {
-  btl: {
-    title: 'Built to Last',
-    type:  'book',
-    variants: { Hardcover: '24.99', Paperback: '14.99', eBook: '9.99' },
-  },
-  bs: {
-    title: 'Beyond Survival',
-    type:  'book',
-    variants: { Hardcover: '22.99', Paperback: '12.99', eBook: '8.99' },
-  },
-  // Add new sellable items here alongside create-order.js and window.CHECKOUT_CATALOG in modals.js
+  btl: { title: 'Built to Last',   type: 'book', variants: { Hardcover: '24.99', Paperback: '14.99', eBook: '9.99' } },
+  bs:  { title: 'Beyond Survival', type: 'book', variants: { Hardcover: '22.99', Paperback: '12.99', eBook: '8.99' } },
 };
+
+async function getItemFromDB(itemId) {
+  const SUP_URL = process.env.SUPABASE_URL;
+  const SUP_KEY = process.env.SUPABASE_SERVICE_KEY;
+  if (!SUP_URL || !SUP_KEY) return null;
+  try {
+    const r = await fetch(
+      `${SUP_URL}/rest/v1/books?id=eq.${encodeURIComponent(itemId)}&select=*&limit=1`,
+      { headers: { apikey: SUP_KEY, Authorization: `Bearer ${SUP_KEY}` } }
+    );
+    const rows = await r.json();
+    if (!r.ok || !rows.length) return null;
+    return buildItemFromRow(rows[0]);
+  } catch { return null; }
+}
+
+function buildItemFromRow(b) {
+  const formats = (b.format_options || 'Hardcover').split('·').map(f => f.trim()).filter(Boolean);
+  const priceMap = {
+    Hardcover: b.price_hardcover, Paperback: b.price_paperback,
+    eBook:     b.price_ebook,     Audiobook: b.price_audiobook,
+  };
+  const variants = {};
+  formats.forEach(f => { variants[f] = priceMap[f] || b.price || '0'; });
+  return { title: b.title, type: 'book', variants };
+}
 
 module.exports = async function(req, res) {
   if (req.method === 'OPTIONS') {
@@ -37,8 +54,11 @@ module.exports = async function(req, res) {
   const itemId  = String(body.itemId  || '').trim();
   const variant = String(body.variant || '').trim();
 
-  const item = CATALOG[itemId];
-  if (!item) { respond(res, 400, { error: `Unknown item: "${itemId}"` }); return; }
+  let item = CATALOG[itemId];
+  if (!item) {
+    item = await getItemFromDB(itemId);
+    if (!item) { respond(res, 400, { error: `Unknown item: "${itemId}"` }); return; }
+  }
 
   const priceStr = item.variants[variant];
   if (!priceStr) { respond(res, 400, { error: `Unknown variant "${variant}" for "${item.title}"` }); return; }

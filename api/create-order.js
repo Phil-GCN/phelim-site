@@ -12,6 +12,24 @@ const CATALOG = {
   bs:  { title: 'Beyond Survival', type: 'book', variants: { Hardcover: '22.99', Paperback: '12.99', eBook: '8.99' } },
 };
 
+async function getItemFromDB(itemId, supUrl, supKey) {
+  if (!supUrl || !supKey) return null;
+  try {
+    const r = await fetch(
+      `${supUrl}/rest/v1/books?id=eq.${encodeURIComponent(itemId)}&select=*&limit=1`,
+      { headers: { apikey: supKey, Authorization: `Bearer ${supKey}` } }
+    );
+    const rows = await r.json();
+    if (!r.ok || !rows.length) return null;
+    const b = rows[0];
+    const formats = (b.format_options || 'Hardcover').split('·').map(f => f.trim()).filter(Boolean);
+    const priceMap = { Hardcover: b.price_hardcover, Paperback: b.price_paperback, eBook: b.price_ebook, Audiobook: b.price_audiobook };
+    const variants = {};
+    formats.forEach(f => { variants[f] = priceMap[f] || b.price || '0'; });
+    return { title: b.title, type: 'book', variants };
+  } catch { return null; }
+}
+
 const SENDER = process.env.SENDER_EMAIL || 'hello@phelim.me';
 
 async function verifyPaymentIntent(paymentIntentId, stripeKey) {
@@ -184,8 +202,11 @@ module.exports = async function(req, res) {
   if (!['card','bank'].includes(paymentMethod))    { respond(res, 400, { error: 'Invalid paymentMethod' }); return; }
   if (!['preorder','purchase'].includes(orderType)){ respond(res, 400, { error: 'Invalid orderType' }); return; }
 
-  const catalogItem = CATALOG[itemId];
-  if (!catalogItem) { respond(res, 400, { error: `Item "${itemId}" is not in the catalog` }); return; }
+  let catalogItem = CATALOG[itemId];
+  if (!catalogItem) {
+    catalogItem = await getItemFromDB(itemId, SUP_URL, SUP_KEY);
+    if (!catalogItem) { respond(res, 400, { error: `Item "${itemId}" is not in the catalog` }); return; }
+  }
   if (!catalogItem.variants[variant]) { respond(res, 400, { error: `Unknown variant "${variant}" for this item` }); return; }
 
   let finalPrice  = catalogItem.variants[variant];

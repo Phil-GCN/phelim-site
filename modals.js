@@ -293,7 +293,8 @@ function openCheckout(id) {
   // Populate variant select dynamically from catalog entry
   const sel = document.getElementById('co-format');
   if (sel) {
-    sel.innerHTML = Object.entries(item.variants)
+    const variants = item.variants || { Standard: item.price || '0' };
+    sel.innerHTML = Object.entries(variants)
       .map(([name, price]) => `<option value="${name}">${name} — € ${price}</option>`)
       .join('');
     sel.selectedIndex = 0;
@@ -524,14 +525,12 @@ async function handleCheckout(e) {
   } catch(err) {
     console.error('Checkout error:', err.message);
     btn.textContent = origTxt; btn.disabled = false;
-    // Show error in form — do not pretend success
+    const msg = err.message || 'Something went wrong. Please try again or contact us.';
+    // Always show a visible toast so the error is never invisible
+    showToast(msg);
+    // Also update the card error field if present
     const errEl = document.getElementById('stripe-card-error');
-    if (errEl) {
-      errEl.textContent = err.message || 'Something went wrong. Please try again or contact us.';
-      errEl.style.display = 'block';
-    } else {
-      alert(err.message || 'Something went wrong. Please try again or contact us directly.');
-    }
+    if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; }
   }
 }
 

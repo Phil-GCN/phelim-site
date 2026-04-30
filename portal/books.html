@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex,nofollow">
   <title>Books — Portal</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500&display=swap" rel="stylesheet">
@@ -134,8 +135,9 @@ const DEFAULT_BOOKS = [
   {
     id: 'btl', title: 'Built to Last', subtitle: 'The Modern Guide to Wealth, Freedom, and Legacy',
     bookNum: 2, mode: 'preorder', stockStatus: 'preorder', pubDate: '2027-02-01',
-    price: '24.99', stripeHardcover: '', stripeEbook: '', stripeAudio: '',
-    author: 'Phelim Ekwebe', audience: '', formatOptions: 'Hardcover · eBook · Audiobook',
+    price: '24.99', priceHardcover: '24.99', pricePaperback: '14.99', priceEbook: '9.99', priceAudiobook: '',
+    coverColor: 'var(--forest)',
+    author: 'Phelim Ekwebe', audience: '', formatOptions: 'Hardcover · Paperback · eBook',
     description: 'A personal framework for designing lives of lasting impact — through structure, identity, and intentional design.',
     longDescription: 'Not motivation. Not quick wins. A clear-eyed, personal exploration of the structures behind lives that hold — in meaning, wealth, freedom, and what remains long after the achievements fade. Honest, direct, story-heavy. Written for those who are done surviving and ready to build.',
     hookText: '',
@@ -144,8 +146,9 @@ const DEFAULT_BOOKS = [
   {
     id: 'bs', title: 'Beyond Survival', subtitle: "The Immigrant's Guide to Generational Wealth",
     bookNum: 1, mode: 'preorder', stockStatus: 'preorder', pubDate: '2027-01-01',
-    price: '22.99', stripeHardcover: '', stripeEbook: '', stripeAudio: '',
-    author: 'Phelim Ekwebe', audience: 'African diaspora & first-gen immigrants', formatOptions: 'Hardcover · eBook · Audiobook',
+    price: '22.99', priceHardcover: '22.99', pricePaperback: '12.99', priceEbook: '8.99', priceAudiobook: '',
+    coverColor: '#1a2d24',
+    author: 'Phelim Ekwebe', audience: 'African diaspora & first-gen immigrants', formatOptions: 'Hardcover · Paperback · eBook',
     description: "The immigrant's guide to generational wealth. For those building a life and legacy across borders.",
     longDescription: 'For the first-generation immigrant who arrived with drive, built a life, and now asks — what\'s next? This book is rooted in lived experience: the decisions that separate survival from legacy, the financial behaviours that compound across generations, and the identity shifts that make it all possible. Written for African diaspora builders, and for anyone who has navigated building a life across borders.',
     hookText: 'This book is personal. It comes from watching — and living — the journey of first-generation Africans and immigrants who arrive with everything and often leave wealth-building to chance. Beyond Survival is the guide I wished existed.',
@@ -159,10 +162,12 @@ async function loadBooks() {
     if (rows && rows.length) return rows.map(r => ({
       id: r.id, title: r.title, subtitle: r.subtitle,
       bookNum: r.book_num, mode: r.mode, stockStatus: r.stock_status || 'preorder', pubDate: r.pub_date,
-      price: r.price, stripeHardcover: r.stripe_hardcover,
-      stripeEbook: r.stripe_ebook, stripeAudio: r.stripe_audio,
+      price: r.price,
+      priceHardcover: r.price_hardcover || '', pricePaperback: r.price_paperback || '',
+      priceEbook: r.price_ebook || '',         priceAudiobook: r.price_audiobook || '',
+      coverColor: r.cover_color || '',
       author: r.author || 'Phelim Ekwebe', audience: r.audience || '',
-      formatOptions: r.format_options || 'Hardcover · eBook · Audiobook',
+      formatOptions: r.format_options || 'Hardcover · eBook',
       description: r.description || '',
       longDescription: r.long_description || '',
       hookText: r.hook_text || '',
@@ -179,8 +184,10 @@ async function saveBooks(books) {
       await DB.saveBook({
         id: b.id, title: b.title, subtitle: b.subtitle,
         book_num: b.bookNum, mode: b.mode, stock_status: b.stockStatus || 'preorder', pub_date: b.pubDate,
-        price: b.price, stripe_hardcover: b.stripeHardcover,
-        stripe_ebook: b.stripeEbook, stripe_audio: b.stripeAudio,
+        price: b.price,
+        price_hardcover: b.priceHardcover || null, price_paperback: b.pricePaperback || null,
+        price_ebook: b.priceEbook || null,         price_audiobook: b.priceAudiobook || null,
+        cover_color: b.coverColor || null,
         author: b.author || 'Phelim Ekwebe', audience: b.audience || '',
         format_options: b.formatOptions || '',
         description: b.description || '',
@@ -346,20 +353,30 @@ function renderEditForm(b) {
       </div>
     </div>
 
-    <div class="section-divider">Stripe Payment Links</div>
-    <div class="form-group">
-      <label class="form-label">Hardcover</label>
-      <input class="form-input" type="url" id="stripe-hc-${b.id}" placeholder="https://buy.stripe.com/..." value="${b.stripeHardcover || ''}">
+    <div class="section-divider">Format Prices (€) <span style="font-size:.72rem;font-weight:400;color:var(--ink30);">Leave blank for formats not offered</span></div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Hardcover price</label>
+        <input class="form-input" type="number" step="0.01" id="price-hc-${b.id}" placeholder="e.g. 24.99" value="${b.priceHardcover || ''}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Paperback price</label>
+        <input class="form-input" type="number" step="0.01" id="price-pb-${b.id}" placeholder="e.g. 14.99" value="${b.pricePaperback || ''}">
+      </div>
     </div>
     <div class="form-row">
       <div class="form-group">
-        <label class="form-label">eBook</label>
-        <input class="form-input" type="url" id="stripe-eb-${b.id}" placeholder="https://buy.stripe.com/..." value="${b.stripeEbook || ''}">
+        <label class="form-label">eBook price</label>
+        <input class="form-input" type="number" step="0.01" id="price-eb-${b.id}" placeholder="e.g. 9.99" value="${b.priceEbook || ''}">
       </div>
       <div class="form-group">
-        <label class="form-label">Audiobook</label>
-        <input class="form-input" type="url" id="stripe-au-${b.id}" placeholder="https://buy.stripe.com/..." value="${b.stripeAudio || ''}">
+        <label class="form-label">Audiobook price</label>
+        <input class="form-input" type="number" step="0.01" id="price-au-${b.id}" placeholder="e.g. 14.99" value="${b.priceAudiobook || ''}">
       </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Cover colour <span style="font-size:.72rem;font-weight:400;color:var(--ink30);">(CSS colour or hex, used on cards and checkout)</span></label>
+      <input class="form-input" id="cover-color-${b.id}" placeholder="e.g. #1a2d24 or var(--forest)" value="${b.coverColor || ''}">
     </div>
 
     <div class="section-divider">Files</div>
@@ -448,11 +465,13 @@ function saveBook(id) {
   b.longDescription = document.getElementById('longdesc-' + id)?.value || '';
   b.hookText        = document.getElementById('hook-' + id)?.value || '';
   b.pubDate         = document.getElementById('pubdate-' + id)?.value || b.pubDate;
-  b.price           = document.getElementById('price-' + id)?.value || b.price;
-  b.stripeHardcover = document.getElementById('stripe-hc-' + id)?.value || '';
-  b.stripeEbook     = document.getElementById('stripe-eb-' + id)?.value || '';
-  b.stripeAudio     = document.getElementById('stripe-au-' + id)?.value || '';
-  b.stockStatus     = document.getElementById('stock-' + id)?.value || b.stockStatus;
+  b.price          = document.getElementById('price-' + id)?.value || b.price;
+  b.priceHardcover = document.getElementById('price-hc-' + id)?.value || '';
+  b.pricePaperback = document.getElementById('price-pb-' + id)?.value || '';
+  b.priceEbook     = document.getElementById('price-eb-' + id)?.value || '';
+  b.priceAudiobook = document.getElementById('price-au-' + id)?.value || '';
+  b.coverColor     = document.getElementById('cover-color-' + id)?.value || '';
+  b.stockStatus    = document.getElementById('stock-' + id)?.value || b.stockStatus;
   saveBooks(BOOKS).then(() => {
     renderList();
     // Re-render edit form to reflect saved state
@@ -482,8 +501,9 @@ function addBook() {
   BOOKS.push({
     id, title: 'New Book', subtitle: '', bookNum: BOOKS.length + 1,
     mode: 'preorder', stockStatus: 'preorder', pubDate: '', price: '',
-    stripeHardcover: '', stripeEbook: '', stripeAudio: '',
-    author: 'Phelim Ekwebe', audience: '', formatOptions: 'Hardcover · eBook · Audiobook',
+    priceHardcover: '', pricePaperback: '', priceEbook: '', priceAudiobook: '',
+    coverColor: '',
+    author: 'Phelim Ekwebe', audience: '', formatOptions: 'Hardcover · eBook',
     description: '', longDescription: '', hookText: '',
     coverData: null, coverName: null, pdfData: null, pdfName: null,
   });
