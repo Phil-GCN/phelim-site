@@ -1,5 +1,5 @@
 /* portal/db.js — universal data layer
- * Calls /.netlify/functions/db for all persistence.
+ * Calls /api/db for all persistence.
  * Falls back gracefully when the function returns an error (e.g. env vars not set).
  */
 
@@ -7,15 +7,15 @@ const DB = {
   // ── Generic fetch helpers ──
   async get(table, id) {
     const url = id
-      ? `/.netlify/functions/db?table=${table}&id=${encodeURIComponent(id)}`
-      : `/.netlify/functions/db?table=${table}`;
+      ? `/api/db?table=${table}&id=${encodeURIComponent(id)}`
+      : `/api/db?table=${table}`;
     const res = await fetch(url);
     if (!res.ok) throw new Error(`DB GET ${table} failed: ${res.status}`);
     return res.json();
   },
 
   async upsert(table, data) {
-    const res = await fetch('/.netlify/functions/db', {
+    const res = await fetch('/api/db', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ table, action: 'upsert', data }),
@@ -28,7 +28,7 @@ const DB = {
   },
 
   async patch(table, id, data) {
-    const res = await fetch('/.netlify/functions/db', {
+    const res = await fetch('/api/db', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ table, action: 'patch', id, data }),
@@ -38,7 +38,7 @@ const DB = {
   },
 
   async delete(table, id) {
-    const res = await fetch('/.netlify/functions/db', {
+    const res = await fetch('/api/db', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ table, action: 'delete', id }),
@@ -96,6 +96,8 @@ const DB = {
   // ── Newsletter subscribers ──
   async getNewsletterSubscribers() { return this.get('newsletter_subscribers'); },
   async unsubscribeNewsletter(id)  { return this.patch('newsletter_subscribers', id, { active: false }); },
+  async deleteSubscriber(id)       { return this.delete('newsletter_subscribers', id); },
+  async getNewsletterSends()       { return this.get('newsletter_sends'); },
 
   // ── Sent messages ──
   async getSent()              { return this.get('sent_messages'); },
@@ -104,7 +106,7 @@ const DB = {
 
   // ── Message threads (replies per submission) ──
   async getThread(submissionId) {
-    const url = `/.netlify/functions/db?table=message_threads&filter=submission_id:eq:${encodeURIComponent(submissionId)}`;
+    const url = `/api/db?table=message_threads&filter=submission_id:eq:${encodeURIComponent(submissionId)}`;
     const res = await fetch(url);
     if (!res.ok) return [];
     return res.json();

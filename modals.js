@@ -1,5 +1,108 @@
 /* phelim.me — modals, checkout, forms, countdown */
 
+// ─── MODAL DOM INJECTION ───
+// Both modal overlays are created here so they don't need to be duplicated
+// across every page's HTML. The script runs at bottom-of-body, so document.body exists.
+(function injectModals() {
+  if (document.getElementById('modal')) return; // already present (shouldn't happen)
+  const frag = document.createDocumentFragment();
+
+  // ── General modal ──
+  const m = document.createElement('div');
+  m.className = 'modal-overlay';
+  m.id = 'modal';
+  m.setAttribute('role', 'dialog');
+  m.setAttribute('aria-modal', 'true');
+  m.setAttribute('aria-labelledby', 'm-title');
+  m.onclick = closeModalOuter;
+  m.innerHTML = `
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal()" aria-label="Close dialog">×</button>
+    <div class="modal-eyebrow" id="m-eyebrow">Get in touch</div>
+    <div class="modal-title" id="m-title">Work With Phelim</div>
+    <div id="m-form-body"></div>
+  </div>`;
+  frag.appendChild(m);
+
+  // ── Checkout modal ──
+  const c = document.createElement('div');
+  c.className = 'modal-overlay';
+  c.id = 'checkout-modal';
+  c.setAttribute('role', 'dialog');
+  c.setAttribute('aria-modal', 'true');
+  c.setAttribute('aria-labelledby', 'co-title');
+  c.onclick = closeCheckoutOuter;
+  c.innerHTML = `
+  <div class="checkout-box">
+    <div class="checkout-head">
+      <button class="checkout-close" onclick="closeCheckout()" aria-label="Close checkout">×</button>
+      <div class="checkout-eyebrow-lbl" id="co-eyebrow">Pre-order</div>
+      <div class="checkout-title" id="co-title">Built to Last</div>
+      <div class="checkout-price" id="co-price">€ 24.99</div>
+    </div>
+    <div class="checkout-body">
+      <div class="checkout-item-row">
+        <div class="checkout-cover" id="co-cover" style="background:var(--forest);"><span id="co-cover-text">Built to Last</span></div>
+        <div class="checkout-item-info">
+          <div class="checkout-item-name" id="co-item-name">Built to Last</div>
+          <div class="checkout-item-type" id="co-item-type">Pre-order · Hardcover</div>
+        </div>
+        <div class="checkout-item-price" id="co-item-price">€ 24.99</div>
+      </div>
+      <div id="checkout-form-wrap">
+        <div class="checkout-note"><p id="co-note-text"><strong>Pre-order guarantee:</strong> You will be charged now and your item is delivered as soon as it is available. Cancel anytime before fulfilment for a full refund.</p></div>
+        <div class="checkout-divider">Your details</div>
+        <form class="form" id="checkout-form" onsubmit="handleCheckout(event)">
+          <div class="frow">
+            <div class="fg"><label class="flabel">First name</label><input class="finput" type="text" placeholder="First name" required></div>
+            <div class="fg"><label class="flabel">Last name</label><input class="finput" type="text" placeholder="Last name" required></div>
+          </div>
+          <div class="fg"><label class="flabel">Email</label><input class="finput" type="email" placeholder="your@email.com" required></div>
+          <div class="fg"><label class="flabel">Format / Edition</label>
+            <select class="fselect" id="co-format" onchange="updateCoPrice()"></select>
+          </div>
+          <div class="checkout-divider">Payment</div>
+          <div class="checkout-methods">
+            <div class="pay-method selected" data-type="card" onclick="selectPayMethod(this,'card')">
+              <div class="pay-method-icon">💳</div><div class="pay-method-label">Card</div>
+            </div>
+            <div class="pay-method" data-type="bank" onclick="selectPayMethod(this,'bank')">
+              <div class="pay-method-icon">🏦</div><div class="pay-method-label">Bank transfer</div>
+            </div>
+          </div>
+          <div id="card-fields">
+            <div id="stripe-card-element" style="padding:11px 14px;border:1px solid var(--ink12);background:#fff;border-radius:2px;min-height:42px;"></div>
+            <div id="stripe-card-error" style="color:#c0392b;font-size:.78rem;margin-top:5px;min-height:16px;"></div>
+          </div>
+          <div id="bank-fields" style="display:none;background:var(--forest-faint);border:1px solid rgba(38,61,51,.15);padding:15px 17px;margin-bottom:4px;">
+            <p style="font-size:.82rem;color:var(--ink60);margin-bottom:7px;">Bank transfer details will be sent to your email once you place the order.</p>
+            <p style="font-size:.78rem;color:var(--ink30);margin:0;font-style:italic;">Orders are held for 5 business days pending payment.</p>
+          </div>
+          <button type="submit" class="btn btn-dark" style="width:100%;justify-content:center;padding:13px;margin-top:14px;">Complete Pre-order</button>
+          <div class="stripe-badge">🔒 Payments processed securely via Stripe</div>
+        </form>
+      </div>
+      <div id="checkout-success" style="display:none;padding:36px 24px;text-align:center;">
+        <div style="font-size:2rem;margin-bottom:14px;color:var(--forest);">✓</div>
+        <div id="co-success-title" style="font-family:Georgia,serif;font-size:1.35rem;color:#263d33;margin-bottom:10px;"></div>
+        <div id="co-success-detail" style="font-size:.88rem;color:#555;line-height:1.7;margin-bottom:8px;"></div>
+        <div id="co-success-order" style="font-size:.76rem;color:#888;margin-bottom:24px;"></div>
+        <button onclick="closeCheckout()" style="font-size:.8rem;color:#263d33;background:none;border:1px solid #263d33;padding:9px 22px;cursor:pointer;">Close</button>
+      </div>
+    </div>
+  </div>`;
+  frag.appendChild(c);
+
+  document.body.appendChild(frag);
+
+  // Escape key closes whichever modal is open
+  document.addEventListener('keydown', function(e) {
+    if (e.key !== 'Escape') return;
+    if (document.getElementById('modal')?.classList.contains('open')) closeModal();
+    if (document.getElementById('checkout-modal')?.classList.contains('open')) closeCheckout();
+  });
+})();
+
 // ─── CONTACT TAB SWITCHING (shared utility) ───
 function switchEnqTab(id) {
   document.querySelectorAll('.enq-tab').forEach(t => t.classList.remove('active'));
@@ -35,13 +138,16 @@ const MODAL_FORMS={
     html:`<div class="form"><p id="waitlist-desc" style="font-size:.88rem;color:#555;margin:0 0 18px;line-height:1.65;">Sign up below and you'll be notified as soon as this launches — along with any early-access offers.</p><div class="frow"><div class="fg"><label class="flabel">Name</label><input class="finput" type="text" placeholder="Full name"></div><div class="fg"><label class="flabel">Email</label><input class="finput" type="email" placeholder="your@email.com"></div></div><button type="button" class="btn btn-dark" style="width:100%;justify-content:center;margin-top:6px;" onclick="handleModalSubmit(this)">Notify Me at Launch</button></div>`
   }
 };
+// Encapsulated modal state — avoids polluting window with multiple vars
+window._modal = { type: 'general', itemKey: null, itemTitle: null };
+
 // openModal(ctx, itemKey, itemTitle)
 // itemKey/itemTitle only used for waitlist to identify which item
 function openModal(ctx, itemKey, itemTitle){
   const c=MODAL_FORMS[ctx]||MODAL_FORMS.general;
-  window._modalType    = ctx || 'general';
-  window._modalItemKey = itemKey   || null;
-  window._modalItemTitle = itemTitle || null;
+  window._modal.type      = ctx || 'general';
+  window._modal.itemKey   = itemKey   || null;
+  window._modal.itemTitle = itemTitle || null;
   document.getElementById('m-eyebrow').textContent=c.eyebrow;
   document.getElementById('m-title').textContent=c.title;
   document.getElementById('m-form-body').innerHTML=c.html;
@@ -52,8 +158,16 @@ function openModal(ctx, itemKey, itemTitle){
   }
   document.getElementById('modal').classList.add('open');
   document.body.style.overflow='hidden';
+  // Move focus into modal for keyboard/screen-reader users
+  setTimeout(()=>{const f=document.querySelector('#m-form-body input,#m-form-body textarea,#m-form-body select');if(f)f.focus();},50);
 }
-function closeModal(){document.getElementById('modal').classList.remove('open');document.body.style.overflow='';}
+function closeModal(){
+  document.getElementById('modal').classList.remove('open');
+  document.body.style.overflow='';
+  // Reset any button left in disabled/loading state if user closes mid-submit
+  const btn=document.querySelector('#modal button[disabled]');
+  if(btn){btn.disabled=false;btn.style.background='';if(btn.dataset.orig)btn.textContent=btn.dataset.orig;}
+}
 function closeModalOuter(e){if(e.target===document.getElementById('modal'))closeModal();}
 function handleModalSubmit(btn){
   const formDiv = btn.closest('.form');
@@ -81,15 +195,16 @@ function handleModalSubmit(btn){
   });
 
   const orig    = btn.textContent;
-  const mType   = window._modalType    || 'general';
-  const itemKey = window._modalItemKey || null;
-  const itemTitle = window._modalItemTitle || null;
+  const mType   = window._modal.type      || 'general';
+  const itemKey = window._modal.itemKey   || null;
+  const itemTitle = window._modal.itemTitle || null;
 
+  btn.dataset.orig = orig;
   btn.textContent = 'Sending…'; btn.disabled = true;
 
   // For waitlist, check dedup server-side; await response before showing confirm
   if (mType === 'waitlist') {
-    fetch('/.netlify/functions/submit-form', {
+    fetch('/api/submit-form', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, email, type: 'waitlist', fields, item_key: itemKey, item_title: itemTitle }),
@@ -116,7 +231,7 @@ function handleModalSubmit(btn){
   }
 
   // Non-waitlist: fire and forget
-  fetch('/.netlify/functions/submit-form', {
+  fetch('/api/submit-form', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name, email, type: mType, fields }),
@@ -127,110 +242,285 @@ function handleModalSubmit(btn){
 }
 
 // ═══ CHECKOUT ═══
-window.BOOKS_DATA={
-  btl:{title:'Built to Last',subtitle:'The Modern Guide to Wealth, Freedom, and Legacy',price:'24.99',color:'var(--forest)'},
-  bs:{title:'Beyond Survival',subtitle:"The Immigrant's Guide to Generational Wealth",price:'22.99',color:'#1a2d24'}
+// CHECKOUT_CATALOG is the client-side item registry.
+// Keep variants in sync with the CATALOG in create-payment-intent.js and create-order.js.
+// To add a new sellable item: add an entry here AND in both server functions.
+window.CHECKOUT_CATALOG = {
+  btl: {
+    title:    'Built to Last',
+    subtitle: 'The Modern Guide to Wealth, Freedom, and Legacy',
+    color:    'var(--forest)',
+    type:     'book',
+    variants: { Hardcover: '24.99', Paperback: '14.99', eBook: '9.99' },
+  },
+  bs: {
+    title:    'Beyond Survival',
+    subtitle: "The Immigrant's Guide to Generational Wealth",
+    color:    '#1a2d24',
+    type:     'book',
+    variants: { Hardcover: '22.99', Paperback: '12.99', eBook: '8.99' },
+  },
+  // Add future sellable items here, e.g. toolkits, courses, etc.
 };
-function openCheckout(id){
-  const b=window.BOOKS_DATA[id]||window.BOOKS_DATA.btl;
-  const stock   = b.stockStatus || (b.mode === 'live' ? 'in_stock' : 'preorder');
-  const isLive  = b.mode === 'live';
-  const eyebrow = isLive && stock === 'in_stock' ? 'Buy Now'
-                : isLive && stock === 'out_of_stock' ? 'Out of Stock — Join Waitlist'
-                : 'Pre-order';
-  const itemType= isLive ? b.subtitle + ' · Available' : b.subtitle + ' · Pre-order';
-  const submitTxt = isLive && stock === 'in_stock' ? 'Complete Purchase'
-                  : isLive && stock === 'out_of_stock' ? 'Join Waitlist'
+// Backward-compat alias — existing page scripts call openCheckout() with 'btl'/'bs'
+window.BOOKS_DATA = window.CHECKOUT_CATALOG;
+
+// ── Stripe state ──
+let _stripe = null, _stripeCard = null, _currentItemId = null;
+
+function openCheckout(id) {
+  const item = window.CHECKOUT_CATALOG[id] || window.CHECKOUT_CATALOG.btl;
+  _currentItemId = id;
+
+  const isLive    = item.mode === 'live';
+  const stock     = item.stockStatus || (isLive ? 'in_stock' : 'preorder');
+  const eyebrow   = isLive && stock === 'in_stock'     ? 'Buy Now'
+                  : isLive && stock === 'out_of_stock'  ? 'Out of Stock — Join Waitlist'
+                  : 'Pre-order';
+  const submitTxt = isLive && stock === 'in_stock'     ? 'Complete Purchase'
+                  : isLive && stock === 'out_of_stock'  ? 'Join Waitlist'
                   : 'Complete Pre-order';
-  document.getElementById('co-title').textContent=b.title;
-  document.getElementById('co-eyebrow').textContent=eyebrow;
-  document.getElementById('co-price').textContent='€ '+b.price;
-  document.getElementById('co-cover').style.background=b.color||'var(--forest)';
-  document.getElementById('co-cover-text').textContent=b.title;
-  document.getElementById('co-item-name').textContent=b.title;
-  document.getElementById('co-item-type').textContent=itemType;
-  document.getElementById('co-item-price').textContent='€ '+b.price;
-  const submitBtn=document.querySelector('#checkout-form button[type="submit"]');
-  if(submitBtn) submitBtn.textContent=submitTxt;
-  // Reset format select for correct book
-  const sel=document.getElementById('co-format');
-  if(sel){sel.options[0].value=b.price;sel.selectedIndex=0;}
+
+  // Populate header
+  document.getElementById('co-title').textContent            = item.title;
+  document.getElementById('co-eyebrow').textContent          = eyebrow;
+  document.getElementById('co-cover').style.background       = item.color || 'var(--forest)';
+  document.getElementById('co-cover-text').textContent       = item.title;
+  document.getElementById('co-item-name').textContent        = item.title;
+
+  // Populate variant select dynamically from catalog entry
+  const sel = document.getElementById('co-format');
+  if (sel) {
+    sel.innerHTML = Object.entries(item.variants)
+      .map(([name, price]) => `<option value="${name}">${name} — € ${price}</option>`)
+      .join('');
+    sel.selectedIndex = 0;
+  }
+  updateCoPrice();
+
+  // Update checkout note based on item type / mode
+  const noteEl = document.getElementById('co-note-text');
+  if (noteEl) {
+    if (isLive && stock === 'in_stock') {
+      noteEl.innerHTML = '<strong>Secure purchase:</strong> Your order is processed immediately after payment is confirmed.';
+    } else {
+      const deliverable = item.type === 'book' ? 'copy ships' : 'item is delivered';
+      noteEl.innerHTML = `<strong>Pre-order guarantee:</strong> You will be charged now and your ${deliverable} as soon as it is available. Cancel anytime before fulfilment for a full refund.`;
+    }
+  }
+
+  // Update submit button
+  const submitBtn = document.querySelector('#checkout-form button[type="submit"]');
+  if (submitBtn) submitBtn.textContent = submitTxt;
+
+  // Reset to card payment method
+  document.querySelectorAll('.pay-method').forEach(m => m.classList.remove('selected'));
+  const cardMethod = document.querySelector('.pay-method[data-type="card"]');
+  if (cardMethod) cardMethod.classList.add('selected');
+  const cf = document.getElementById('card-fields');
+  const bf = document.getElementById('bank-fields');
+  if (cf) cf.style.display = 'block';
+  if (bf) bf.style.display = 'none';
+
+  // Clear previous Stripe card input and errors
+  if (_stripeCard) _stripeCard.clear();
+  const errEl = document.getElementById('stripe-card-error');
+  if (errEl) errEl.textContent = '';
+
+  // Restore form view (hide success screen if previously shown)
+  const wrap    = document.getElementById('checkout-form-wrap');
+  const success = document.getElementById('checkout-success');
+  if (wrap)    wrap.style.display    = '';
+  if (success) success.style.display = 'none';
+
   document.getElementById('checkout-modal').classList.add('open');
-  document.body.style.overflow='hidden';
+  document.body.style.overflow = 'hidden';
+
+  // Initialise Stripe lazily (idempotent — only runs once per page load)
+  _initStripe();
 }
-function closeCheckout(){document.getElementById('checkout-modal').classList.remove('open');document.body.style.overflow='';}
-function closeCheckoutOuter(e){if(e.target===document.getElementById('checkout-modal'))closeCheckout();}
-function selectPayMethod(el,type){
-  document.querySelectorAll('.pay-method').forEach(m=>m.classList.remove('selected'));
+
+async function _initStripe() {
+  if (_stripe) return; // already initialised
+  try {
+    // Lazy-load Stripe.js only when checkout is first opened
+    if (!window.Stripe) {
+      await new Promise((resolve, reject) => {
+        if (document.querySelector('script[src*="js.stripe.com"]')) { resolve(); return; }
+        const s = document.createElement('script');
+        s.src = 'https://js.stripe.com/v3/';
+        s.onload  = resolve;
+        s.onerror = () => reject(new Error('Stripe.js failed to load'));
+        document.head.appendChild(s);
+      });
+    }
+    // Fetch publishable key from server (never hardcoded in source)
+    const cfgRes = await fetch('/api/stripe-config');
+    if (!cfgRes.ok) throw new Error('Stripe config unavailable');
+    const { publishableKey } = await cfgRes.json();
+    if (!publishableKey) throw new Error('No publishable key returned');
+
+    _stripe = window.Stripe(publishableKey);
+    const elements = _stripe.elements();
+    _stripeCard = elements.create('card', {
+      style: {
+        base: {
+          fontFamily: '"DM Sans", system-ui, sans-serif',
+          fontSize:   '15px',
+          color:      '#0d0d0b',
+          '::placeholder': { color: '#aaa' },
+        },
+        invalid: { color: '#c0392b' },
+      },
+    });
+    _stripeCard.mount('#stripe-card-element');
+    _stripeCard.on('change', ev => {
+      const errEl = document.getElementById('stripe-card-error');
+      if (errEl) errEl.textContent = ev.error ? ev.error.message : '';
+    });
+  } catch(err) {
+    console.warn('Stripe init failed:', err.message);
+    const cardFields = document.getElementById('card-fields');
+    if (cardFields) {
+      cardFields.innerHTML = '<p style="font-size:.82rem;color:#c0392b;padding:8px 0;">Card payment is temporarily unavailable. Please use bank transfer or contact us directly.</p>';
+    }
+  }
+}
+
+function closeCheckout() {
+  document.getElementById('checkout-modal').classList.remove('open');
+  document.body.style.overflow = '';
+  // Reset any button left in loading state
+  const btn = document.querySelector('#checkout-form button[type="submit"][disabled]');
+  if (btn) { btn.disabled = false; if (btn.dataset.orig) btn.textContent = btn.dataset.orig; }
+}
+function closeCheckoutOuter(e) { if (e.target === document.getElementById('checkout-modal')) closeCheckout(); }
+
+function selectPayMethod(el, type) {
+  document.querySelectorAll('.pay-method').forEach(m => m.classList.remove('selected'));
   el.classList.add('selected');
-  document.getElementById('card-fields').style.display=type==='card'?'block':'none';
-  document.getElementById('bank-fields').style.display=type==='bank'?'block':'none';
+  document.getElementById('card-fields').style.display = type === 'card' ? 'block' : 'none';
+  document.getElementById('bank-fields').style.display = type === 'bank' ? 'block' : 'none';
 }
-function updateCoPrice(){
-  const sel=document.getElementById('co-format');
-  if(!sel)return;
-  const price=sel.options[sel.selectedIndex].value;
-  document.getElementById('co-item-price').textContent='€ '+price;
-  document.getElementById('co-price').textContent='€ '+price;
+
+function updateCoPrice() {
+  const sel  = document.getElementById('co-format');
+  if (!sel) return;
+  const variant = sel.value;
+  const item    = window.CHECKOUT_CATALOG[_currentItemId];
+  const price   = item?.variants[variant] || '0';
+  const isLive  = item?.mode === 'live';
+  document.getElementById('co-item-price').textContent = '€ ' + price;
+  document.getElementById('co-price').textContent      = '€ ' + price;
+  document.getElementById('co-item-type').textContent  = (isLive ? '' : 'Pre-order · ') + variant;
 }
-async function handleCheckout(e){
+
+async function handleCheckout(e) {
   e.preventDefault();
   const form    = e.target;
   const btn     = form.querySelector('button[type="submit"]');
   const origTxt = btn.textContent;
-  btn.textContent='Processing…'; btn.disabled=true;
+  btn.dataset.orig = origTxt;
+  btn.textContent  = 'Processing…';
+  btn.disabled     = true;
 
-  // Collect form values
-  const inputs = form.querySelectorAll('.finput');
+  // Collect form fields
+  const inputs    = form.querySelectorAll('.finput');
   const firstName = inputs[0]?.value?.trim() || '';
   const lastName  = inputs[1]?.value?.trim() || '';
   const email     = inputs[2]?.value?.trim() || '';
-  const formatSel = document.getElementById('co-format');
-  const format    = formatSel ? formatSel.options[formatSel.selectedIndex].text.split(' — ')[0] : 'Hardcover';
-  const price     = document.getElementById('co-item-price')?.textContent?.replace(/[^0-9.]/g,'') || '0';
+  const sel       = document.getElementById('co-format');
+  const variant   = sel ? sel.value : (Object.keys(window.CHECKOUT_CATALOG[_currentItemId]?.variants || {})[0] || 'Standard');
   const payMethod = document.querySelector('.pay-method.selected')?.dataset?.type || 'card';
 
-  // Resolve which book is being ordered from current checkout state
-  const bookTitle = document.getElementById('co-title')?.textContent || '';
-  const bookId    = Object.keys(window.BOOKS_DATA||{}).find(k => window.BOOKS_DATA[k].title === bookTitle) || '';
-  const orderType = (window.BOOKS_DATA[bookId]?.mode === 'live') ? 'purchase' : 'preorder';
+  const itemId    = _currentItemId || '';
+  const item      = window.CHECKOUT_CATALOG[itemId] || {};
+  const itemTitle = item.title || document.getElementById('co-title')?.textContent || '';
+  const orderType = item.mode === 'live' ? 'purchase' : 'preorder';
 
   if (!firstName || !email) {
     btn.textContent = origTxt; btn.disabled = false;
-    alert('Please fill in your first name and email before proceeding.');
+    alert('Please fill in your first name and email address.');
     return;
   }
 
   try {
-    const res  = await fetch('/.netlify/functions/book-order', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ firstName, lastName, email, bookId, bookTitle, format, price, paymentMethod: payMethod, orderType }),
-    });
-    const data = await res.json();
-    if (res.ok && data.success) {
-      btn.textContent='Order placed ✓'; btn.style.background='var(--forest)';
-      // Show confirmation inside the checkout modal
-      const bodyEl = document.querySelector('.checkout-body');
-      if (bodyEl) {
-        bodyEl.innerHTML = `<div style="padding:32px 24px;text-align:center;">
-          <div style="font-family:Georgia,serif;font-size:1.4rem;color:#263d33;margin-bottom:12px;">Thank you, ${firstName}.</div>
-          <div style="font-size:.88rem;color:#555;line-height:1.7;margin-bottom:10px;">Your ${orderType === 'purchase' ? 'order' : 'pre-order'} for <strong>${bookTitle}</strong> has been confirmed.</div>
-          <div style="font-size:.78rem;color:#888;margin-bottom:22px;">Order number: <strong>${data.orderId}</strong><br>A confirmation has been sent to <strong>${email}</strong>.</div>
-          <button onclick="closeCheckout()" style="font-size:.8rem;color:#263d33;background:none;border:1px solid #263d33;padding:9px 22px;cursor:pointer;">Close</button>
-        </div>`;
+    if (payMethod === 'card') {
+      // ── Card payment ──────────────────────────────────────────────────────
+      if (!_stripe || !_stripeCard) {
+        throw new Error('Payment system not ready — please use bank transfer or try again shortly.');
       }
-      setTimeout(()=>{ closeCheckout(); form.reset(); btn.textContent=origTxt; btn.style.background=''; btn.disabled=false; },4000);
+
+      // 1. Create PaymentIntent server-side (price validated against catalog)
+      const piRes  = await fetch('/api/create-payment-intent', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ itemId, variant }),
+      });
+      const piData = await piRes.json();
+      if (!piRes.ok) throw new Error(piData.error || 'Payment setup failed');
+
+      // 2. Confirm card payment with Stripe (stays in-modal — no redirect)
+      const { paymentIntent, error } = await _stripe.confirmCardPayment(piData.clientSecret, {
+        payment_method: {
+          card:             _stripeCard,
+          billing_details:  { name: `${firstName} ${lastName}`.trim(), email },
+        },
+      });
+      if (error) {
+        const errEl = document.getElementById('stripe-card-error');
+        if (errEl) errEl.textContent = error.message;
+        btn.textContent = origTxt; btn.disabled = false;
+        return; // user stays on form to correct card details
+      }
+      if (paymentIntent.status !== 'succeeded') {
+        throw new Error('Payment did not complete. Please try again.');
+      }
+
+      // 3. Record order (server re-verifies the PaymentIntent before saving)
+      const orderRes  = await fetch('/api/create-order', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ firstName, lastName, email, itemId, itemTitle, variant, paymentMethod: 'card', orderType, paymentIntentId: paymentIntent.id }),
+      });
+      const orderData = await orderRes.json();
+      if (!orderRes.ok) throw new Error(orderData.error || 'Order could not be saved');
+
+      _showCheckoutSuccess(firstName, itemTitle, orderData.orderId, email, orderType);
+
     } else {
-      throw new Error(data.error || 'Order failed');
+      // ── Bank transfer ─────────────────────────────────────────────────────
+      const orderRes  = await fetch('/api/create-order', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ firstName, lastName, email, itemId, itemTitle, variant, paymentMethod: 'bank', orderType }),
+      });
+      const orderData = await orderRes.json();
+      if (!orderRes.ok) throw new Error(orderData.error || 'Order failed');
+
+      _showCheckoutSuccess(firstName, itemTitle, orderData.orderId, email, orderType);
     }
   } catch(err) {
     console.error('Checkout error:', err.message);
-    btn.textContent='Try again'; btn.disabled=false; btn.style.background='';
-    // Still show a local confirmation so the user isn't left hanging
-    alert(`Thank you, ${firstName}. Your order has been received. We will send a confirmation to ${email} shortly.\n\nIf you don't hear from us within 24 hours, please email hello@phelim.me with reference: ${bookTitle}.`);
-    setTimeout(()=>{ closeCheckout(); form.reset(); btn.textContent=origTxt; },300);
+    btn.textContent = origTxt; btn.disabled = false;
+    // Graceful fallback — never leave the user without acknowledgement
+    alert(`Thank you, ${firstName}. Your order request has been received.\n\nWe'll send a confirmation to ${email}. If you don't receive it within 24 hours, please contact us and mention: ${itemTitle}.`);
+    closeCheckout();
   }
+}
+
+function _showCheckoutSuccess(firstName, itemTitle, orderId, email, orderType) {
+  document.getElementById('co-success-title').textContent  = `Thank you, ${firstName}.`;
+  document.getElementById('co-success-detail').innerHTML   = `Your ${orderType === 'purchase' ? 'order' : 'pre-order'} for <strong>${itemTitle}</strong> has been confirmed.`;
+  document.getElementById('co-success-order').innerHTML    = `Order number: <strong>${orderId}</strong><br>A confirmation has been sent to <strong>${email}</strong>.`;
+
+  const wrap    = document.getElementById('checkout-form-wrap');
+  const success = document.getElementById('checkout-success');
+  if (wrap)    wrap.style.display    = 'none';
+  if (success) success.style.display = 'block';
+
+  // Auto-close after 6 seconds
+  setTimeout(() => closeCheckout(), 6000);
 }
 
 // ═══ FORMS ═══
@@ -260,7 +550,7 @@ async function handleSubmit(e, type) {
 
   // Single call to our custom function — saves to DB, sends both emails
   try {
-    const res  = await fetch('/.netlify/functions/submit-form', {
+    const res  = await fetch('/api/submit-form', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, email, type: type || 'general', fields, templateOverride }),
@@ -306,9 +596,13 @@ window._restoreContactForm = function(confirmId, formId) {
 };
 
 // ═══ COUNTDOWN ═══
-const launchDate=new Date('2027-02-01T00:00:00');
+function getLaunchDate(){
+  // Reads launchDate from site content (set via portal → Site Content); falls back to hardcoded date
+  const d=window.SITE_CONTENT?.launchDate||'2027-02-01';
+  return new Date(d.includes('T')?d:d+'T00:00:00');
+}
 function updateCountdown(){
-  const diff=launchDate-new Date();if(diff<=0)return;
+  const diff=getLaunchDate()-new Date();if(diff<=0)return;
   const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=String(v).padStart(2,'0');};
   set('cd-days',Math.floor(diff/86400000));
   set('cd-hours',Math.floor((diff%86400000)/3600000));

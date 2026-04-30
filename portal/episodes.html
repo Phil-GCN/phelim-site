@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex,nofollow">
   <title>Episodes — Portal</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500&display=swap" rel="stylesheet">
@@ -252,7 +253,7 @@ async function saveEpisode() {
     // Optionally notify newsletter subscribers
     const notifyChk = document.getElementById('ep-notify-newsletter');
     if (notifyChk && notifyChk.checked) {
-      fetch('/.netlify/functions/send-newsletter', {
+      fetch('/api/send-newsletter', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           subject: `New episode: ${title}`,

@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex,nofollow">
   <title>Sign In — Phelim Ekwebe Portal</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500&display=swap" rel="stylesheet">
@@ -58,66 +59,69 @@
   </div>
 </div>
 <script>
-  const DEFAULT_PW = 'phelim2025';
+  // If already authenticated with a valid token, go straight to dashboard
+  (function() {
+    const token = sessionStorage.getItem('portal-token');
+    if (token && isTokenValid(token)) window.location.href = 'index.html';
+  })();
 
-  function getPassword() {
-    return localStorage.getItem('portal-password') || DEFAULT_PW;
-  }
-
-  // If already authenticated, go straight to dashboard
-  if (sessionStorage.getItem('portal-auth')) {
-    window.location.href = 'index.html';
+  function isTokenValid(token) {
+    try {
+      const payload = token.split('.')[0];
+      // base64url → base64 → JSON
+      const b64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+      const json = JSON.parse(atob(b64));
+      return json.exp && (Date.now() / 1000) < json.exp;
+    } catch { return false; }
   }
 
   function showView(id) {
     document.getElementById('view-login').style.display = id === 'view-login' ? '' : 'none';
     document.getElementById('view-change').style.display = id === 'view-change' ? '' : 'none';
-    // clear messages
     ['login-err','cp-err','cp-ok'].forEach(function(i){ document.getElementById(i).style.display='none'; });
   }
 
-  function doLogin(e) {
+  async function doLogin(e) {
     e.preventDefault();
-    const pw = document.getElementById('pw').value;
-    if (pw === getPassword()) {
-      sessionStorage.setItem('portal-auth', '1');
-      window.location.href = 'index.html';
-    } else {
-      const el = document.getElementById('login-err');
-      el.style.display = 'block';
-      document.getElementById('pw').value = '';
-      document.getElementById('pw').focus();
+    const pw  = document.getElementById('pw').value;
+    const err = document.getElementById('login-err');
+    const btn = e.target.querySelector('button[type="submit"]');
+    err.style.display = 'none';
+    btn.disabled = true; btn.textContent = 'Signing in…';
+
+    try {
+      const res  = await fetch('/api/portal-auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: pw }),
+      });
+      const data = await res.json();
+      if (res.ok && data.token) {
+        sessionStorage.setItem('portal-token', data.token);
+        window.location.href = 'index.html';
+      } else {
+        err.textContent = data.error || 'Incorrect password. Please try again.';
+        err.style.display = 'block';
+        document.getElementById('pw').value = '';
+        document.getElementById('pw').focus();
+        btn.disabled = false; btn.textContent = 'Sign In';
+      }
+    } catch {
+      err.textContent = 'Could not reach server. Check your connection.';
+      err.style.display = 'block';
+      btn.disabled = false; btn.textContent = 'Sign In';
     }
   }
 
+  // Password change is handled server-side — redirect to Netlify Identity
+  // or keep as a local note since PORTAL_PASSWORD must be changed in Netlify env vars.
   function doChangePassword(e) {
     e.preventDefault();
     const err = document.getElementById('cp-err');
     const ok  = document.getElementById('cp-ok');
     err.style.display = 'none';
     ok.style.display  = 'none';
-
-    const current = document.getElementById('cp-current').value;
-    const next    = document.getElementById('cp-new').value;
-    const confirm = document.getElementById('cp-confirm').value;
-
-    if (current !== getPassword()) {
-      err.textContent = 'Current password is incorrect.';
-      err.style.display = 'block';
-      return;
-    }
-    if (next.length < 8) {
-      err.textContent = 'New password must be at least 8 characters.';
-      err.style.display = 'block';
-      return;
-    }
-    if (next !== confirm) {
-      err.textContent = 'New passwords do not match.';
-      err.style.display = 'block';
-      return;
-    }
-    localStorage.setItem('portal-password', next);
-    ['cp-current','cp-new','cp-confirm'].forEach(function(i){ document.getElementById(i).value=''; });
+    ok.textContent = 'To change your portal password, update the PORTAL_PASSWORD environment variable in your Netlify dashboard → Site Settings → Environment Variables, then redeploy.';
     ok.style.display = 'block';
   }
 </script>
