@@ -50,6 +50,12 @@ CREATE TABLE IF NOT EXISTS books (
   price_paperback   text,
   price_ebook       text,
   price_audiobook   text,
+  pdf_data          text,                       -- base64 data URL of eBook PDF (delivered on eBook orders)
+  pdf_name          text,                       -- original filename e.g. 'built-to-last.pdf'
+  audio_data        text,                       -- base64 data URL of audiobook file (delivered on Audiobook orders)
+  audio_name        text,                       -- original filename e.g. 'built-to-last.mp3'
+  cover_data        text,                       -- base64 data URL of cover image
+  cover_name        text,
   mode              text NOT NULL DEFAULT 'preorder', -- 'preorder' | 'live'
   stock_status      text NOT NULL DEFAULT 'preorder', -- 'preorder' | 'available' | 'sold_out'
   status            text NOT NULL DEFAULT 'draft',    -- 'draft' | 'published'

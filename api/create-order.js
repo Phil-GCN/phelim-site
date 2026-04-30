@@ -16,12 +16,17 @@ async function getBookFile(supUrl, supKey, bookId) {
   if (!supUrl || !supKey) return null;
   try {
     const r = await fetch(
-      `${supUrl}/rest/v1/books?id=eq.${encodeURIComponent(bookId)}&select=pdf_data,pdf_name&limit=1`,
+      `${supUrl}/rest/v1/books?id=eq.${encodeURIComponent(bookId)}&select=pdf_data,pdf_name,audio_data,audio_name&limit=1`,
       { headers: { apikey: supKey, Authorization: `Bearer ${supKey}` } }
     );
     const rows = await r.json();
-    if (!r.ok || !rows.length || !rows[0].pdf_data) return null;
-    return { pdfData: rows[0].pdf_data, pdfName: rows[0].pdf_name || 'ebook.pdf' };
+    if (!r.ok || !rows.length) return null;
+    return {
+      pdfData:   rows[0].pdf_data   || null,
+      pdfName:   rows[0].pdf_name   || 'ebook.pdf',
+      audioData: rows[0].audio_data || null,
+      audioName: rows[0].audio_name || 'audiobook.mp3',
+    };
   } catch { return null; }
 }
 
@@ -270,14 +275,17 @@ module.exports = async function(req, res) {
   const sigHtml = buildSignature(sc);
   const errors  = [];
 
-  // For eBook orders, attempt to fetch and attach the PDF
-  let ebookAttachments;
-  if (variant === 'eBook' && SUP_URL && SUP_KEY) {
+  // For eBook or Audiobook orders, fetch and attach the digital file
+  let digitalAttachments;
+  if ((variant === 'eBook' || variant === 'Audiobook') && SUP_URL && SUP_KEY) {
     const bookFile = await getBookFile(SUP_URL, SUP_KEY, itemId);
-    if (bookFile && bookFile.pdfData) {
-      // Strip the data URL prefix (data:application/pdf;base64,...)
-      const base64Content = bookFile.pdfData.replace(/^data:[^;]+;base64,/, '');
-      ebookAttachments = [{ filename: bookFile.pdfName, content: base64Content }];
+    if (bookFile) {
+      const raw = variant === 'eBook' ? bookFile.pdfData : bookFile.audioData;
+      const name = variant === 'eBook' ? bookFile.pdfName : bookFile.audioName;
+      if (raw) {
+        const base64Content = raw.replace(/^data:[^;]+;base64,/, '');
+        digitalAttachments = [{ filename: name, content: base64Content }];
+      }
     }
   }
 
@@ -288,7 +296,7 @@ module.exports = async function(req, res) {
       replyTo:     NOTIFY,
       subject:     `Order confirmed: ${resolvedTitle} — ${orderId}`,
       html:        buildConfirmationEmail({ firstName, itemTitle: resolvedTitle, itemType, variant, price: finalPrice, orderId, orderType, paymentMethod, sigHtml }),
-      attachments: ebookAttachments,
+      attachments: digitalAttachments,
     });
   } catch(e) { errors.push('confirmation: ' + e.message); }
 
