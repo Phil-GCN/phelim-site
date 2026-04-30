@@ -322,10 +322,13 @@ function openCheckout(id) {
   if (cf) cf.style.display = 'block';
   if (bf) bf.style.display = 'none';
 
-  // Clear previous Stripe card input and errors
-  if (_stripeCard) _stripeCard.clear();
+  // Destroy any previous card element — Stripe iframes go stale between modal opens
+  if (_stripeCard) {
+    try { _stripeCard.destroy(); } catch(_) {}
+    _stripeCard = null;
+  }
   const errEl = document.getElementById('stripe-card-error');
-  if (errEl) errEl.textContent = '';
+  if (errEl) { errEl.textContent = ''; errEl.style.display = ''; }
 
   // Restore form view (hide success screen if previously shown)
   const wrap    = document.getElementById('checkout-form-wrap');
@@ -336,14 +339,14 @@ function openCheckout(id) {
   document.getElementById('checkout-modal').classList.add('open');
   document.body.style.overflow = 'hidden';
 
-  // Initialise Stripe lazily (idempotent — only runs once per page load)
+  // Mount a fresh Stripe card element each time the modal opens
   _initStripe();
 }
 
 async function _initStripe() {
-  if (_stripe) return; // already initialised
+  // _stripe (the Stripe instance) is reused — only the card element is recreated per open
   try {
-    // Lazy-load Stripe.js only when checkout is first opened
+    // Lazy-load Stripe.js only the first time
     if (!window.Stripe) {
       await new Promise((resolve, reject) => {
         if (document.querySelector('script[src*="js.stripe.com"]')) { resolve(); return; }
@@ -355,12 +358,14 @@ async function _initStripe() {
       });
     }
     // Fetch publishable key from server (never hardcoded in source)
-    const cfgRes = await fetch('/api/stripe-config');
-    if (!cfgRes.ok) throw new Error('Stripe config unavailable');
-    const { publishableKey } = await cfgRes.json();
-    if (!publishableKey) throw new Error('No publishable key returned');
-
-    _stripe = window.Stripe(publishableKey);
+    // Create the Stripe instance once per page load, reuse on subsequent opens
+    if (!_stripe) {
+      const cfgRes = await fetch('/api/stripe-config');
+      if (!cfgRes.ok) throw new Error('Stripe config unavailable');
+      const { publishableKey } = await cfgRes.json();
+      if (!publishableKey) throw new Error('No publishable key returned');
+      _stripe = window.Stripe(publishableKey);
+    }
     const elements = _stripe.elements();
     _stripeCard = elements.create('card', {
       style: {
