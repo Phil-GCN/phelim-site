@@ -1,7 +1,9 @@
 /* phelim.me — content data: articles, episodes, books
- * Fetches live from Supabase via the db Netlify Function.
- * Falls back to hardcoded defaults if the fetch fails.
+ * Fetches live from Supabase via the /api/db serverless function.
  */
+
+// Initialise early so openCheckout() can populate it before data loads
+window.BOOKS_DATA = window.BOOKS_DATA || {};
 
 // ═══ SUPABASE FETCH (via server-side proxy) ═══
 async function fetchFromDB(table, filter) {

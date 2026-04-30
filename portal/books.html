@@ -174,7 +174,10 @@ async function loadBooks() {
       coverData: r.cover_data, coverName: r.cover_name,
       pdfData: r.pdf_data, pdfName: r.pdf_name,
     }));
-  } catch(e) { console.warn('DB load failed, using defaults:', e.message); }
+  } catch(e) {
+    console.error('DB load failed:', e.message);
+    showToast('Could not load books from database: ' + e.message + '. Showing defaults. Check Vercel env vars.');
+  }
   return DEFAULT_BOOKS;
 }
 
@@ -453,7 +456,7 @@ function updateStock(id, val) {
   if (b) b.stockStatus = val;
 }
 
-function saveBook(id) {
+async function saveBook(id) {
   const b = BOOKS.find(x => x.id === id);
   if (!b) return;
   b.title           = document.getElementById('title-' + id)?.value || b.title;
@@ -465,19 +468,38 @@ function saveBook(id) {
   b.longDescription = document.getElementById('longdesc-' + id)?.value || '';
   b.hookText        = document.getElementById('hook-' + id)?.value || '';
   b.pubDate         = document.getElementById('pubdate-' + id)?.value || b.pubDate;
-  b.price          = document.getElementById('price-' + id)?.value || b.price;
-  b.priceHardcover = document.getElementById('price-hc-' + id)?.value || '';
-  b.pricePaperback = document.getElementById('price-pb-' + id)?.value || '';
-  b.priceEbook     = document.getElementById('price-eb-' + id)?.value || '';
-  b.priceAudiobook = document.getElementById('price-au-' + id)?.value || '';
-  b.coverColor     = document.getElementById('cover-color-' + id)?.value || '';
-  b.stockStatus    = document.getElementById('stock-' + id)?.value || b.stockStatus;
-  saveBooks(BOOKS).then(() => {
+  b.price           = document.getElementById('price-' + id)?.value || b.price;
+  b.priceHardcover  = document.getElementById('price-hc-' + id)?.value || '';
+  b.pricePaperback  = document.getElementById('price-pb-' + id)?.value || '';
+  b.priceEbook      = document.getElementById('price-eb-' + id)?.value || '';
+  b.priceAudiobook  = document.getElementById('price-au-' + id)?.value || '';
+  b.coverColor      = document.getElementById('cover-color-' + id)?.value || '';
+  b.stockStatus     = document.getElementById('stock-' + id)?.value || b.stockStatus;
+  try {
+    await DB.saveBook({
+      id: b.id, title: b.title, subtitle: b.subtitle,
+      book_num: b.bookNum, mode: b.mode, stock_status: b.stockStatus || 'preorder', pub_date: b.pubDate,
+      price: b.price,
+      price_hardcover: b.priceHardcover || null, price_paperback: b.pricePaperback || null,
+      price_ebook: b.priceEbook || null,         price_audiobook: b.priceAudiobook || null,
+      cover_color: b.coverColor || null,
+      author: b.author || 'Phelim Ekwebe', audience: b.audience || '',
+      format_options: b.formatOptions || '',
+      description: b.description || '',
+      long_description: b.longDescription || '',
+      hook_text: b.hookText || '',
+      cover_data: b.coverData, cover_name: b.coverName,
+      pdf_data: b.pdfData, pdf_name: b.pdfName,
+      updated_at: new Date().toISOString(),
+    });
+    showToast('Book saved. Changes are live on the site.');
     renderList();
-    // Re-render edit form to reflect saved state
     document.getElementById('edit-form-body').innerHTML = renderEditForm(b);
     document.getElementById('edit-drawer-title').textContent = `Editing: ${b.title}`;
-  });
+  } catch(err) {
+    console.error('saveBook failed:', err);
+    showToast('Save failed: ' + err.message + '. Check that SUPABASE_URL and SUPABASE_SERVICE_KEY are set in Vercel.');
+  }
 }
 
 async function removeBook(id) {
@@ -490,9 +512,10 @@ async function removeBook(id) {
     BOOKS = BOOKS.filter(x => x.id !== id);
     if (activeEditId === id) closeEditor();
     renderList();
-    showToast(`"${b.title}" removed.`);
+    showToast(`"${b.title}" removed from the database.`);
   } catch(err) {
-    showToast('Remove failed: ' + err.message);
+    console.error('removeBook failed:', err);
+    showToast('Delete failed: ' + err.message + '. Check Vercel environment variables (SUPABASE_URL, SUPABASE_SERVICE_KEY).');
   }
 }
 

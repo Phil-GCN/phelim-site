@@ -245,33 +245,61 @@ function handleModalSubmit(btn){
 
 // ═══ CHECKOUT ═══
 // CHECKOUT_CATALOG is the client-side item registry.
-// Keep variants in sync with the CATALOG in create-payment-intent.js and create-order.js.
-// To add a new sellable item: add an entry here AND in both server functions.
-window.CHECKOUT_CATALOG = {
-  btl: {
-    title:    'Built to Last',
-    subtitle: 'The Modern Guide to Wealth, Freedom, and Legacy',
-    color:    'var(--forest)',
-    type:     'book',
-    variants: { Hardcover: '24.99', Paperback: '14.99', eBook: '9.99' },
-  },
-  bs: {
-    title:    'Beyond Survival',
-    subtitle: "The Immigrant's Guide to Generational Wealth",
-    color:    '#1a2d24',
-    type:     'book',
-    variants: { Hardcover: '22.99', Paperback: '12.99', eBook: '8.99' },
-  },
-  // Add future sellable items here, e.g. toolkits, courses, etc.
-};
-// Backward-compat alias — existing page scripts call openCheckout() with 'btl'/'bs'
-window.BOOKS_DATA = window.CHECKOUT_CATALOG;
+// ── Book catalog — populated by data.js loadLiveBooks() from the database.
+// Do NOT hardcode prices here. All book data comes from Supabase via data.js.
+window.BOOKS_DATA = window.BOOKS_DATA || {};
+
+// ── Toast notification (works on public pages — portal.js not loaded there) ──
+function _showToast(msg) {
+  // Use portal.js version if available; otherwise create an inline one
+  if (typeof showToast === 'function') { showToast(msg); return; }
+  const old = document.getElementById('_modal-toast');
+  if (old) old.remove();
+  const t = document.createElement('div');
+  t.id = '_modal-toast';
+  t.style.cssText = 'position:fixed;bottom:24px;right:24px;background:#263d33;color:#f8f6f1;' +
+    'padding:12px 20px;font-family:var(--sans,sans-serif);font-size:.82rem;z-index:99999;' +
+    'border-radius:3px;box-shadow:0 4px 16px rgba(0,0,0,.15);max-width:340px;line-height:1.5;';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => { if (t.parentNode) t.remove(); }, 4500);
+}
 
 // ── Stripe state ──
 let _stripe = null, _stripeElements = null, _stripeCard = null, _currentItemId = null;
 
-function openCheckout(id) {
-  const item = window.CHECKOUT_CATALOG[id] || window.CHECKOUT_CATALOG.btl;
+async function openCheckout(id) {
+  // Look up book data — BOOKS_DATA is populated by data.js from the database
+  let item = window.BOOKS_DATA && window.BOOKS_DATA[id];
+
+  // If not in cache yet (e.g. data.js still loading), fetch directly from DB
+  if (!item) {
+    try {
+      const r = await fetch(`/api/db?table=books&id=${encodeURIComponent(id)}`);
+      if (r.ok) {
+        const b = await r.json();
+        if (b && b.id) {
+          const formats = (b.format_options || 'Hardcover').split('·').map(f => f.trim()).filter(Boolean);
+          const priceMap = { Hardcover: b.price_hardcover, Paperback: b.price_paperback, eBook: b.price_ebook, Audiobook: b.price_audiobook };
+          const variants = {};
+          formats.forEach(f => { variants[f] = priceMap[f] || b.price || '0'; });
+          item = {
+            title: b.title, subtitle: b.subtitle || '', type: 'book',
+            color: b.cover_color || 'var(--forest)',
+            mode: b.mode || 'preorder', stockStatus: b.stock_status || 'preorder',
+            price: b.price || '0', variants,
+          };
+          window.BOOKS_DATA[id] = item;
+        }
+      }
+    } catch(_) {}
+  }
+
+  if (!item) {
+    _showToast('Book data could not be loaded. Please refresh and try again.');
+    return;
+  }
+
   _currentItemId = id;
 
   const isLive    = item.mode === 'live';
@@ -290,10 +318,12 @@ function openCheckout(id) {
   document.getElementById('co-cover-text').textContent       = item.title;
   document.getElementById('co-item-name').textContent        = item.title;
 
-  // Populate variant select dynamically from catalog entry
+  // Populate variant select from DB data
   const sel = document.getElementById('co-format');
   if (sel) {
-    const variants = item.variants || { Standard: item.price || '0' };
+    const variants = (item.variants && Object.keys(item.variants).length)
+      ? item.variants
+      : { Standard: item.price || '0' };
     sel.innerHTML = Object.entries(variants)
       .map(([name, price]) => `<option value="${name}">${name} — € ${price}</option>`)
       .join('');
@@ -301,7 +331,7 @@ function openCheckout(id) {
   }
   updateCoPrice();
 
-  // Update checkout note based on item type / mode
+  // Checkout note
   const noteEl = document.getElementById('co-note-text');
   if (noteEl) {
     if (isLive && stock === 'in_stock') {
@@ -312,7 +342,7 @@ function openCheckout(id) {
     }
   }
 
-  // Update submit button
+  // Submit button text
   const submitBtn = document.querySelector('#checkout-form button[type="submit"]');
   if (submitBtn) submitBtn.textContent = submitTxt;
 
@@ -325,14 +355,12 @@ function openCheckout(id) {
   if (cf) cf.style.display = 'block';
   if (bf) bf.style.display = 'none';
 
-  // Clear any previous card element — don't destroy, just reset (avoids stale-instance bugs)
-  if (_stripeCard) {
-    try { _stripeCard.clear(); } catch(_) {}
-  }
+  // Clear any previous card input
+  if (_stripeCard) { try { _stripeCard.clear(); } catch(_) {} }
   const errEl = document.getElementById('stripe-card-error');
   if (errEl) { errEl.textContent = ''; errEl.style.display = ''; }
 
-  // Restore form view (hide success screen if previously shown)
+  // Restore form view
   const wrap    = document.getElementById('checkout-form-wrap');
   const success = document.getElementById('checkout-success');
   if (wrap)    wrap.style.display    = '';
@@ -341,8 +369,8 @@ function openCheckout(id) {
   document.getElementById('checkout-modal').classList.add('open');
   document.body.style.overflow = 'hidden';
 
-  // Mount a fresh Stripe card element each time the modal opens
-  _initStripe();
+  // Init Stripe (awaited so card is ready before user can submit)
+  await _initStripe();
 }
 
 async function _initStripe() {
@@ -527,8 +555,7 @@ async function handleCheckout(e) {
     btn.textContent = origTxt; btn.disabled = false;
     const msg = err.message || 'Something went wrong. Please try again or contact us.';
     // Always show a visible toast so the error is never invisible
-    showToast(msg);
-    // Also update the card error field if present
+    _showToast(msg);
     const errEl = document.getElementById('stripe-card-error');
     if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; }
   }
