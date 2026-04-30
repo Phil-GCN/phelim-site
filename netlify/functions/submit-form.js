@@ -6,6 +6,8 @@
 // Requires: RESEND_API_KEY, SUPABASE_URL, SUPABASE_SERVICE_KEY
 // Optional: NOTIFY_EMAIL (defaults to hello@phelim.me)
 
+const SENDER = process.env.SENDER_EMAIL || 'hello@phelim.me';
+
 // ── Email templates (mirrors send-reply.js) ──
 const DEFAULT_TEMPLATES = {
   speaking: {
@@ -211,8 +213,31 @@ exports.handler = async function(event) {
   try { body = JSON.parse(event.body); }
   catch { return json(400, { error: 'Invalid JSON' }); }
 
-  const { name, email, type, fields, templateOverride, item_key, item_title } = body;
+  // Sanitize inputs — strip newlines/carriage returns to prevent header injection
+  const sanitize = s => (typeof s === 'string' ? s.replace(/[\r\n]/g, ' ').trim().slice(0, 500) : '');
+  const isEmail  = s => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
+
+  const { type, fields, templateOverride, item_key, item_title } = body;
+  const name  = sanitize(body.name);
+  const email = sanitize(body.email);
+
   if (!name || !email) return json(400, { error: 'name and email required' });
+  if (!isEmail(email)) return json(400, { error: 'Invalid email address' });
+
+  // Rate limiting — max 3 submissions from same email in 10 minutes
+  if (SUP_URL && SUP_KEY) {
+    try {
+      const tenMinAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+      const rateRes   = await fetch(
+        `${SUP_URL}/rest/v1/submissions?email=eq.${encodeURIComponent(email)}&created_at=gte.${encodeURIComponent(tenMinAgo)}&select=id`,
+        { headers: { apikey: SUP_KEY, Authorization: `Bearer ${SUP_KEY}` } }
+      );
+      const rateRows = rateRes.ok ? await rateRes.json() : [];
+      if (Array.isArray(rateRows) && rateRows.length >= 3) {
+        return json(429, { error: 'Too many submissions. Please wait a few minutes before trying again.' });
+      }
+    } catch(_) {} // best-effort — don't block submission if check fails
+  }
 
   // Waitlist duplicate check — same email + same item_key already exists
   if (type === 'waitlist' && SUP_URL && SUP_KEY) {
@@ -266,7 +291,7 @@ exports.handler = async function(event) {
   const NOTIFY   = resolveNotifyEmail(sc, type, NOTIFY_DEFAULT);
   const fromAddr = sc?.routeNoreply
     ? `Phelim Ekwebe <${sc.routeNoreply}>`
-    : 'Phelim Ekwebe <hello@phelim.me>';
+    : `Phelim Ekwebe <${SENDER}>`;
 
   const errors = [];
 

@@ -29,7 +29,14 @@ function openArticle(id) {
   document.getElementById('af-tag').textContent = a.tag;
   document.getElementById('af-title').textContent = a.title;
   document.getElementById('af-meta').textContent = a.meta;
-  document.getElementById('af-body').innerHTML = a.body;
+  const rawBody = a.body || '';
+  const safeBody = (typeof DOMPurify !== 'undefined')
+    ? DOMPurify.sanitize(rawBody, {
+        ALLOWED_TAGS: ['p','h2','h3','blockquote','strong','em','ul','ol','li','a','br','hr','code','span','div'],
+        ALLOWED_ATTR: ['href','target','rel','class','style'],
+      })
+    : rawBody.replace(/<script[\s\S]*?<\/script>/gi, '').replace(/on\w+="[^"]*"/gi, '');
+  document.getElementById('af-body').innerHTML = safeBody;
   document.getElementById('articles-list-view').style.display = 'none';
   document.getElementById('article-full-view').classList.add('open');
   window.scrollTo(0, 0);

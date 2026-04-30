@@ -3,6 +3,8 @@
 // POST /.netlify/functions/send-newsletter  { subject, body, preview_text? }
 // Requires: RESEND_API_KEY, SUPABASE_URL, SUPABASE_SERVICE_KEY
 
+const SENDER = process.env.SENDER_EMAIL || 'hello@phelim.me';
+
 exports.handler = async function(event) {
   if (event.httpMethod !== 'POST') return json(405, { error: 'Method not allowed' });
 
@@ -40,7 +42,7 @@ exports.handler = async function(event) {
         method: 'POST',
         headers: { Authorization: `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          from: 'Phelim Ekwebe <hello@phelim.me>',
+          from: `Phelim Ekwebe <${SENDER}>`,
           to: [sub.email],
           subject,
           html: buildNewsletterHtml(sub.name || '', subject, msgBody, { content_type, content_title, content_url, preview_text }),
@@ -49,6 +51,18 @@ exports.handler = async function(event) {
       if (emailRes.ok) { sent++; } else { errors.push(sub.email); }
     } catch(e) { errors.push(sub.email); }
   }
+
+  // Persist send record to Supabase
+  try {
+    await fetch(`${SUP_URL}/rest/v1/newsletter_sends`, {
+      method: 'POST',
+      headers: {
+        apikey: SUP_KEY, Authorization: `Bearer ${SUP_KEY}`,
+        'Content-Type': 'application/json', Prefer: 'return=minimal',
+      },
+      body: JSON.stringify({ subject, body: msgBody, recipient_count: sent }),
+    });
+  } catch(_) { /* non-fatal — email was already sent */ }
 
   return json(200, { success: true, count: sent, total: subscribers.length, errors });
 };

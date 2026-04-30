@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Page Not Found — Phelim Ekwebe</title>
+  <meta name="robots" content="noindex,nofollow">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,600&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,600&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,600&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet"></noscript>
+  <link rel="stylesheet" href="base.css">
+  <link rel="stylesheet" href="pages.css">
+  <style>
+    .not-found {
+      min-height: 70vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 60px 24px;
+    }
+    .not-found-inner { max-width: 480px; }
+    .not-found-code {
+      font-family: var(--serif);
+      font-size: 6rem;
+      font-weight: 300;
+      color: var(--ink12);
+      line-height: 1;
+      margin-bottom: 12px;
+    }
+    .not-found h1 {
+      font-family: var(--serif);
+      font-size: 1.8rem;
+      font-weight: 400;
+      margin-bottom: 14px;
+    }
+    .not-found p {
+      font-size: .92rem;
+      color: var(--ink60);
+      max-width: 360px;
+      margin: 0 auto 32px;
+      line-height: 1.7;
+    }
+    .not-found-links {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a class="nav-logo" href="index.html">Phelim Ekwebe</a>
+    <ul class="nav-links">
+      <li><a id="nl-home" href="index.html">Home</a></li>
+      <li><a id="nl-about" href="about.html">About</a></li>
+      <li><a id="nl-podcast" href="podcast.html">Podcast</a></li>
+      <li><a id="nl-eng" href="engagements.html">Engagements</a></li>
+      <li><a id="nl-resources" href="resources.html">Resources</a></li>
+    </ul>
+    <button class="nav-cta" onclick="openModal('general')">Work With Me</button>
+    <button class="ham" onclick="toggleMenu()"><span></span><span></span><span></span></button>
+  </div>
+</nav>
+<div id="mob-menu" style="display:none">
+  <a href="index.html">Home</a>
+  <a href="about.html">About</a>
+  <a href="podcast.html">Podcast</a>
+  <a href="engagements.html">Engagements</a>
+  <a href="resources.html">Resources</a>
+  <a href="contact.html">Contact</a>
+  <button class="btn btn-dark" style="margin-top:14px;width:100%;justify-content:center;" onclick="openModal('general')">Work With Me</button>
+</div>
+
+<main>
+  <div class="not-found">
+    <div class="not-found-inner">
+      <div class="not-found-code">404</div>
+      <h1>Page not found</h1>
+      <p>The page you're looking for doesn't exist or may have moved. Start from somewhere familiar.</p>
+      <div class="not-found-links">
+        <a class="btn btn-dark" href="index.html">Go Home</a>
+        <a class="btn btn-outline" href="podcast.html">Listen to the Podcast</a>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- Modals injected by modals.js -->
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="site-footer-inner">
+      <div class="footer-logo">Phelim Ekwebe</div>
+      <div class="footer-links">
+        <a href="index.html">Home</a>
+        <a href="about.html">About</a>
+        <a href="podcast.html">Podcast</a>
+        <a href="engagements.html">Engagements</a>
+        <a href="resources.html">Resources</a>
+        <a href="contact.html">Contact</a>
+      </div>
+      <div id="newsletter-footer-slot"></div>
+      <div class="footer-copy">&copy; 2025 Phelim Ekwebe. All rights reserved.</div>
+    </div>
+  </div>
+</footer>
+
+  <script src="nav.js"></script>
+  <script src="modals.js"></script>
+
+</body>
+</html>

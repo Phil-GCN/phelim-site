@@ -28,6 +28,8 @@
 // Requires: RESEND_API_KEY, SUPABASE_URL, SUPABASE_SERVICE_KEY
 // Optional: NOTIFY_EMAIL (defaults to hello@phelim.me)
 
+const SENDER = process.env.SENDER_EMAIL || 'hello@phelim.me';
+
 async function getSignature(supabaseUrl, supabaseKey) {
   try {
     const res = await fetch(`${supabaseUrl}/rest/v1/site_content?select=*`, {
@@ -143,7 +145,7 @@ function buildOrderConfirmation({ firstName, bookTitle, format, price, orderId, 
           : 'If you would like to request a return or refund, please reply to this email within 14 days of purchase with your order number.'
         }
       </p>
-      <a href="mailto:hello@phelim.me?subject=Cancel order ${orderId}" style="display:inline-block;background:transparent;color:#263d33;text-decoration:none;padding:10px 22px;font-size:13px;border:1px solid #263d33;letter-spacing:.02em;">Request Cancellation →</a>
+      <a href="mailto:${SENDER}?subject=Cancel order ${orderId}" style="display:inline-block;background:transparent;color:#263d33;text-decoration:none;padding:10px 22px;font-size:13px;border:1px solid #263d33;letter-spacing:.02em;">Request Cancellation →</a>
     </div>
 
     <div style="border-top:1px solid #f0ede6;padding-top:20px;margin-top:20px;">
@@ -216,8 +218,47 @@ exports.handler = async function(event) {
   try { body = JSON.parse(event.body); }
   catch { return json(400, { error: 'Invalid JSON' }); }
 
-  const { firstName, lastName, email, bookId, bookTitle, format, price, paymentMethod, orderType } = body;
+  const sanitize = s => (typeof s === 'string' ? s.replace(/[\r\n]/g, ' ').trim().slice(0, 300) : '');
+  const isEmail  = s => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
+
+  const firstName    = sanitize(body.firstName);
+  const lastName     = sanitize(body.lastName);
+  const email        = sanitize(body.email);
+  const bookId       = sanitize(body.bookId);
+  const bookTitle    = sanitize(body.bookTitle);
+  const format       = sanitize(body.format);
+  const paymentMethod = sanitize(body.paymentMethod);
+  const orderType    = sanitize(body.orderType);
+
   if (!firstName || !email || !bookTitle) return json(400, { error: 'firstName, email, bookTitle required' });
+  if (!isEmail(email)) return json(400, { error: 'Invalid email address' });
+
+  // Server-side price/format validation — client-supplied price is ignored
+  const KNOWN_BOOKS = {
+    btl: { title: 'Built to Last',   formats: { Hardcover: '24.99', Paperback: '14.99', eBook: '9.99' } },
+    bs:  { title: 'Beyond Survival', formats: { Hardcover: '22.99', Paperback: '12.99', eBook: '8.99' } },
+  };
+  const VALID_PAYMENT_METHODS = ['card', 'bank'];
+  const VALID_ORDER_TYPES     = ['preorder', 'purchase'];
+
+  let validatedPrice = null;
+  if (bookId && KNOWN_BOOKS[bookId]) {
+    const normFormat  = (format || '').split(' — ')[0].trim(); // handle "Hardcover — €24.99" labels
+    const bookFormats = KNOWN_BOOKS[bookId].formats;
+    if (!bookFormats[normFormat]) {
+      return json(400, { error: `Invalid format "${normFormat}" for this book.` });
+    }
+    validatedPrice = bookFormats[normFormat];
+  }
+  if (!VALID_PAYMENT_METHODS.includes(paymentMethod || 'card')) {
+    return json(400, { error: 'Invalid payment method.' });
+  }
+  if (orderType && !VALID_ORDER_TYPES.includes(orderType)) {
+    return json(400, { error: 'Invalid order type.' });
+  }
+
+  // Use server-defined price; fall back to client price if book is not in KNOWN_BOOKS
+  const finalPrice = validatedPrice || (body.price ? String(body.price).replace(/[^0-9.]/g, '') : '0');
 
   const orderId = 'ORD-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6).toUpperCase();
   const sc      = (SUP_URL && SUP_KEY) ? await getSignature(SUP_URL, SUP_KEY) : null;
@@ -235,7 +276,7 @@ exports.handler = async function(event) {
         },
         body: JSON.stringify([{
           id: orderId, book_id: bookId || bookTitle.toLowerCase().replace(/\s+/g,'-'),
-          book_title: bookTitle, format: format || 'Hardcover', price: price || '0',
+          book_title: bookTitle, format: format || 'Hardcover', price: finalPrice,
           first_name: firstName, last_name: lastName || '', email,
           payment_method: paymentMethod || 'card',
           order_type: orderType || 'preorder', status: 'pending',
@@ -250,11 +291,11 @@ exports.handler = async function(event) {
   // 2. Send confirmation to buyer
   try {
     await sendEmail(RESEND_KEY, {
-      from: 'Phelim Ekwebe <hello@phelim.me>',
+      from: `Phelim Ekwebe <${SENDER}>`,
       to: email,
       replyTo: NOTIFY,
       subject: `Order confirmed: ${bookTitle} — ${orderId}`,
-      html: buildOrderConfirmation({ firstName, bookTitle, format, price, orderId, orderType: orderType||'preorder', paymentMethod, signatureHtml: sigHtml }),
+      html: buildOrderConfirmation({ firstName, bookTitle, format, price: finalPrice, orderId, orderType: orderType||'preorder', paymentMethod, signatureHtml: sigHtml }),
     });
   } catch(e) {
     errors.push('confirmation: ' + e.message);
@@ -264,11 +305,11 @@ exports.handler = async function(event) {
   // 3. Send owner notification
   try {
     await sendEmail(RESEND_KEY, {
-      from: 'phelim.me <hello@phelim.me>',
+      from: `phelim.me <${SENDER}>`,
       to: NOTIFY,
       replyTo: email,
       subject: `New ${orderType||'pre-order'}: ${bookTitle} — ${firstName} ${lastName||''}`,
-      html: buildOwnerNotification({ firstName, lastName: lastName||'', email, bookTitle, format, price, orderId, orderType: orderType||'preorder', paymentMethod, signatureHtml: sigHtml }),
+      html: buildOwnerNotification({ firstName, lastName: lastName||'', email, bookTitle, format, price: finalPrice, orderId, orderType: orderType||'preorder', paymentMethod, signatureHtml: sigHtml }),
     });
   } catch(e) {
     errors.push('notification: ' + e.message);

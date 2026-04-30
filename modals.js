@@ -244,7 +244,7 @@ function handleModalSubmit(btn){
 }
 
 // ═══ CHECKOUT ═══
-// CHECKOUT_CATALOG is the client-side item registry.
+// BOOKS_DATA is the client-side item registry.
 // ── Book catalog — populated by data.js loadLiveBooks() from the database.
 // Do NOT hardcode prices here. All book data comes from Supabase via data.js.
 window.BOOKS_DATA = window.BOOKS_DATA || {};
@@ -457,7 +457,7 @@ function updateCoPrice() {
   const sel  = document.getElementById('co-format');
   if (!sel) return;
   const variant = sel.value;
-  const item    = window.CHECKOUT_CATALOG[_currentItemId];
+  const item    = window.BOOKS_DATA[_currentItemId];
   const price   = item?.variants[variant] || '0';
   const isLive  = item?.mode === 'live';
   document.getElementById('co-item-price').textContent = '€ ' + price;
@@ -480,11 +480,11 @@ async function handleCheckout(e) {
   const lastName  = inputs[1]?.value?.trim() || '';
   const email     = inputs[2]?.value?.trim() || '';
   const sel       = document.getElementById('co-format');
-  const variant   = sel ? sel.value : (Object.keys(window.CHECKOUT_CATALOG[_currentItemId]?.variants || {})[0] || 'Standard');
+  const variant   = sel ? sel.value : (Object.keys(window.BOOKS_DATA[_currentItemId]?.variants || {})[0] || 'Standard');
   const payMethod = document.querySelector('.pay-method.selected')?.dataset?.type || 'card';
 
   const itemId    = _currentItemId || '';
-  const item      = window.CHECKOUT_CATALOG[itemId] || {};
+  const item      = window.BOOKS_DATA[itemId] || {};
   const itemTitle = item.title || document.getElementById('co-title')?.textContent || '';
   const orderType = item.mode === 'live' ? 'purchase' : 'preorder';
 

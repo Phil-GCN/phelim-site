@@ -4,6 +4,8 @@
 // POST /.netlify/functions/subscribe-newsletter  { name, email }
 // Requires: RESEND_API_KEY, SUPABASE_URL, SUPABASE_SERVICE_KEY
 
+const SENDER = process.env.SENDER_EMAIL || 'hello@phelim.me';
+
 exports.handler = async function(event) {
   if (event.httpMethod !== 'POST') return json(405, { error: 'Method not allowed' });
 
@@ -15,8 +17,30 @@ exports.handler = async function(event) {
   try { body = JSON.parse(event.body); }
   catch { return json(400, { error: 'Invalid JSON' }); }
 
-  const { name, email } = body;
+  const sanitize = s => (typeof s === 'string' ? s.replace(/[\r\n]/g, ' ').trim().slice(0, 300) : '');
+  const isEmail  = s => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
+
+  const name  = sanitize(body.name);
+  const email = sanitize(body.email);
+
   if (!name || !email) return json(400, { error: 'name and email required' });
+  if (!isEmail(email)) return json(400, { error: 'Invalid email address' });
+
+  if (!SUP_URL || !SUP_KEY) return json(500, { error: 'Database not configured' });
+
+  // Rate limit — prevent hammering the subscribe endpoint with the same email
+  try {
+    const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    const rateRes    = await fetch(
+      `${SUP_URL}/rest/v1/newsletter_subscribers?email=eq.${encodeURIComponent(email)}&subscribed_at=gte.${encodeURIComponent(fiveMinAgo)}&select=id&limit=1`,
+      { headers: { apikey: SUP_KEY, Authorization: `Bearer ${SUP_KEY}` } }
+    );
+    const rateRows = rateRes.ok ? await rateRes.json() : [];
+    if (Array.isArray(rateRows) && rateRows.length > 0) {
+      // Already subscribed (or just tried) — return success/duplicate without sending another email
+      return json(200, { success: true, duplicate: true });
+    }
+  } catch(_) {}
 
   // Dedup check
   if (SUP_URL && SUP_KEY) {
@@ -56,7 +80,7 @@ exports.handler = async function(event) {
         method: 'POST',
         headers: { Authorization: `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          from: 'Phelim Ekwebe <hello@phelim.me>',
+          from: `Phelim Ekwebe <${SENDER}>`,
           to: [email],
           subject: 'Welcome — you\'re subscribed to Future Foundations',
           html,

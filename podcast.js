@@ -1,7 +1,7 @@
 /* phelim.me — podcast carousel */
 
 // ═══ CAROUSEL ═══
-let carActive=0,isDrag=false;
+let carActive=0,isDrag=false,_dragSetup=false;
 function buildCarousel(){
   const track=document.getElementById('car-track');
   const dots=document.getElementById('car-dots');
@@ -40,7 +40,7 @@ function scrollCar(){
   track.style.transform=`translateX(${Math.min(0,curT-(cRect.left-oRect.left)+40)}px)`;
 }
 function setupDrag(){
-  const track=document.getElementById('car-track');if(!track)return;
+  const track=document.getElementById('car-track');if(!track||_dragSetup)return;_dragSetup=true;
   let sX=0,sT=0;
   track.addEventListener('mousedown',e=>{isDrag=false;sX=e.clientX;sT=parseFloat(track.style.transform?.replace('translateX(',''))||0;track.classList.add('dragging');document.addEventListener('mousemove',onM);document.addEventListener('mouseup',onU);});
   function onM(e){const dx=e.clientX-sX;if(Math.abs(dx)>5)isDrag=true;if(isDrag)track.style.transform=`translateX(${sT+dx}px)`;}

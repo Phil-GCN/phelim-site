@@ -8,9 +8,17 @@
   <meta property="og:title" content="Resources — Phelim Ekwebe">
   <meta property="og:description" content="Tools, books, and frameworks. The Builder's Wealth Planner, Built to Last, Beyond Survival, and more.">
   <meta property="og:type" content="website">
+  <meta property="og:image" content="https://phelim.me/og-image.jpg">
+  <meta property="og:url" content="https://phelim.me/resources.html">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Resources — Phelim Ekwebe">
+  <meta name="twitter:description" content="Tools, books, and frameworks. The Builder's Wealth Planner, Built to Last, Beyond Survival, and more.">
+  <meta name="twitter:image" content="https://phelim.me/og-image.jpg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,600&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,600&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,600&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,600&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet"></noscript>
   <link rel="stylesheet" href="base.css">
   <link rel="stylesheet" href="pages.css">
 </head>
@@ -104,76 +112,7 @@
   </div>
 </main>
 
-<!-- ════ GENERAL MODAL ════ -->
-<div class="modal-overlay" id="modal" onclick="closeModalOuter(event)">
-  <div class="modal-box">
-    <button class="modal-close" onclick="closeModal()">×</button>
-    <div class="modal-eyebrow" id="m-eyebrow">Get in touch</div>
-    <div class="modal-title" id="m-title">Work With Phelim</div>
-    <div id="m-form-body"></div>
-  </div>
-</div>
-
-<!-- ════ CHECKOUT MODAL ════ -->
-<div class="modal-overlay" id="checkout-modal" onclick="closeCheckoutOuter(event)">
-  <div class="checkout-box">
-    <div class="checkout-head">
-      <button class="checkout-close" onclick="closeCheckout()">×</button>
-      <div class="checkout-eyebrow-lbl" id="co-eyebrow">Pre-order</div>
-      <div class="checkout-title" id="co-title">Built to Last</div>
-      <div class="checkout-price" id="co-price">€ 24.99</div>
-    </div>
-    <div class="checkout-body">
-      <div class="checkout-item-row">
-        <div class="checkout-cover" id="co-cover" style="background:var(--forest);"><span id="co-cover-text">Built to Last</span></div>
-        <div class="checkout-item-info">
-          <div class="checkout-item-name" id="co-item-name">Built to Last</div>
-          <div class="checkout-item-type" id="co-item-type">Pre-order · Hardcover</div>
-        </div>
-        <div class="checkout-item-price" id="co-item-price">€ 24.99</div>
-      </div>
-      <div class="checkout-note"><p><strong>Pre-order guarantee:</strong> You will be charged now and your copy ships as soon as the book is available. Cancel anytime before dispatch for a full refund.</p></div>
-      <div class="checkout-divider">Your details</div>
-      <form class="form" id="checkout-form" onsubmit="handleCheckout(event)">
-        <div class="frow">
-          <div class="fg"><label class="flabel">First name</label><input class="finput" type="text" placeholder="First name" required></div>
-          <div class="fg"><label class="flabel">Last name</label><input class="finput" type="text" placeholder="Last name" required></div>
-        </div>
-        <div class="fg"><label class="flabel">Email</label><input class="finput" type="email" placeholder="your@email.com" required></div>
-        <div class="fg"><label class="flabel">Format</label>
-          <select class="fselect" id="co-format" onchange="updateCoPrice()">
-            <option value="24.99">Hardcover — € 24.99</option>
-            <option value="12.99">eBook (PDF + ePub) — € 12.99</option>
-            <option value="14.99">Audiobook — € 14.99</option>
-            <option value="29.99">Hardcover + eBook bundle — € 29.99</option>
-          </select>
-        </div>
-        <div class="checkout-divider">Payment</div>
-        <div class="checkout-methods">
-          <div class="pay-method selected" onclick="selectPayMethod(this,'card')">
-            <div class="pay-method-icon">💳</div><div class="pay-method-label">Card</div>
-          </div>
-          <div class="pay-method" onclick="selectPayMethod(this,'bank')">
-            <div class="pay-method-icon">🏦</div><div class="pay-method-label">Bank transfer</div>
-          </div>
-        </div>
-        <div id="card-fields">
-          <div class="fg"><label class="flabel">Card number</label><input class="finput" type="text" placeholder="•••• •••• •••• ••••" maxlength="19"></div>
-          <div class="frow">
-            <div class="fg"><label class="flabel">Expiry</label><input class="finput" type="text" placeholder="MM / YY" maxlength="7"></div>
-            <div class="fg"><label class="flabel">CVC</label><input class="finput" type="text" placeholder="•••" maxlength="4"></div>
-          </div>
-        </div>
-        <div id="bank-fields" style="display:none;background:var(--forest-faint);border:1px solid rgba(38,61,51,.15);padding:15px 17px;margin-bottom:4px;">
-          <p style="font-size:.82rem;color:var(--ink60);margin-bottom:7px;">Bank transfer details will be sent to your email once you place the order.</p>
-          <p style="font-size:.78rem;color:var(--ink30);margin:0;font-style:italic;">Orders are held for 5 business days pending payment.</p>
-        </div>
-        <button type="submit" class="btn btn-dark" style="width:100%;justify-content:center;padding:13px;margin-top:14px;">Complete Pre-order</button>
-        <div class="stripe-badge">Payments processed securely via Stripe. Connect your Stripe account to activate.</div>
-      </form>
-    </div>
-  </div>
-</div>
+<!-- Modals injected by modals.js -->
 
 <footer class="site-footer">
   <div class="container">

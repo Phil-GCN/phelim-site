@@ -4,6 +4,8 @@
 // POST /.netlify/functions/send-waitlist  { subject, body }
 // Requires: RESEND_API_KEY, SUPABASE_URL, SUPABASE_SERVICE_KEY
 
+const SENDER = process.env.SENDER_EMAIL || 'hello@phelim.me';
+
 exports.handler = async function(event) {
   if (event.httpMethod !== 'POST') return json(405, { error: 'Method not allowed' });
 
@@ -98,7 +100,7 @@ exports.handler = async function(event) {
         method: 'POST',
         headers: { Authorization: `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          from: 'Phelim Ekwebe <hello@phelim.me>',
+          from: `Phelim Ekwebe <${SENDER}>`,
           to: [sub.email],
           subject,
           html: buildHtml(sub.name || '', subject, msgBody),

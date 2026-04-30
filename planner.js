@@ -4,7 +4,7 @@
 const FX={XAF:.00153,NGN:.00062,GHS:.067,KES:.0071,ZAR:.051,USD:.93};
 const SYM={EUR:'€',GBP:'£',USD:'$',CHF:'CHF '};
 function fmt(n,s){return(s||'')+(Math.round(n)||0).toLocaleString();}
-function calc(){
+function _calc(){
   const sym=SYM[document.getElementById('pi-cur')?.value]||'€';
   const gross=+document.getElementById('pi-gross')?.value||0;
   const exp=+document.getElementById('pi-exp')?.value||0;
@@ -31,3 +31,6 @@ function calc(){
   const alloc=document.getElementById('planner-alloc');
   if(alloc)alloc.innerHTML=[{n:'Emergency fund',p:ae},{n:'Long-term invest.',p:ai},{n:'Short-term savings',p:as_}].map(a=>`<div class="alloc-row"><div class="alloc-name">${a.n}</div><div class="alloc-bar-track"><div class="alloc-bar-fill" style="width:${Math.min(a.p,100)}%;"></div></div><div class="alloc-pct">${Math.round(a.p)}%</div><div class="alloc-amt">${fmt(sav*(a.p/100),sym)}</div></div>`).join('');
 }
+// Debounced public entry-point (used by oninput="calc()" in resources.html)
+let _calcTimer;
+function calc(){clearTimeout(_calcTimer);_calcTimer=setTimeout(_calc,120);}

@@ -3,6 +3,8 @@
 // Requires env var: RESEND_API_KEY
 // Optional env var: NOTIFY_EMAIL (defaults to hello@phelim.me)
 
+const SENDER = process.env.SENDER_EMAIL || 'hello@phelim.me';
+
 const DEFAULT_TEMPLATES = {
   speaking: {
     colour: '#263d33',
@@ -201,18 +203,27 @@ exports.handler = async function(event) {
   try { body = JSON.parse(event.body); }
   catch { return { statusCode: 400, body: JSON.stringify({ error: 'Invalid JSON' }) }; }
 
-  const { to, name, subject, type, replyBody, mode, fields, templateOverride, submissionId } = body;
+  const sanitize = s => (typeof s === 'string' ? s.replace(/[\r\n]/g, ' ').trim().slice(0, 500) : '');
+  const isEmail  = s => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
+
+  const { type, replyBody, mode, fields, templateOverride, submissionId } = body;
+  const to      = sanitize(body.to);
+  const name    = sanitize(body.name);
+  const subject = sanitize(body.subject);
   const NOTIFY_EMAIL = process.env.NOTIFY_EMAIL || 'hello@phelim.me';
 
   if (!to || !name) {
     return { statusCode: 400, body: JSON.stringify({ error: 'Missing required fields: to, name' }) };
+  }
+  if (!isEmail(to)) {
+    return { statusCode: 400, body: JSON.stringify({ error: 'Invalid recipient email' }) };
   }
 
   try {
     if (mode === 'auto') {
       // 1. Send branded auto-reply to submitter
       await sendEmail(RESEND_API_KEY, {
-        from: 'Phelim Ekwebe <hello@phelim.me>',
+        from: `Phelim Ekwebe <${SENDER}>`,
         to,
         replyTo: NOTIFY_EMAIL,
         subject: subject || `Thank you for your ${type || 'general'} enquiry — Phelim Ekwebe`,
@@ -221,7 +232,7 @@ exports.handler = async function(event) {
 
       // 2. Send notification to owner
       await sendEmail(RESEND_API_KEY, {
-        from: 'phelim.me <hello@phelim.me>',
+        from: `phelim.me <${SENDER}>`,
         to: NOTIFY_EMAIL,
         replyTo: to,   // ← replying to this notification goes straight to the submitter
         subject: `New ${(type||'general')} enquiry from ${name}`,
@@ -233,7 +244,7 @@ exports.handler = async function(event) {
       const html = buildCustomReply(name, replyBody || '');
       const emailSubject = subject || `Re: Your enquiry — Phelim Ekwebe`;
       await sendEmail(RESEND_API_KEY, {
-        from: 'Phelim Ekwebe <hello@phelim.me>',
+        from: `Phelim Ekwebe <${SENDER}>`,
         to,
         replyTo: NOTIFY_EMAIL,
         subject: emailSubject,

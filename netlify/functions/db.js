@@ -10,6 +10,12 @@
 // Tables: articles | episodes | books | site_content | email_templates
 //         sent_messages | message_threads
 
+const ALLOWED_TABLES = new Set([
+  'articles', 'episodes', 'books', 'site_content', 'email_templates',
+  'sent_messages', 'message_threads', 'submissions', 'newsletter_subscribers',
+  'newsletter_sends', 'book_orders', 'orders',
+]);
+
 exports.handler = async function(event) {
   const URL = process.env.SUPABASE_URL;
   const KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -29,6 +35,7 @@ exports.handler = async function(event) {
   if (event.httpMethod === 'GET') {
     const { table, id, filter } = event.queryStringParameters || {};
     if (!table) return json(400, { error: 'table param required' });
+    if (!ALLOWED_TABLES.has(table)) return json(400, { error: 'Unknown table' });
 
     let url = `${URL}/rest/v1/${table}`;
     const params = new URLSearchParams({ select: '*' });
@@ -62,6 +69,7 @@ exports.handler = async function(event) {
 
     const { table, action, data, id, match } = body;
     if (!table || !action) return json(400, { error: 'table and action required' });
+    if (!ALLOWED_TABLES.has(table)) return json(400, { error: 'Unknown table' });
 
     if (action === 'upsert') {
       const res = await fetch(`${URL}/rest/v1/${table}`, {
