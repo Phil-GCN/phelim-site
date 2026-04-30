@@ -12,6 +12,19 @@ const CATALOG = {
   bs:  { title: 'Beyond Survival', type: 'book', variants: { Hardcover: '22.99', Paperback: '12.99', eBook: '8.99' } },
 };
 
+async function getBookFile(supUrl, supKey, bookId) {
+  if (!supUrl || !supKey) return null;
+  try {
+    const r = await fetch(
+      `${supUrl}/rest/v1/books?id=eq.${encodeURIComponent(bookId)}&select=pdf_data,pdf_name&limit=1`,
+      { headers: { apikey: supKey, Authorization: `Bearer ${supKey}` } }
+    );
+    const rows = await r.json();
+    if (!r.ok || !rows.length || !rows[0].pdf_data) return null;
+    return { pdfData: rows[0].pdf_data, pdfName: rows[0].pdf_name || 'ebook.pdf' };
+  } catch { return null; }
+}
+
 async function getItemFromDB(itemId, supUrl, supKey) {
   if (!supUrl || !supKey) return null;
   try {
@@ -153,9 +166,10 @@ function buildOwnerNotification({ firstName, lastName, email, itemTitle, variant
   return buildEmailWrapper({ colour: '#1a2d24', eyebrow: `New ${orderType === 'purchase' ? 'Purchase' : 'Pre-order'}`, heading: `${firstName} ${lastName} ordered ${itemTitle}`, content, closing: null, sigHtml });
 }
 
-async function sendEmail(apiKey, { from, to, replyTo, subject, html }) {
+async function sendEmail(apiKey, { from, to, replyTo, subject, html, attachments }) {
   const payload = { from, to: Array.isArray(to) ? to : [to], subject, html };
-  if (replyTo) payload.reply_to = replyTo;
+  if (replyTo)     payload.reply_to    = replyTo;
+  if (attachments) payload.attachments = attachments;
   const r = await fetch('https://api.resend.com/emails', {
     method:  'POST',
     headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
@@ -256,13 +270,25 @@ module.exports = async function(req, res) {
   const sigHtml = buildSignature(sc);
   const errors  = [];
 
+  // For eBook orders, attempt to fetch and attach the PDF
+  let ebookAttachments;
+  if (variant === 'eBook' && SUP_URL && SUP_KEY) {
+    const bookFile = await getBookFile(SUP_URL, SUP_KEY, itemId);
+    if (bookFile && bookFile.pdfData) {
+      // Strip the data URL prefix (data:application/pdf;base64,...)
+      const base64Content = bookFile.pdfData.replace(/^data:[^;]+;base64,/, '');
+      ebookAttachments = [{ filename: bookFile.pdfName, content: base64Content }];
+    }
+  }
+
   try {
     await sendEmail(RESEND_KEY, {
-      from:    `Phelim Ekwebe <${SENDER}>`,
-      to:      email,
-      replyTo: NOTIFY,
-      subject: `Order confirmed: ${resolvedTitle} — ${orderId}`,
-      html:    buildConfirmationEmail({ firstName, itemTitle: resolvedTitle, itemType, variant, price: finalPrice, orderId, orderType, paymentMethod, sigHtml }),
+      from:        `Phelim Ekwebe <${SENDER}>`,
+      to:          email,
+      replyTo:     NOTIFY,
+      subject:     `Order confirmed: ${resolvedTitle} — ${orderId}`,
+      html:        buildConfirmationEmail({ firstName, itemTitle: resolvedTitle, itemType, variant, price: finalPrice, orderId, orderType, paymentMethod, sigHtml }),
+      attachments: ebookAttachments,
     });
   } catch(e) { errors.push('confirmation: ' + e.message); }
 

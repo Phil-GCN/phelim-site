@@ -88,8 +88,12 @@
       <div class="bres-grid">
         <div class="bres-card"><div class="bres-cover" id="book-live-res-btl-cover" style="background:var(--forest);"><span id="book-live-res-btl-cover-title">Built to Last</span></div><div><div class="bres-label" id="book-live-res-btl-label">Pre-order · Feb 2027</div><div class="bres-title" id="book-live-res-btl-title">Built to Last</div><p class="bres-desc" id="book-live-res-btl-desc">A personal framework for designing lives of lasting impact — through structure, identity, and intentional design.</p><button class="btn btn-dark" onclick="openCheckout('btl')" id="book-live-res-btl-cta">Pre-order Now</button></div></div>
         <div class="bres-card"><div class="bres-cover" id="book-live-res-bs-cover" style="background:#1a2d24;"><span style="color:rgba(248,246,241,.5);" id="book-live-res-bs-cover-title">Beyond Survival</span></div><div><div class="bres-label" id="book-live-res-bs-label">Pre-order · Jan 2027</div><div class="bres-title" id="book-live-res-bs-title">Beyond Survival</div><p class="bres-desc" id="book-live-res-bs-desc">The immigrant's guide to generational wealth. For those building a life and legacy across borders.</p><button class="btn btn-dark" onclick="openCheckout('bs')" id="book-live-res-bs-cta">Pre-order Now</button></div></div>
-        <!-- Dynamic books injected by loadLiveBooks() -->
-        <div id="dynamic-book-res-cards"></div>
+        <!-- Dynamic books injected directly into .bres-grid by loadLiveBooks() -->
+        <div id="books-empty-state" style="display:none;grid-column:1/-1;padding:36px 28px;background:var(--paper-mid);border:1px solid var(--ink12);text-align:center;">
+          <div style="font-family:var(--serif);font-size:1.05rem;color:var(--ink);margin-bottom:8px;font-style:italic;">The books are coming.</div>
+          <p style="font-size:.84rem;color:var(--ink60);max-width:400px;margin:0 auto 18px;line-height:1.7;">Subscribe to be among the first to know when they land — along with early-access pricing.</p>
+          <button class="btn btn-dark" onclick="openModal('general')">Subscribe for launch notification</button>
+        </div>
       </div>
     </div>
   </div>

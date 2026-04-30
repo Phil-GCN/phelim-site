@@ -102,6 +102,13 @@ async function loadLiveBooks() {
       }
     });
   }
+  // If no rows at all, show empty states
+  if (rows.length === 0) {
+    const resEmptyState = document.getElementById('books-empty-state');
+    if (resEmptyState) resEmptyState.style.display = '';
+    const engEmptyState = document.getElementById('eng-books-empty-state');
+    if (engEmptyState) engEmptyState.style.display = '';
+  }
 
   rows.forEach(b => {
     const id     = b.id;
@@ -119,7 +126,7 @@ async function loadLiveBooks() {
     // Update window.BOOKS_DATA for checkout modal
     if (!window.BOOKS_DATA) window.BOOKS_DATA = {};
     // Build variants from per-format prices; fall back to single price for all formats
-    const _formats  = (b.format_options || 'Hardcover').split('·').map(f => f.trim()).filter(Boolean);
+    const _formats  = (b.format_options || 'Hardcover · Paperback · eBook').split('·').map(f => f.trim()).filter(Boolean);
     const _priceMap = { Hardcover: b.price_hardcover, Paperback: b.price_paperback, eBook: b.price_ebook, Audiobook: b.price_audiobook };
     const _variants = {};
     _formats.forEach(f => { _variants[f] = _priceMap[f] || b.price || '0'; });
@@ -246,8 +253,8 @@ function _renderDynamicBook(b, id, tagText, badgeText, ctaText) {
   }
 
   // ── Resources page ──
-  const dynCards = document.getElementById('dynamic-book-res-cards');
-  if (dynCards && !document.getElementById(`book-live-res-${id}-title`)) {
+  const bresGrid = document.querySelector('.bres-grid');
+  if (bresGrid && !document.getElementById(`book-live-res-${id}-title`)) {
     const card = document.createElement('div');
     card.className = 'bres-card';
     const coverStyle = b.cover_data ? `background-image:url(${b.cover_data});background-size:cover;` : 'background:var(--forest);';
@@ -259,7 +266,12 @@ function _renderDynamicBook(b, id, tagText, badgeText, ctaText) {
         <p class="bres-desc">${b.description || ''}</p>
         <button class="btn btn-dark" onclick="openCheckout('${id}')">${ctaText}</button>
       </div>`;
-    dynCards.appendChild(card);
+    // Insert before the empty-state sentinel if present, else append
+    const sentinel = document.getElementById('books-empty-state');
+    if (sentinel) bresGrid.insertBefore(card, sentinel);
+    else bresGrid.appendChild(card);
+    // Hide empty state since we have at least one book
+    if (sentinel) sentinel.style.display = 'none';
   }
 }
 

@@ -141,7 +141,7 @@ const DEFAULT_BOOKS = [
     description: 'A personal framework for designing lives of lasting impact — through structure, identity, and intentional design.',
     longDescription: 'Not motivation. Not quick wins. A clear-eyed, personal exploration of the structures behind lives that hold — in meaning, wealth, freedom, and what remains long after the achievements fade. Honest, direct, story-heavy. Written for those who are done surviving and ready to build.',
     hookText: '',
-    coverData: null, coverName: null, pdfData: null, pdfName: null,
+    coverData: null, coverName: null, pdfData: null, pdfName: null, audioData: null, audioName: null,
   },
   {
     id: 'bs', title: 'Beyond Survival', subtitle: "The Immigrant's Guide to Generational Wealth",
@@ -152,7 +152,7 @@ const DEFAULT_BOOKS = [
     description: "The immigrant's guide to generational wealth. For those building a life and legacy across borders.",
     longDescription: 'For the first-generation immigrant who arrived with drive, built a life, and now asks — what\'s next? This book is rooted in lived experience: the decisions that separate survival from legacy, the financial behaviours that compound across generations, and the identity shifts that make it all possible. Written for African diaspora builders, and for anyone who has navigated building a life across borders.',
     hookText: 'This book is personal. It comes from watching — and living — the journey of first-generation Africans and immigrants who arrive with everything and often leave wealth-building to chance. Beyond Survival is the guide I wished existed.',
-    coverData: null, coverName: null, pdfData: null, pdfName: null,
+    coverData: null, coverName: null, pdfData: null, pdfName: null, audioData: null, audioName: null,
   },
 ];
 
@@ -173,6 +173,7 @@ async function loadBooks() {
       hookText: r.hook_text || '',
       coverData: r.cover_data, coverName: r.cover_name,
       pdfData: r.pdf_data, pdfName: r.pdf_name,
+      audioData: r.audio_data, audioName: r.audio_name,
     }));
   } catch(e) {
     console.error('DB load failed:', e.message);
@@ -198,6 +199,7 @@ async function saveBooks(books) {
         hook_text: b.hookText || '',
         cover_data: b.coverData, cover_name: b.coverName,
         pdf_data: b.pdfData, pdf_name: b.pdfName,
+        audio_data: b.audioData, audio_name: b.audioName,
         updated_at: new Date().toISOString(),
       });
     }
@@ -403,6 +405,17 @@ function renderEditForm(b) {
         ${b.pdfData ? `<div class="upload-preview">${pdfThumb}<div class="upload-preview-info"><div class="upload-preview-name">${b.pdfName || 'Book PDF'}</div><div class="upload-preview-size">Stored</div></div><button class="upload-preview-remove" onclick="removeFile('${b.id}','pdf')">✕</button></div>` : ''}
       </div>
     </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Audiobook File <span style="color:var(--ink30);font-weight:400;">(MP3 or M4B — delivered on Audiobook orders)</span></label>
+        <div class="upload-zone" data-book="${b.id}" data-type="audio" onclick="document.getElementById('audio-input-${b.id}').click()">
+          <input type="file" id="audio-input-${b.id}" accept=".mp3,.m4b,.m4a,audio/*" onchange="handleFileChange(this,'${b.id}','audio')">
+          <div class="upload-zone-icon">🎧</div>
+          <div class="upload-zone-label">Drop audio file here or <strong>browse</strong><br><span style="font-size:.7rem;">MP3, M4B, M4A · max 200MB</span></div>
+        </div>
+        ${b.audioData ? `<div class="upload-preview"><div class="upload-preview-pdf" style="background:#2d4a3e;"><span>MP3</span></div><div class="upload-preview-info"><div class="upload-preview-name">${b.audioName || 'Audiobook file'}</div><div class="upload-preview-size">Stored</div></div><button class="upload-preview-remove" onclick="removeFile('${b.id}','audio')">✕</button></div>` : ''}
+      </div>
+    </div>
 
     <div style="display:flex;gap:9px;margin-top:8px;">
       <button class="btn btn-primary btn-sm" onclick="saveBook('${b.id}')">Save Changes</button>
@@ -425,9 +438,9 @@ function handleFileChange(input, bookId, type) {
 }
 
 function handleFileInput(file, bookId, type) {
-  const maxBytes = type === 'pdf' ? 50 * 1024 * 1024 : 5 * 1024 * 1024;
+  const maxBytes = (type === 'pdf' || type === 'audio') ? 200 * 1024 * 1024 : 5 * 1024 * 1024;
   if (file.size > maxBytes) {
-    showToast('File too large. Max ' + (type === 'pdf' ? '50MB' : '5MB') + ' allowed.');
+    showToast('File too large. Max ' + ((type === 'pdf' || type === 'audio') ? '200MB' : '5MB') + ' allowed.');
     return;
   }
   const reader = new FileReader();
@@ -435,10 +448,11 @@ function handleFileInput(file, bookId, type) {
     const b = BOOKS.find(x => x.id === bookId);
     if (!b) return;
     if (type === 'cover') { b.coverData = e.target.result; b.coverName = file.name; }
+    else if (type === 'audio') { b.audioData = e.target.result; b.audioName = file.name; }
     else                  { b.pdfData   = e.target.result; b.pdfName   = file.name; }
     // Re-render just the edit form content (keep drawer open)
     document.getElementById('edit-form-body').innerHTML = renderEditForm(b);
-    showToast((type === 'cover' ? 'Cover image' : 'PDF') + ' attached. Click Save to keep.');
+    showToast((type === 'cover' ? 'Cover image' : type === 'audio' ? 'Audiobook file' : 'PDF') + ' attached. Click Save to keep.');
   };
   reader.readAsDataURL(file);
 }
@@ -447,6 +461,7 @@ function removeFile(bookId, type) {
   const b = BOOKS.find(x => x.id === bookId);
   if (!b) return;
   if (type === 'cover') { b.coverData = null; b.coverName = null; }
+  else if (type === 'audio') { b.audioData = null; b.audioName = null; }
   else                  { b.pdfData   = null; b.pdfName   = null; }
   document.getElementById('edit-form-body').innerHTML = renderEditForm(b);
 }
@@ -490,6 +505,7 @@ async function saveBook(id) {
       hook_text: b.hookText || '',
       cover_data: b.coverData, cover_name: b.coverName,
       pdf_data: b.pdfData, pdf_name: b.pdfName,
+      audio_data: b.audioData, audio_name: b.audioName,
       updated_at: new Date().toISOString(),
     });
     showToast('Book saved. Changes are live on the site.');
@@ -528,7 +544,7 @@ function addBook() {
     coverColor: '',
     author: 'Phelim Ekwebe', audience: '', formatOptions: 'Hardcover · eBook',
     description: '', longDescription: '', hookText: '',
-    coverData: null, coverName: null, pdfData: null, pdfName: null,
+    coverData: null, coverName: null, pdfData: null, pdfName: null, audioData: null, audioName: null,
   });
   renderList();
   openEditor(id);

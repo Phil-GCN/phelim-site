@@ -171,6 +171,12 @@
       </div>
       <!-- Dynamic books (added via portal) — injected by loadLiveBooks() -->
       <div id="dynamic-book-panels"></div>
+      <!-- Empty state shown when no books exist at all -->
+      <div id="eng-books-empty-state" style="display:none;padding:36px 28px;background:var(--paper-mid);border:1px solid var(--ink12);text-align:center;margin-bottom:24px;">
+        <div style="font-family:var(--serif);font-size:1.1rem;color:var(--ink);margin-bottom:8px;font-style:italic;">The books are coming.</div>
+        <p style="font-size:.85rem;color:var(--ink60);max-width:420px;margin:0 auto 18px;line-height:1.7;">Subscribe to be among the first to know when they land — along with early-access pricing.</p>
+        <button class="btn btn-dark" onclick="openModal('waitlist','upcoming','Future Titles')">Subscribe for launch notification</button>
+      </div>
       <!-- More coming -->
       <div id="book-more" class="book-tab-panel" style="opacity:.6;">
         <div class="book-cover-wrap"><div class="book-cover" style="background:var(--paper-dark);border:1px dashed var(--ink12);"><div class="book-cover-title" style="color:var(--ink30);font-size:1rem;">Coming next</div></div></div>
