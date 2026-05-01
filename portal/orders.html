@@ -220,11 +220,20 @@ function updatePendingBadge() {
 }
 
 // ── Render table ──
+// Rebuilds tbody HTML, then re-injects the open detail panel if one is active.
 function renderTable() {
   const query   = document.getElementById('search-input').value.toLowerCase();
   const status  = document.getElementById('filter-status').value;
   const type    = document.getElementById('filter-type').value;
   const payment = document.getElementById('filter-payment').value;
+
+  // Detach detail panel before rebuilding so it isn't destroyed
+  const detail    = document.getElementById('order-detail');
+  const detailParent = detail.parentNode;
+  const detailPlaceholder = document.createComment('order-detail-placeholder');
+  if (detailParent) {
+    detailParent.replaceChild(detailPlaceholder, detail);
+  }
 
   let rows = allOrders.filter(o => {
     if (status  !== 'all' && o.status         !== status)  return false;
@@ -240,27 +249,52 @@ function renderTable() {
   const tbody = document.getElementById('orders-tbody');
   if (!rows.length) {
     tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:28px;color:var(--ink30);">No orders match these filters.</td></tr>';
-    return;
+  } else {
+    tbody.innerHTML = rows.map(o => {
+      const name   = [o.first_name, o.last_name].filter(Boolean).join(' ') || '—';
+      const date   = new Date(o.created_at).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+      const price  = o.price ? '€ ' + parseFloat(o.price).toFixed(2) : '—';
+      const pm     = o.payment_method === 'bank' ? 'Bank' : 'Card';
+      const isCurrent = currentOrder?.id === o.id;
+      return `<tr style="cursor:pointer;${isCurrent ? 'background:var(--paper-mid);' : ''}" onclick="toggleDetail('${o.id}')" id="orow-${o.id}">
+        <td style="font-size:.78rem;font-family:monospace;color:var(--ink60);">${o.id}</td>
+        <td><strong>${name}</strong><br><span style="font-size:.72rem;color:var(--ink30);">${o.email || ''}</span></td>
+        <td style="font-size:.85rem;">${o.item_title || o.item_id || '—'}</td>
+        <td style="font-size:.82rem;color:var(--ink60);">${o.variant || '—'}</td>
+        <td style="font-size:.85rem;">${price}</td>
+        <td style="font-size:.82rem;color:var(--ink60);">${pm}</td>
+        <td><span class="status-badge status-${o.status || 'pending'}">${o.status || 'pending'}</span></td>
+        <td style="font-size:.78rem;color:var(--ink60);white-space:nowrap;">${date}</td>
+        <td style="text-align:right;"><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();toggleDetail('${o.id}')">${isCurrent ? 'Close' : 'View'}</button></td>
+      </tr>`;
+    }).join('');
   }
 
-  tbody.innerHTML = rows.map(o => {
-    const name   = [o.first_name, o.last_name].filter(Boolean).join(' ') || '—';
-    const date   = new Date(o.created_at).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
-    const price  = o.price ? '€ ' + parseFloat(o.price).toFixed(2) : '—';
-    const pm     = o.payment_method === 'bank' ? 'Bank' : 'Card';
-    const isCurrent = currentOrder?.id === o.id;
-    return `<tr style="cursor:pointer;${isCurrent ? 'background:var(--paper-mid);' : ''}" onclick="toggleDetail('${o.id}')" id="orow-${o.id}">
-      <td style="font-size:.78rem;font-family:monospace;color:var(--ink60);">${o.id}</td>
-      <td><strong>${name}</strong><br><span style="font-size:.72rem;color:var(--ink30);">${o.email || ''}</span></td>
-      <td style="font-size:.85rem;">${o.item_title || o.item_id || '—'}</td>
-      <td style="font-size:.82rem;color:var(--ink60);">${o.variant || '—'}</td>
-      <td style="font-size:.85rem;">${price}</td>
-      <td style="font-size:.82rem;color:var(--ink60);">${pm}</td>
-      <td><span class="status-badge status-${o.status || 'pending'}">${o.status || 'pending'}</span></td>
-      <td style="font-size:.78rem;color:var(--ink60);white-space:nowrap;">${date}</td>
-      <td style="text-align:right;"><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();toggleDetail('${o.id}')">${isCurrent ? 'Close' : 'View'}</button></td>
-    </tr>`;
-  }).join('');
+  // Re-inject the detail panel below its source row if one is open
+  if (currentOrder) {
+    const srcRow = document.getElementById('orow-' + currentOrder.id);
+    if (srcRow) {
+      const existing = document.getElementById('inline-order-row');
+      if (existing) existing.remove();
+      const tr = document.createElement('tr');
+      tr.id = 'inline-order-row';
+      const td = document.createElement('td');
+      td.colSpan = 9; td.style.padding = '0 2px 2px';
+      td.appendChild(detail);
+      tr.appendChild(td);
+      srcRow.parentNode.insertBefore(tr, srcRow.nextSibling);
+      detail.style.display = 'block';
+    } else {
+      // Filtered out — restore detail to portal-main (hidden)
+      document.querySelector('.portal-main').appendChild(detail);
+      detail.style.display = 'none';
+      currentOrder = null;
+    }
+  } else {
+    // No open detail — restore to portal-main
+    document.querySelector('.portal-main').appendChild(detail);
+    detail.style.display = 'none';
+  }
 }
 
 // ── Detail ──
@@ -274,8 +308,8 @@ function viewOrder(id) {
   if (!o) return;
   currentOrder = o;
 
-  const name  = [o.first_name, o.last_name].filter(Boolean).join(' ') || '—';
-  const date  = new Date(o.created_at).toLocaleString('en-GB', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+  const name = [o.first_name, o.last_name].filter(Boolean).join(' ') || '—';
+  const date = new Date(o.created_at).toLocaleString('en-GB', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
 
   document.getElementById('od-id').textContent      = o.id;
   document.getElementById('od-date').textContent    = date;
@@ -296,52 +330,22 @@ function viewOrder(id) {
     stripeRow.style.display = 'none';
   }
 
-  // Status badge
+  // Status badge & action buttons
   const badge = document.getElementById('od-status-badge');
   badge.className = `status-badge status-${o.status || 'pending'}`;
   badge.textContent = o.status || 'pending';
+  document.getElementById('od-btn-confirm').style.display = (o.status === 'pending')   ? '' : 'none';
+  document.getElementById('od-btn-fulfil').style.display  = (o.status !== 'fulfilled' && o.status !== 'cancelled') ? '' : 'none';
+  document.getElementById('od-btn-cancel').style.display  = (o.status !== 'cancelled') ? '' : 'none';
 
-  // Show/hide action buttons based on current status
-  document.getElementById('od-btn-confirm').style.display  = (o.status === 'pending')   ? '' : 'none';
-  document.getElementById('od-btn-fulfil').style.display   = (o.status !== 'fulfilled' && o.status !== 'cancelled') ? '' : 'none';
-  document.getElementById('od-btn-cancel').style.display   = (o.status !== 'cancelled') ? '' : 'none';
-
-  // Show inline below the clicked row
-  const detail = document.getElementById('order-detail');
-  detail.style.display = 'block';
-  const srcRow = document.getElementById('orow-' + id);
-  if (srcRow) {
-    srcRow.parentNode.insertBefore(
-      (() => {
-        // Wrap detail in a table row
-        const existing = document.getElementById('inline-order-row');
-        if (existing) existing.remove();
-        const tr = document.createElement('tr');
-        tr.id = 'inline-order-row';
-        const td = document.createElement('td');
-        td.colSpan = 9; td.style.padding = '0 2px 2px';
-        td.appendChild(detail);
-        tr.appendChild(td);
-        return tr;
-      })(),
-      srcRow.nextSibling
-    );
-    detail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  }
-
-  renderTable(); // re-render to highlight active row
+  // renderTable handles DOM placement (detach → rebuild → re-inject)
+  renderTable();
+  document.getElementById('order-detail')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
 function closeDetail() {
-  const detail = document.getElementById('order-detail');
-  const inlineRow = document.getElementById('inline-order-row');
-  detail.style.display = 'none';
-  if (inlineRow) {
-    document.querySelector('.portal-main').appendChild(detail);
-    inlineRow.remove();
-  }
   currentOrder = null;
-  renderTable();
+  renderTable(); // renderTable restores detail to portal-main when currentOrder is null
 }
 
 // ── Status update ──
