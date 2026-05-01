@@ -32,8 +32,15 @@ async function loadLiveEpisodes() {
   const rows = await fetchFromDB('episodes');
   if (rows && rows.length) {
     window.EPS = rows
-      .map(r => ({ n: r.number, t: r.title, d: r.description, bg: r.bg_color || '#1a3028', spotify: r.spotify_url, youtube: r.youtube_url, featured: r.featured || false, tag: r.tag || '', externalShow: r.external_show || '', externalShowUrl: r.external_show_url || '' }))
-      .sort((a, b) => parseInt(b.n) - parseInt(a.n));
+      .map(r => ({
+        n: r.number, t: r.title, d: r.description, bg: r.bg_color || '#1a3028',
+        spotify: r.spotify_url, youtube: r.youtube_url,
+        featured: r.featured || false, tag: r.tag || '',
+        externalShow: r.external_show || '', externalShowUrl: r.external_show_url || '',
+        sortOrder: r.number != null ? parseInt(r.number) : 9999,
+      }))
+      // Sort: explicit sort_order ascending (lower = first in list = most recent episode at top)
+      .sort((a, b) => a.sortOrder - b.sortOrder);
     // Rebuild carousel if it's visible
     const track = document.getElementById('car-track');
     if (track) buildCarousel();
@@ -110,69 +117,143 @@ async function loadSiteContent() {
   });
 }
 
+// Extract Spotify episode ID from a full episode URL so we can build the embed URL
+function _spotifyEpisodeEmbed(spotifyUrl) {
+  if (!spotifyUrl) return null;
+  const m = spotifyUrl.match(/episode\/([A-Za-z0-9]+)/);
+  return m ? `https://open.spotify.com/embed/episode/${m[1]}?utm_source=generator` : null;
+}
+
+// Extract YouTube video ID from any YouTube URL
+function _youtubeVideoId(ytUrl) {
+  if (!ytUrl) return null;
+  const m = ytUrl.match(/(?:v=|youtu\.be\/|embed\/)([A-Za-z0-9_\-]{11})/);
+  return m ? m[1] : null;
+}
+
 function _renderFeaturedEpisodes() {
   const eps = window.EPS || [];
   if (!eps.length) return;
   const featured = eps.filter(e => e.featured);
 
-  // "Episodes worth your time" grid — use featured if any, else first 3 from archive
-  const gridEps = featured.length ? featured.slice(0, 3) : eps.slice(0, 3);
+  // "Episodes worth your time" grid — ONLY shows explicitly featured episodes.
+  // If none are marked featured, shows a prompt to select some in the portal.
   const grid = document.getElementById('featured-episodes-grid');
   if (grid) {
-    grid.innerHTML = gridEps.map(e => {
-      const badge = e.tag ? `<div style="position:absolute;top:12px;left:12px;font-size:.65rem;letter-spacing:.12em;text-transform:uppercase;background:rgba(255,255,255,.15);color:#f8f6f1;padding:3px 8px;">${e.tag}</div>` : '';
-      const showLabel = e.externalShow ? `<div style="font-size:.7rem;color:rgba(248,246,241,.5);margin-bottom:4px;letter-spacing:.06em;">Guest: ${e.externalShow}</div>` : '';
-      const href = e.spotify || e.youtube || (window.SITE?.podcastSpotifyUrl || '#');
-      return `<div class="fep-card" style="cursor:pointer;" onclick="window.open('${href}','_blank')">
-        <div class="fep-thumb" style="background:${e.bg};">${badge}<div class="fep-thumb-label">Ep. ${e.n}</div><div class="fep-play">▶</div></div>
-        ${showLabel}
-        <div class="fep-num">Episode ${e.n}${e.tag ? ' · ' + e.tag : ''}</div>
-        <div class="fep-title">${e.t}</div>
+    if (!featured.length) {
+      grid.innerHTML = `<div style="padding:32px;color:var(--ink30);font-style:italic;text-align:center;font-size:.88rem;width:100%;">
+        No featured episodes yet. Mark episodes as featured in the portal to curate this section.
       </div>`;
-    }).join('');
+    } else {
+      grid.innerHTML = featured.slice(0, 3).map(e => {
+        const badge = e.tag ? `<div style="position:absolute;top:12px;left:12px;font-size:.65rem;letter-spacing:.12em;text-transform:uppercase;background:rgba(255,255,255,.15);color:#f8f6f1;padding:3px 8px;">${e.tag}</div>` : '';
+        const showLabel = e.externalShow ? `<div style="font-size:.7rem;color:rgba(248,246,241,.5);margin-bottom:4px;letter-spacing:.06em;">Guest: ${e.externalShow}</div>` : '';
+        const ytId = _youtubeVideoId(e.youtube);
+        const clickAction = ytId
+          ? `onclick="playYouTubeInline('${ytId}','${e.t.replace(/'/g,"\\'")}')"`
+          : `onclick="window.open('${e.spotify || e.youtube || (window.SITE?.podcastSpotifyUrl||'#')}','_blank')"`;
+        return `<div class="fep-card" ${clickAction}>
+          <div class="fep-thumb" style="background:${e.bg};">${badge}<div class="fep-thumb-label">${e.t.split(' ').slice(0,4).join(' ')}…</div><div class="fep-play">▶</div></div>
+          ${showLabel}
+          ${e.tag ? `<div class="fep-num">${e.tag}</div>` : ''}
+          <div class="fep-title">${e.t}</div>
+        </div>`;
+      }).join('');
+    }
   }
 
-  // "Start Here" recommended list — use featured if any, else first 4 from archive
-  const recEps = featured.length ? featured.slice(0, 4) : eps.slice(0, 4);
+  // "Recommended Episodes" list — always shows all episodes; clicking changes the Spotify embed.
+  // Falls back to all episodes if none are featured.
+  const showEps = eps; // show all — visitor can scroll/click to explore
   const recList = document.getElementById('recommended-episodes-list');
   if (recList) {
-    recList.innerHTML = recEps.map(e => {
-      const badge = e.tag ? `<span style="display:inline-block;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;border:1px solid rgba(38,61,51,.25);padding:2px 7px;color:var(--ink60);margin-left:8px;">${e.tag}</span>` : '';
-      const href = e.spotify || e.youtube || (window.SITE?.podcastSpotifyUrl || '#');
-      return `<div class="rec-ep-row" style="display:flex;align-items:center;gap:14px;padding:10px 0;border-bottom:1px solid var(--ink12);cursor:pointer;" onclick="window.open('${href}','_blank')">
-        <div style="width:36px;height:36px;background:${e.bg};display:flex;align-items:center;justify-content:center;font-size:.68rem;color:rgba(248,246,241,.7);flex-shrink:0;">${e.n}</div>
+    recList.innerHTML = showEps.map((e, i) => {
+      const badge = e.tag ? `<span style="display:inline-block;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;border:1px solid rgba(38,61,51,.25);padding:2px 7px;color:var(--ink60);margin-left:6px;">${e.tag}</span>` : '';
+      const spotifyEmbed = _spotifyEpisodeEmbed(e.spotify);
+      const ytId = _youtubeVideoId(e.youtube);
+      // If episode has a Spotify episode URL → control the embed; else open externally
+      const clickAction = spotifyEmbed
+        ? `onclick="setSpotifyEmbed('${spotifyEmbed}',this)"`
+        : ytId ? `onclick="playYouTubeInline('${ytId}','${e.t.replace(/'/g,"\\'")}')"`
+        : `onclick="window.open('${e.spotify||e.youtube||(window.SITE?.podcastSpotifyUrl||'#')}','_blank')"`;
+      return `<div class="rec-ep-row${i===0?' rec-ep-active':''}" style="display:flex;align-items:center;gap:14px;padding:10px 0;border-bottom:1px solid var(--ink12);cursor:pointer;" ${clickAction}>
+        <div style="width:32px;height:32px;background:${e.bg};flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.62rem;color:rgba(248,246,241,.7);">▶</div>
         <div style="flex:1;font-size:.84rem;color:var(--ink);line-height:1.4;">${e.t}${badge}</div>
       </div>`;
     }).join('');
+    // Auto-load first episode into Spotify embed
+    if (showEps.length) {
+      const firstEmbed = _spotifyEpisodeEmbed(showEps[0].spotify);
+      if (firstEmbed) { const el = document.getElementById('spotify-show-embed'); if (el) el.src = firstEmbed; }
+    }
   }
 }
 
 function _renderLatestEpisodes() {
-  const eps = (window.EPS || []).slice(0, 4); // most recent 4 (already sorted desc by loadLiveEpisodes)
+  const eps = (window.EPS || []).slice(0, 4);
   if (!eps.length) return;
 
-  // Homepage featured pod card
+  // Homepage: try YouTube playlist embed first (most natural "latest episodes" experience)
+  const ytPlaylistUrl = window.SITE?.podcastYouTubeUrl || '';
+  const playlistId    = ytPlaylistUrl.match(/list=([A-Za-z0-9_\-]+)/)?.[1];
+  const homePod       = document.getElementById('homepage-pod-featured');
+
+  if (homePod && playlistId) {
+    // Replace the whole latest-episodes section with an embedded YouTube playlist
+    const section = homePod.closest('.pod-section') || homePod.closest('section') || homePod.parentElement;
+    if (section) {
+      section.innerHTML = `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start;">
+          <div>
+            <iframe id="homepage-yt-player"
+              src="https://www.youtube.com/embed/videoseries?list=${playlistId}&rel=0"
+              width="100%" height="315" frameborder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowfullscreen style="border-radius:4px;display:block;"></iframe>
+          </div>
+          <div>
+            <div style="font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink30);margin-bottom:12px;">Future Foundations · Latest</div>
+            <div id="homepage-ep-list" style="display:flex;flex-direction:column;gap:0;"></div>
+          </div>
+        </div>`;
+      // Render clickable episode list
+      const listEl = document.getElementById('homepage-ep-list');
+      if (listEl) {
+        listEl.innerHTML = eps.map(e => {
+          const ytId = _youtubeVideoId(e.youtube);
+          const clickAction = ytId
+            ? `onclick="document.getElementById('homepage-yt-player').src='https://www.youtube.com/embed/${ytId}?autoplay=1&rel=0'"`
+            : `onclick="window.open('${e.youtube||e.spotify||(window.SITE?.podcastYouTubeUrl||'#')}','_blank')"`;
+          return `<div class="mini-ep" style="cursor:pointer;padding:10px 0;border-bottom:1px solid var(--ink12);" ${clickAction}>
+            <div class="mini-ep-title" style="font-size:.85rem;color:var(--ink);line-height:1.4;">${e.t}</div>
+            ${e.tag ? `<div class="mini-ep-tag" style="font-size:.7rem;color:var(--ink30);margin-top:2px;">${e.tag}</div>` : ''}
+          </div>`;
+        }).join('');
+      }
+      return;
+    }
+  }
+
+  // Fallback: update original elements from portal data
   const featCard = document.getElementById('homepage-pod-featured');
   if (featCard && eps[0]) {
     const e = eps[0];
+    const ytId = _youtubeVideoId(e.youtube);
     featCard.innerHTML = `
-      <div class="pod-ep-num">Episode ${e.n}</div>
-      <div class="pod-ep-title">${e.t}</div>
-      <p class="pod-ep-desc">${e.d}</p>
-      <div class="pod-ep-actions">
-        <button class="btn btn-dark btn-sm" onclick="window.open('${e.youtube || (window.SITE?.podcastYouTubeUrl||'#')}','_blank')">Watch on YouTube</button>
-        <button class="btn btn-outline btn-sm" onclick="window.open('${e.spotify || (window.SITE?.podcastSpotifyUrl||'#')}','_blank')">Listen on Spotify</button>
+      <div class="pod-meta" style="font-size:.72rem;color:var(--ink30);margin-bottom:6px;letter-spacing:.06em;text-transform:uppercase;">Latest episode</div>
+      <div class="pod-eptitle">${e.t}</div>
+      <p class="pod-desc">${e.d || ''}</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;">
+        <button class="btn btn-dark btn-sm" onclick="window.open('${e.youtube||(window.SITE?.podcastYouTubeUrl||'#')}','_blank')">▶ Watch</button>
+        <button class="btn btn-outline btn-sm" onclick="window.open('${e.spotify||(window.SITE?.podcastSpotifyUrl||'#')}','_blank')">Listen</button>
       </div>`;
   }
-
-  // Homepage mini episode list (next 3)
   const miniList = document.getElementById('homepage-pod-mini-list');
-  if (miniList && eps.length > 1) {
-    miniList.innerHTML = eps.slice(1, 4).map(e => `
-      <div class="pod-mini-ep" onclick="window.open('${e.spotify || e.youtube || (window.SITE?.podcastSpotifyUrl||'#')}','_blank')">
-        <div class="pme-num">Ep. ${e.n}</div>
-        <div class="pme-title">${e.t}</div>
-        ${e.tag ? `<div class="pme-tag">${e.tag}</div>` : ''}
+  if (miniList) {
+    miniList.innerHTML = eps.slice(1).map(e => `
+      <div class="mini-ep" style="cursor:pointer;" onclick="window.open('${e.youtube||e.spotify||(window.SITE?.podcastSpotifyUrl||'#')}','_blank')">
+        <div class="mini-ep-title">${e.t}</div>
+        ${e.tag ? `<div class="mini-ep-tag">${e.tag}</div>` : ''}
       </div>`).join('');
   }
 }

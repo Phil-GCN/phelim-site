@@ -26,6 +26,8 @@
     .car-card:hover { transform: scale(1.03); }
     .fep-card { transition: transform 0.25s ease; cursor:pointer; }
     .fep-card:hover { transform: scale(1.03); }
+    .rec-ep-active { background:var(--forest-faint); }
+    #now-playing-wrap iframe { border-radius:4px; display:block; }
   </style>
 </head>
 <body>
@@ -123,7 +125,18 @@
   <!-- 5. ALL EPISODES CAROUSEL -->
   <section class="pod-all-eps">
     <div class="container">
-      <div class="sec-top"><div class="eyebrow">Full Archive</div><h2 style="margin-top:12px;">All episodes</h2><p style="max-width:460px;margin-top:7px;font-size:.87rem;">Click a card to expand. Drag to scroll.</p></div>
+      <div class="sec-top"><div class="eyebrow">Full Archive</div><h2 style="margin-top:12px;">All episodes</h2><p style="max-width:460px;margin-top:7px;font-size:.87rem;">Click a card to watch or listen. Drag to scroll.</p></div>
+      <!-- Inline YouTube player — shown when a card is clicked -->
+      <div id="now-playing-wrap" style="display:none;margin-bottom:24px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <div style="font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink30);">Now Playing</div>
+          <button class="btn btn-ghost btn-sm" onclick="closeNowPlaying()" style="font-size:.75rem;">✕ Close</button>
+        </div>
+        <div id="now-playing-title" style="font-family:var(--serif);font-size:1rem;color:var(--ink);margin-bottom:10px;"></div>
+        <iframe id="now-playing-frame" width="100%" height="400" src="" frameborder="0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowfullscreen></iframe>
+      </div>
       <div class="carousel-outer"><div class="carousel-track" id="car-track"></div></div>
       <div class="car-nav"><button class="car-btn" onclick="carMove(-1)">‹</button><button class="car-btn" onclick="carMove(1)">›</button><div class="car-dots" id="car-dots"></div></div>
     </div>
@@ -179,10 +192,36 @@
   <script src="podcast.js"></script>
 <script>
   buildCarousel();
-  // Update carousel nav buttons to scroll rather than activate
-  document.querySelectorAll('.car-btn').forEach((btn, i) => {
-    btn.addEventListener('click', () => carMove(i === 0 ? -1 : 1));
-  });
+
+  // Inline YouTube player — called from carousel cards and featured section
+  window.playYouTubeInline = function(videoId, title) {
+    const wrap  = document.getElementById('now-playing-wrap');
+    const frame = document.getElementById('now-playing-frame');
+    const label = document.getElementById('now-playing-title');
+    if (!wrap || !frame) return;
+    frame.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`;
+    if (label && title) label.textContent = title;
+    wrap.style.display = '';
+    wrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  };
+
+  window.closeNowPlaying = function() {
+    const wrap  = document.getElementById('now-playing-wrap');
+    const frame = document.getElementById('now-playing-frame');
+    if (frame) frame.src = ''; // stop playback
+    if (wrap) wrap.style.display = 'none';
+  };
+
+  // Spotify embed control — called from recommended-episodes-list items
+  window.setSpotifyEmbed = function(embedUrl, rowEl) {
+    const embed = document.getElementById('spotify-show-embed');
+    if (embed) embed.src = embedUrl;
+    // Highlight active row
+    document.querySelectorAll('.rec-ep-row').forEach(r => r.classList.remove('rec-ep-active'));
+    if (rowEl) rowEl.classList.add('rec-ep-active');
+    // Scroll Spotify player into view
+    embed?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  };
 </script>
 
 </body>

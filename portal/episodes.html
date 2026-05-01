@@ -77,8 +77,8 @@
       <h3 id="ep-form-title" style="font-size:1.1rem;margin-bottom:18px;color:var(--ink);">New Episode</h3>
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label">Episode Number</label>
-          <input class="form-input" id="ep-num" type="text" placeholder="e.g. 11">
+          <label class="form-label">Sort Order <span style="color:var(--ink30);font-weight:400;">(lower = first; leave blank to append)</span></label>
+          <input class="form-input" id="ep-num" type="number" min="1" placeholder="e.g. 1">
         </div>
         <div class="form-group">
           <label class="form-label">Pillar</label>
@@ -143,7 +143,7 @@
     <div class="table-wrap">
       <table class="data-table">
         <thead>
-          <tr><th>#</th><th>Title</th><th>Pillar</th><th>Links</th><th style="text-align:right;">Actions</th></tr>
+          <tr><th>Order</th><th>Title</th><th>Pillar</th><th>Links</th><th style="text-align:right;">Actions</th></tr>
         </thead>
         <tbody id="episodes-tbody">
           <tr><td colspan="5" style="text-align:center;padding:24px;color:var(--ink30);">Loading…</td></tr>
@@ -192,7 +192,7 @@ function renderEpisodes() {
   }
   tbody.innerHTML = EPISODES.map(e => `
     <tr>
-      <td><strong>${e.number}</strong></td>
+      <td style="color:var(--ink30);">${e.number || '—'}</td>
       <td><strong>${e.title}</strong></td>
       <td style="font-size:.78rem;color:var(--ink60);">${e.pillar || '—'}</td>
       <td style="font-size:.75rem;">
@@ -260,11 +260,11 @@ function cancelEpisode() {
 async function saveEpisode() {
   const title = document.getElementById(EP_FIELDS.title).value.trim();
   const num   = document.getElementById(EP_FIELDS.num).value.trim();
-  if (!title || !num) { showToast('Episode number and title are required.'); return; }
+  if (!title) { showToast('Episode title is required.'); return; }
 
   const episode = {
     id:          editingEpId || ('ep-' + Date.now()),
-    number:      num,
+    number:      num || null,
     title,
     description: document.getElementById(EP_FIELDS.description).value.trim(),
     pillar:      document.getElementById(EP_FIELDS.pillar).value,
@@ -280,6 +280,8 @@ async function saveEpisode() {
 
   const btn = document.querySelector('#episode-form .btn-primary');
   btn.disabled = true; btn.textContent = 'Saving…';
+  // Yield to browser so the button state paints before async work begins (fixes INP)
+  await new Promise(r => setTimeout(r, 0));
 
   try {
     await DB.saveEpisode(episode);
@@ -293,7 +295,7 @@ async function saveEpisode() {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           subject: `New episode: ${title}`,
-          body: `Episode ${num} of Future Foundations is now live.\n\n${episode.description || ''}`,
+          body: `A new episode of Future Foundations is now live: "${title}".\n\n${episode.description || ''}`,
           content_type: 'New Episode',
           content_title: title,
           content_url: episode.spotify_url || episode.youtube_url || 'https://phelim.me/podcast.html',
