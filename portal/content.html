@@ -169,6 +169,10 @@
         <input class="form-input" id="sc-podcast-youtube-url" type="url" placeholder="https://youtube.com/playlist?list=...">
       </div>
       <div class="form-group">
+        <label class="form-label">YouTube Playlist Embed <span style="color:var(--ink30);font-weight:400;">(paste full &lt;iframe&gt; embed code from YouTube Share → Embed — used for Full Archive and homepage player)</span></label>
+        <textarea class="form-textarea" id="sc-podcast-yt-embed" style="min-height:60px;font-size:.78rem;" placeholder="&lt;iframe width=&quot;560&quot; height=&quot;315&quot; src=&quot;https://www.youtube.com/embed/videoseries?list=...&quot; ...&gt;&lt;/iframe&gt;"></textarea>
+      </div>
+      <div class="form-group">
         <label class="form-label">Apple Podcasts show URL</label>
         <input class="form-input" id="sc-podcast-apple-url" type="url" placeholder="https://podcasts.apple.com/...">
       </div>
@@ -230,8 +234,8 @@ async function loadContentFromDB() {
                   speakingHeading:'sc-speaking-heading', speakingIntro:'sc-speaking-intro', speakingNote:'sc-speaking-note',
                   footerCopy:'sc-footer-copy',
                   podcastSpotifyUrl:'sc-podcast-spotify-url', podcastSpotifyEmbedUrl:'sc-podcast-spotify-embed',
-                  podcastYouTubeUrl:'sc-podcast-youtube-url', podcastAppleUrl:'sc-podcast-apple-url',
-                  podcastAppleEmbedUrl:'sc-podcast-apple-embed' };
+                  podcastYouTubeUrl:'sc-podcast-youtube-url', podcastYouTubePlaylistEmbed:'sc-podcast-yt-embed',
+                  podcastAppleUrl:'sc-podcast-apple-url', podcastAppleEmbedUrl:'sc-podcast-apple-embed' };
     Object.entries(sc).forEach(([key, value]) => {
       if (!value) return;
       saved[key] = value;
@@ -274,6 +278,7 @@ async function savePodcastPlatforms() {
     podcastSpotifyEmbedUrl: g('sc-podcast-spotify-embed'),
     podcastYouTubeUrl:    g('sc-podcast-youtube-url'),
     podcastAppleUrl:      g('sc-podcast-apple-url'),
+    podcastYouTubePlaylistEmbed: g('sc-podcast-yt-embed'),
     podcastAppleEmbedUrl: g('sc-podcast-apple-embed'),
   };
   const status = document.getElementById('podcast-platform-status');

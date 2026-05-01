@@ -125,10 +125,19 @@
         <label class="form-label">External show URL</label>
         <input class="form-input" id="ep-ext-url" type="url" placeholder="https://...">
       </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Thumbnail URL <span style="color:var(--ink30);font-weight:400;">(Spotify-only episodes — auto-used for YouTube via video ID)</span></label>
+          <input class="form-input" id="ep-thumbnail" type="url" placeholder="https://... (episode artwork image URL)">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Duration <span style="color:var(--ink30);font-weight:400;">(shown on card)</span></label>
+          <input class="form-input" id="ep-duration" type="text" placeholder="e.g. 22:15" style="max-width:120px;">
+        </div>
+      </div>
       <div class="form-group">
-        <label class="form-label">Thumbnail Background Colour</label>
+        <label class="form-label">Card Background Colour <span style="color:var(--ink30);font-weight:400;">(fallback when no thumbnail)</span></label>
         <input class="form-input" id="ep-color" type="color" value="#1a3028" style="height:40px;padding:4px;">
-        <div class="form-hint">Used for the episode card background in the carousel.</div>
       </div>
       <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:6px;">
         <button class="btn btn-primary" onclick="saveEpisode()">Save Episode</button>
@@ -172,6 +181,8 @@ const EP_FIELDS = {
   tag:      'ep-tag',
   external_show: 'ep-ext-show',
   external_show_url: 'ep-ext-url',
+  thumbnail_url: 'ep-thumbnail',
+  duration: 'ep-duration',
 };
 
 async function initEpisodes() {
@@ -222,6 +233,8 @@ function editEpisodeRow(id) {
   document.getElementById(EP_FIELDS.tag).value          = e.tag || '';
   document.getElementById(EP_FIELDS.external_show).value     = e.external_show || '';
   document.getElementById(EP_FIELDS.external_show_url).value = e.external_show_url || '';
+  document.getElementById(EP_FIELDS.thumbnail_url).value = e.thumbnail_url || '';
+  document.getElementById(EP_FIELDS.duration).value      = e.duration || '';
   showEpisodeForm();
 }
 
@@ -248,7 +261,7 @@ function showEpisodeForm() {
 function cancelEpisode() {
   editingEpId = null;
   document.getElementById('ep-form-title').textContent = 'New Episode';
-  ['ep-num','ep-title','ep-desc','ep-spotify','ep-youtube','ep-tag','ep-ext-show','ep-ext-url'].forEach(id => {
+  ['ep-num','ep-title','ep-desc','ep-spotify','ep-youtube','ep-tag','ep-ext-show','ep-ext-url','ep-thumbnail','ep-duration'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
   });
   document.getElementById('ep-color').value = '#1a3028';
@@ -275,6 +288,8 @@ async function saveEpisode() {
     tag:               document.getElementById(EP_FIELDS.tag).value.trim(),
     external_show:     document.getElementById(EP_FIELDS.external_show).value.trim(),
     external_show_url: document.getElementById(EP_FIELDS.external_show_url).value.trim(),
+    thumbnail_url:     document.getElementById(EP_FIELDS.thumbnail_url).value.trim(),
+    duration:          document.getElementById(EP_FIELDS.duration).value.trim(),
     updated_at:        new Date().toISOString(),
   };
 

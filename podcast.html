@@ -102,30 +102,39 @@
     </div>
   </section>
 
-  <!-- 4. FEATURED — "Episodes worth your time" (portal-curated, 3-up with scroll) -->
+  <!-- 4. FEATURED — "Episodes worth your time" (portal-curated, 3-up with page scroll) -->
   <section class="pod-featured-section">
     <div class="container">
-      <div class="sec-top"><div class="eyebrow">Start Here</div><h2 style="margin-top:12px;">Episodes worth your time</h2><p style="max-width:460px;margin-top:8px;font-size:.87rem;">Hand-picked episodes to start with — click any card to watch inline.</p></div>
-      <!-- Inline YouTube player for featured episodes -->
+      <!-- Header: title left, nav buttons right -->
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:28px;gap:16px;">
+        <div>
+          <div class="eyebrow">Start Here</div>
+          <h2 style="margin-top:12px;">Episodes worth your time</h2>
+          <p style="max-width:460px;margin-top:8px;font-size:.87rem;">Hand-picked episodes — click any card to watch or listen inline.</p>
+        </div>
+        <div style="display:flex;gap:8px;flex-shrink:0;align-items:center;padding-bottom:4px;">
+          <button id="fep-prev-btn" onclick="scrollFeatured(-1)"
+            style="width:40px;height:40px;border:1px solid var(--ink12);background:transparent;font-size:1.2rem;cursor:pointer;display:none;transition:opacity .2s;">‹</button>
+          <button id="fep-next-btn" onclick="scrollFeatured(1)"
+            style="width:40px;height:40px;border:1px solid var(--ink12);background:transparent;font-size:1.2rem;cursor:pointer;display:none;transition:opacity .2s;">›</button>
+        </div>
+      </div>
+      <!-- Inline player (appears above cards when a card is clicked) -->
       <div id="fep-player-wrap" style="display:none;margin-bottom:20px;border:1px solid var(--ink12);padding:16px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:12px;">
           <div id="fep-player-title" style="font-family:var(--serif);font-size:.95rem;color:var(--ink);flex:1;"></div>
-          <button onclick="closeFepPlayer()" style="flex-shrink:0;padding:6px 14px;font-size:.78rem;border:1px solid var(--ink);background:transparent;cursor:pointer;letter-spacing:.04em;">✕ Close player</button>
+          <button onclick="closeFepPlayer()" style="flex-shrink:0;padding:6px 14px;font-size:.78rem;border:1px solid var(--ink);background:transparent;cursor:pointer;">✕ Close player</button>
         </div>
-        <iframe id="fep-player-frame" width="100%" height="400" src="" frameborder="0"
+        <iframe id="fep-player-frame" width="100%" height="420" src="" frameborder="0"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowfullscreen style="border-radius:4px;display:block;"></iframe>
       </div>
-      <!-- 3-up grid with scroll nav -->
-      <div style="position:relative;">
-        <div style="display:flex;gap:12px;align-items:center;">
-          <button id="fep-prev-btn" onclick="scrollFeatured(-1)"
-            style="flex-shrink:0;width:36px;height:36px;border:1px solid var(--ink12);background:transparent;font-size:1.1rem;cursor:pointer;display:none;">‹</button>
-          <div id="featured-episodes-grid" style="flex:1;display:grid;grid-template-columns:repeat(3,1fr);gap:16px;overflow:hidden;"></div>
-          <button id="fep-next-btn" onclick="scrollFeatured(1)"
-            style="flex-shrink:0;width:36px;height:36px;border:1px solid var(--ink12);background:transparent;font-size:1.1rem;cursor:pointer;display:none;">›</button>
-        </div>
+      <!-- Sliding card grid — overflow clips hidden, JS translates the inner flex row -->
+      <div id="featured-episodes-outer" style="overflow:hidden;">
+        <div id="featured-episodes-grid" style="display:flex;gap:16px;transition:transform 0.45s cubic-bezier(0.25,0.46,0.45,0.94);will-change:transform;"></div>
       </div>
+      <!-- Pagination dots -->
+      <div id="fep-dots" style="display:flex;gap:8px;margin-top:18px;align-items:center;"></div>
     </div>
   </section>
 
@@ -147,8 +156,6 @@
             allowfullscreen style="border-radius:4px;display:block;"></iframe>
         </div>
       </div>
-      <div class="carousel-outer"><div class="carousel-track" id="car-track"></div></div>
-      <div class="car-nav"><button class="car-btn" onclick="carMove(-1)">‹</button><button class="car-btn" onclick="carMove(1)">›</button><div class="car-dots" id="car-dots"></div></div>
     </div>
   </section>
 
@@ -201,8 +208,6 @@
   <script src="modals.js"></script>
   <script src="podcast.js"></script>
 <script>
-  buildCarousel();
-
   // ── Full Archive: minimize / maximize the playlist player ──
   let _npMinimised = false;
   window.toggleNowPlaying = function() {
@@ -213,25 +218,23 @@
     if (btn)   btn.textContent = _npMinimised ? '▶ Show player' : '▼ Minimise';
   };
 
-  // ── Full Archive: play specific video in the always-visible playlist embed ──
   window.playYouTubeInline = function(videoId, title) {
-    // If minimised, expand first
     if (_npMinimised) toggleNowPlaying();
     const frame = document.getElementById('now-playing-frame');
     const label = document.getElementById('now-playing-title');
     const link  = document.getElementById('now-playing-yt-link');
     if (!frame) return;
-    const playlistId = window.SITE?.podcastYouTubePlaylistId || 'PLN8CWpJtlQCsy6Z-Yd6B4EuqHpjLMrfdi';
-    frame.src = `https://www.youtube.com/embed/${videoId}?list=${playlistId}&autoplay=1&rel=0`;
+    const listId = window.SITE?.podcastYouTubePlaylistId || 'PLN8CWpJtlQCsy6Z-Yd6B4EuqHpjLMrfdi';
+    frame.src = `https://www.youtube.com/embed/${videoId}?list=${listId}&autoplay=1&rel=0`;
     if (label) label.textContent = title || 'Now Playing';
-    if (link)  { link.href = `https://www.youtube.com/watch?v=${videoId}&list=${playlistId}`; }
+    if (link)  link.href = `https://www.youtube.com/watch?v=${videoId}&list=${listId}`;
     frame.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   };
 
-  // ── Featured section: per-card inline YouTube player ──
+  // ── Featured: YouTube inline player ──
   window.playFeaturedYouTube = function(videoId, title) {
-    const wrap  = document.getElementById('fep-player-wrap');
     const frame = document.getElementById('fep-player-frame');
+    const wrap  = document.getElementById('fep-player-wrap');
     const label = document.getElementById('fep-player-title');
     if (!frame) return;
     frame.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`;
@@ -240,24 +243,48 @@
     wrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   };
 
+  // ── Featured: Spotify inline player (fallback when no YouTube URL) ──
+  window.playFeaturedSpotify = function(episodeId, title) {
+    const frame = document.getElementById('fep-player-frame');
+    const wrap  = document.getElementById('fep-player-wrap');
+    const label = document.getElementById('fep-player-title');
+    if (!frame) return;
+    frame.src = `https://open.spotify.com/embed/episode/${episodeId}?utm_source=generator`;
+    if (label) label.textContent = title || '';
+    wrap.style.display = '';
+    wrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  };
+
   window.closeFepPlayer = function() {
     const frame = document.getElementById('fep-player-frame');
     if (frame) frame.src = '';
-    const wrap = document.getElementById('fep-player-wrap');
-    if (wrap) wrap.style.display = 'none';
+    document.getElementById('fep-player-wrap').style.display = 'none';
   };
 
-  // ── Featured section: 3-up scroll ──
-  let _fepOffset = 0;
+  // ── Featured: page-by-page slide with animated dots ──
+  let _fepPage = 0;
   window.scrollFeatured = function(dir) {
     const cards = [...document.querySelectorAll('#featured-episodes-grid .fep-card')];
-    if (cards.length <= 3) return;
-    _fepOffset = Math.max(0, Math.min(cards.length - 3, _fepOffset + dir));
-    cards.forEach((c, i) => { c.style.display = (i >= _fepOffset && i < _fepOffset + 3) ? '' : 'none'; });
-    document.getElementById('fep-prev-btn').style.opacity = _fepOffset === 0 ? '0.3' : '1';
-    document.getElementById('fep-next-btn').style.opacity = _fepOffset >= cards.length - 3 ? '0.3' : '1';
+    const pages = Math.ceil(cards.length / 3);
+    scrollFeaturedToPage(Math.max(0, Math.min(pages - 1, _fepPage + dir)));
   };
-
+  window.scrollFeaturedToPage = function(page) {
+    const grid  = document.getElementById('featured-episodes-grid');
+    const cards = [...grid.querySelectorAll('.fep-card')];
+    if (!cards.length) return;
+    const pages   = Math.ceil(cards.length / 3);
+    _fepPage      = Math.max(0, Math.min(pages - 1, page));
+    const target  = cards[Math.min(_fepPage * 3, cards.length - 3)];
+    grid.style.transform = `translateX(${-(target?.offsetLeft ?? 0)}px)`;
+    document.querySelectorAll('.fep-dot').forEach((d, i) => {
+      d.style.background = i === _fepPage ? 'var(--ink)' : 'var(--ink12)';
+      d.style.width      = i === _fepPage ? '24px' : '8px';
+    });
+    const prev = document.getElementById('fep-prev-btn');
+    const next = document.getElementById('fep-next-btn');
+    if (prev) prev.style.opacity = _fepPage === 0 ? '0.3' : '1';
+    if (next) next.style.opacity = _fepPage >= pages - 1 ? '0.3' : '1';
+  };
 </script>
 
 </body>
