@@ -104,8 +104,17 @@ async function loadSiteContent() {
     if (t.startsWith('<')) { const m = t.match(/\bsrc="([^"]+)"/); return m ? m[1] : null; }
     return t;
   };
-  const spotifySrc = _embedSrc(sc.podcastSpotifyEmbedUrl);
-  if (spotifySrc) { const el = document.getElementById('spotify-show-embed'); if (el) el.src = spotifySrc; }
+  // Spotify show embed — always use the /show/ URL (without /video) so episode list is shown natively
+  const spotifyRawSrc = _embedSrc(sc.podcastSpotifyEmbedUrl) || (sc.podcastSpotifyUrl ? null : null);
+  const spotifyShowId = (spotifyRawSrc || sc.podcastSpotifyUrl || '')
+    .match(/show\/([A-Za-z0-9]+)/)?.[1];
+  if (spotifyShowId) {
+    const showEmbedSrc = `https://open.spotify.com/embed/show/${spotifyShowId}?utm_source=generator`;
+    window.SITE = window.SITE || {};
+    window.SITE.podcastSpotifyShowEmbedSrc = showEmbedSrc;
+    const el = document.getElementById('spotify-show-embed');
+    if (el) el.src = showEmbedSrc;
+  }
   const appleSrc = _embedSrc(sc.podcastAppleEmbedUrl);
   if (appleSrc) { const el = document.getElementById('apple-podcast-embed'); if (el) el.src = appleSrc; }
   // Store podcast URLs + derived IDs for podcast.js and inline players
@@ -184,69 +193,55 @@ function _renderFeaturedEpisodes() {
     }
   }
 
-  // "Recommended Episodes" list — always shows all episodes; clicking changes the Spotify embed.
-  // Falls back to all episodes if none are featured.
-  const showEps = eps; // show all — visitor can scroll/click to explore
-  const recList = document.getElementById('recommended-episodes-list');
-  if (recList) {
-    recList.innerHTML = showEps.map((e, i) => {
-      const badge = e.tag ? `<span style="display:inline-block;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;border:1px solid rgba(38,61,51,.25);padding:2px 7px;color:var(--ink60);margin-left:6px;">${e.tag}</span>` : '';
-      const spotifyEmbed = _spotifyEpisodeEmbed(e.spotify);
-      const ytId = _youtubeVideoId(e.youtube);
-      // If episode has a Spotify episode URL → control the embed; else open externally
-      const clickAction = spotifyEmbed
-        ? `onclick="setSpotifyEmbed('${spotifyEmbed}',this)"`
-        : ytId ? `onclick="playYouTubeInline('${ytId}','${e.t.replace(/'/g,"\\'")}')"`
-        : `onclick="window.open('${e.spotify||e.youtube||(window.SITE?.podcastSpotifyUrl||'#')}','_blank')"`;
-      return `<div class="rec-ep-row${i===0?' rec-ep-active':''}" style="display:flex;align-items:center;gap:14px;padding:10px 0;border-bottom:1px solid var(--ink12);cursor:pointer;" ${clickAction}>
-        <div style="width:32px;height:32px;background:${e.bg};flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.62rem;color:rgba(248,246,241,.7);">▶</div>
-        <div style="flex:1;font-size:.84rem;color:var(--ink);line-height:1.4;">${e.t}${badge}</div>
-      </div>`;
-    }).join('');
-    // Auto-load first episode into Spotify embed
-    if (showEps.length) {
-      const firstEmbed = _spotifyEpisodeEmbed(showEps[0].spotify);
-      if (firstEmbed) { const el = document.getElementById('spotify-show-embed'); if (el) el.src = firstEmbed; }
-    }
-  }
+  // Recommended section now uses the Spotify show embed directly (self-contained).
+  // No custom episode list needed — Spotify's native player handles episode navigation.
 }
 
 function _renderLatestEpisodes() {
+  const featCard = document.getElementById('homepage-pod-featured');
+  if (!featCard) return;
+
+  // Prefer Spotify show embed (auto-shows episode list natively) over YouTube
+  const spotifyShowId = window.SITE?.podcastSpotifyShowEmbedSrc?.match(/show\/([A-Za-z0-9]+)/)?.[1];
+  const ytListId = window.SITE?.podcastYouTubePlaylistId || 'PLN8CWpJtlQCsy6Z-Yd6B4EuqHpjLMrfdi';
+
+  if (spotifyShowId) {
+    // Replace only the pod-featured card content with the Spotify show embed
+    featCard.innerHTML = `<iframe id="homepage-spotify-player"
+      src="https://open.spotify.com/embed/show/${spotifyShowId}?utm_source=generator"
+      width="100%" height="352" frameborder="0"
+      allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+      loading="lazy" style="border-radius:8px;display:block;"></iframe>`;
+    featCard.style.cssText = 'background:transparent;padding:0;border:none;';
+    // Hide the mini-eps row — Spotify embed shows episode list natively
+    const mini = document.getElementById('homepage-pod-mini-list');
+    if (mini) mini.style.display = 'none';
+    return;
+  }
+
+  // Fallback: YouTube playlist embed + horizontal episode strip from portal
   const eps = window.EPS || [];
-  // Homepage player — build regardless of whether we have portal episodes yet
-  const homePod = document.getElementById('homepage-pod-featured');
-  if (!homePod) return;
+  featCard.innerHTML = `<iframe id="homepage-yt-player"
+    src="https://www.youtube.com/embed/videoseries?list=${ytListId}&rel=0"
+    width="100%" height="315" frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen style="border-radius:4px;display:block;"></iframe>`;
+  featCard.style.cssText = 'background:transparent;padding:0;border:none;';
 
-  const listId = window.SITE?.podcastYouTubePlaylistId || 'PLN8CWpJtlQCsy6Z-Yd6B4EuqHpjLMrfdi';
-  const section = homePod.closest('section') || homePod.parentElement;
-  if (!section) return;
-
-  // Build: full-width player on top, horizontal episode strip below
-  section.innerHTML = `
-    <div style="margin-bottom:12px;">
-      <iframe id="homepage-yt-player"
-        src="https://www.youtube.com/embed/videoseries?list=${listId}&rel=0"
-        width="100%" height="380" frameborder="0"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-        allowfullscreen style="border-radius:4px;display:block;"></iframe>
-    </div>
-    <div id="homepage-ep-strip" style="display:flex;gap:12px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;scrollbar-width:thin;"></div>`;
-
-  // Populate horizontal strip from portal episodes (if any)
-  const strip = document.getElementById('homepage-ep-strip');
-  if (strip && eps.length) {
-    strip.innerHTML = eps.map(e => {
+  const mini = document.getElementById('homepage-pod-mini-list');
+  if (mini && eps.length) {
+    mini.style.cssText = 'display:flex;gap:12px;overflow-x:auto;padding:8px 0;';
+    mini.innerHTML = eps.map(e => {
       const ytId = _youtubeVideoId(e.youtube);
-      const listParam = `&list=${listId}`;
       const clickAction = ytId
-        ? `onclick="(function(){var p=document.getElementById('homepage-yt-player');if(p)p.src='https://www.youtube.com/embed/${ytId}?autoplay=1&rel=0${listParam}'})()"`
+        ? `onclick="(function(){var p=document.getElementById('homepage-yt-player');if(p)p.src='https://www.youtube.com/embed/${ytId}?autoplay=1&list=${ytListId}&rel=0'})()"`
         : `onclick="window.open('${e.youtube||e.spotify||(window.SITE?.podcastYouTubeUrl||'#')}','_blank')"`;
-      return `<div style="flex-shrink:0;width:180px;cursor:pointer;" ${clickAction}>
-        <div style="height:100px;background:${e.bg};display:flex;align-items:center;justify-content:center;margin-bottom:6px;border-radius:3px;position:relative;">
-          <span style="font-size:1.4rem;color:rgba(248,246,241,.7);">▶</span>
-          ${e.tag ? `<div style="position:absolute;bottom:5px;left:5px;font-size:.58rem;letter-spacing:.08em;text-transform:uppercase;background:rgba(0,0,0,.35);color:#f8f6f1;padding:1px 5px;">${e.tag}</div>` : ''}
+      return `<div style="flex-shrink:0;width:160px;cursor:pointer;" ${clickAction}>
+        <div style="height:90px;background:${e.bg};border-radius:3px;display:flex;align-items:center;justify-content:center;margin-bottom:6px;position:relative;">
+          <span style="font-size:1.2rem;color:rgba(248,246,241,.7);">▶</span>
+          ${e.tag ? `<div style="position:absolute;bottom:4px;left:4px;font-size:.55rem;letter-spacing:.06em;text-transform:uppercase;background:rgba(0,0,0,.4);color:#f8f6f1;padding:1px 4px;">${e.tag}</div>` : ''}
         </div>
-        <div style="font-size:.78rem;color:var(--ink);line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${e.t}</div>
+        <div style="font-size:.74rem;color:var(--ink);line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${e.t}</div>
       </div>`;
     }).join('');
   }
