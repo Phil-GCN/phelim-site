@@ -2,15 +2,18 @@
 // Handles portal-initiated order management actions.
 //
 // POST /api/order-actions
-// Body: { action, orderId, [refund] }
+// Body: { action, orderId?, refund?, refundAmount?, amount? }
 //
 // Actions:
-//   resend  — resend confirmation email to customer (blocked if cancelled)
-//   cancel  — cancel order, email admin + customer; optionally issue Stripe refund
-//   refund  — issue a Stripe refund without changing order status (partial/full)
+//   resend         — resend confirmation email (blocked if cancelled)
+//   cancel         — cancel order + email both parties; optional Stripe refund
+//                    body.refund=true + body.refundAmount (euros, omit for full)
+//   refund         — issue Stripe refund without cancelling; body.amount in euros
+//   stripe-balance — return Stripe available + pending balance (no orderId needed)
+//   stripe-payout  — initiate a Stripe payout; body.amount in euros (omit for full available)
 //
 // Requires: RESEND_API_KEY, SUPABASE_URL, SUPABASE_SERVICE_KEY
-// For refunds: STRIPE_SECRET_KEY
+// For refunds/payouts: STRIPE_SECRET_KEY
 
 const SENDER = process.env.SENDER_EMAIL || 'hello@phelim.me';
 
@@ -59,6 +62,30 @@ async function issueStripeRefund(stripeKey, paymentIntentId, amountCents) {
   });
   const data = await r.json();
   if (!r.ok) throw new Error(data.error?.message || 'Stripe refund failed');
+  return data;
+}
+
+async function getStripeBalance(stripeKey) {
+  const auth = 'Basic ' + Buffer.from(stripeKey + ':').toString('base64');
+  const r = await fetch('https://api.stripe.com/v1/balance', { headers: { Authorization: auth } });
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.error?.message || 'Stripe balance fetch failed');
+  // Sum EUR available and pending (handle multi-currency)
+  const sum = (arr) => (arr || []).filter(x => x.currency === 'eur').reduce((t, x) => t + x.amount, 0);
+  return { available: sum(data.available), pending: sum(data.pending) };
+}
+
+async function initiateStripePayout(stripeKey, amountCents) {
+  const auth = 'Basic ' + Buffer.from(stripeKey + ':').toString('base64');
+  const body = new URLSearchParams({ currency: 'eur', method: 'standard' });
+  if (amountCents) body.set('amount', String(amountCents));
+  const r = await fetch('https://api.stripe.com/v1/payouts', {
+    method: 'POST',
+    headers: { Authorization: auth, 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: body.toString(),
+  });
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.error?.message || 'Stripe payout failed');
   return data;
 }
 
@@ -246,15 +273,42 @@ module.exports = async function(req, res) {
   const STRIPE_KEY = process.env.STRIPE_SECRET_KEY;
   const NOTIFY     = process.env.NOTIFY_EMAIL || SENDER;
 
+  const body   = req.body || {};
+  const action = (typeof body.action === 'string' ? body.action : '').trim();
+
+  const VALID_ACTIONS = ['resend', 'cancel', 'refund', 'stripe-balance', 'stripe-payout'];
+  if (!VALID_ACTIONS.includes(action)) { respond(res, 400, { error: 'Invalid action' }); return; }
+
+  // ── STRIPE BALANCE ───────────────────────────────────────────────────────────
+  if (action === 'stripe-balance') {
+    if (!STRIPE_KEY) { respond(res, 500, { error: 'STRIPE_SECRET_KEY not set' }); return; }
+    try {
+      const bal = await getStripeBalance(STRIPE_KEY);
+      respond(res, 200, { available: bal.available, pending: bal.pending, availableRaw: bal.available });
+    } catch(e) { respond(res, 500, { error: e.message }); }
+    return;
+  }
+
+  // ── STRIPE PAYOUT ────────────────────────────────────────────────────────────
+  if (action === 'stripe-payout') {
+    if (!STRIPE_KEY) { respond(res, 500, { error: 'STRIPE_SECRET_KEY not set' }); return; }
+    const requestedEur = body.amount ? parseFloat(body.amount) : null;
+    if (requestedEur !== null && (isNaN(requestedEur) || requestedEur <= 0)) {
+      respond(res, 400, { error: 'Invalid payout amount' }); return;
+    }
+    const amountCents = requestedEur ? Math.round(requestedEur * 100) : null;
+    try {
+      const payout = await initiateStripePayout(STRIPE_KEY, amountCents);
+      respond(res, 200, { success: true, payoutId: payout.id, amount: (payout.amount / 100).toFixed(2) });
+    } catch(e) { respond(res, 500, { error: e.message }); }
+    return;
+  }
+
   if (!RESEND_KEY) { respond(res, 500, { error: 'RESEND_API_KEY not set' }); return; }
   if (!SUP_URL || !SUP_KEY) { respond(res, 500, { error: 'Supabase env vars not set' }); return; }
 
-  const body    = req.body || {};
-  const action  = (typeof body.action  === 'string' ? body.action  : '').trim();
   const orderId = (typeof body.orderId === 'string' ? body.orderId : '').replace(/[^\w\-]/g, '').slice(0, 50);
-
   if (!orderId) { respond(res, 400, { error: 'orderId is required' }); return; }
-  if (!['resend', 'cancel', 'refund'].includes(action)) { respond(res, 400, { error: 'action must be resend, cancel, or refund' }); return; }
 
   const order = await getOrder(SUP_URL, SUP_KEY, orderId);
   if (!order) { respond(res, 404, { error: `Order "${orderId}" not found` }); return; }
@@ -300,13 +354,15 @@ module.exports = async function(req, res) {
       return;
     }
 
-    const issueRefund = body.refund === true && pm === 'card' && order.payment_intent_id && STRIPE_KEY;
-    let refundIssued  = false;
-    let refundAmount  = price;
+    // body.refund=true triggers a refund; body.refundAmount (EUR) sets partial amount
+    const issueRefund    = body.refund === true && pm === 'card' && order.payment_intent_id && STRIPE_KEY;
+    const requestedEur   = body.refundAmount ? parseFloat(body.refundAmount) : null;
+    let   refundIssued   = false;
+    let   refundAmount   = requestedEur ? requestedEur.toFixed(2) : price;
 
     if (issueRefund) {
       try {
-        const amountCents = Math.round(parseFloat(price) * 100);
+        const amountCents = requestedEur ? Math.round(requestedEur * 100) : Math.round(parseFloat(price) * 100);
         await issueStripeRefund(STRIPE_KEY, order.payment_intent_id, amountCents);
         refundIssued = true;
       } catch(e) {

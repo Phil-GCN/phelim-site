@@ -92,6 +92,35 @@
       <div class="stat-card"><div class="stat-card-label">Revenue</div><div class="stat-card-val" id="stat-revenue">—</div><div class="stat-card-sub">Confirmed + fulfilled</div></div>
     </div>
 
+    <!-- Stripe Balance -->
+    <div class="card" id="stripe-balance-card" style="margin-bottom:18px;display:none;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+        <div class="card-title" style="margin:0;">Stripe Balance</div>
+        <button class="btn btn-ghost btn-sm" onclick="loadStripeBalance()" id="stripe-refresh-btn">↻ Refresh</button>
+      </div>
+      <div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:16px;">
+        <div><div style="font-size:.72rem;color:var(--ink30);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;">Available</div><div style="font-size:1.3rem;font-family:var(--serif);color:var(--forest);" id="stripe-avail">—</div></div>
+        <div><div style="font-size:.72rem;color:var(--ink30);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;">Pending</div><div style="font-size:1.3rem;font-family:var(--serif);color:var(--ink60);" id="stripe-pending">—</div></div>
+        <div style="margin-left:auto;display:flex;align-items:flex-end;">
+          <button class="btn btn-secondary btn-sm" onclick="showPayoutPanel()" id="stripe-payout-btn">↑ Initiate Payout</button>
+        </div>
+      </div>
+      <!-- Payout panel -->
+      <div id="payout-panel" style="display:none;padding:14px;background:var(--paper-mid);border:1px solid var(--ink12);">
+        <div style="font-size:.8rem;color:var(--ink60);margin-bottom:10px;line-height:1.6;">Payouts transfer your Stripe available balance to your connected bank account. <strong>Manual payouts must be enabled</strong> in your Stripe Dashboard (Settings → Payouts). Funds appear within 1–2 business days.</div>
+        <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+          <div>
+            <label style="font-size:.75rem;color:var(--ink60);display:block;margin-bottom:4px;">Amount (EUR) — leave blank for full available balance</label>
+            <input class="form-input" type="number" step="0.01" min="0.01" id="payout-amount-input" placeholder="e.g. 150.00" style="width:180px;">
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="executePayout()">Confirm Payout</button>
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('payout-panel').style.display='none'">Cancel</button>
+        </div>
+        <div id="payout-msg" style="font-size:.78rem;margin-top:8px;min-height:16px;"></div>
+      </div>
+      <div style="font-size:.72rem;color:var(--ink30);margin-top:6px;" id="stripe-balance-note"></div>
+    </div>
+
     <!-- Filters -->
     <div class="filter-bar">
       <input class="search-input" id="search-input" placeholder="Search by name, email, order ID…" oninput="renderTable()">
@@ -165,22 +194,61 @@
 
       <div class="action-row">
         <div style="flex:1;display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="btn btn-secondary btn-sm" id="od-btn-confirm"   onclick="updateStatus('confirmed')">✓ Confirm</button>
-          <button class="btn btn-secondary btn-sm" id="od-btn-fulfil"    onclick="updateStatus('fulfilled')">📦 Mark Fulfilled</button>
-          <button class="btn btn-secondary btn-sm" id="od-btn-resend"    onclick="resendConfirmation()">↻ Resend Confirmation</button>
-          <button class="btn btn-secondary btn-sm" id="od-btn-refund"    onclick="issueRefund()">↩ Issue Refund</button>
-          <button class="btn btn-secondary btn-sm" id="od-btn-email"     onclick="emailCustomer()">✉ Email Customer</button>
+          <button class="btn btn-secondary btn-sm" id="od-btn-confirm" onclick="updateStatus('confirmed')">✓ Confirm</button>
+          <button class="btn btn-secondary btn-sm" id="od-btn-fulfil"  onclick="updateStatus('fulfilled')">📦 Mark Fulfilled</button>
+          <button class="btn btn-secondary btn-sm" id="od-btn-resend"  onclick="resendConfirmation()">↻ Resend Confirmation</button>
+          <button class="btn btn-secondary btn-sm" id="od-btn-refund"  onclick="showRefundPanel(false)">↩ Issue Refund</button>
+          <button class="btn btn-secondary btn-sm" id="od-btn-email"   onclick="emailCustomer()">✉ Email Customer</button>
         </div>
-        <div style="display:flex;gap:8px;">
-          <button class="btn btn-ghost btn-sm" id="od-btn-cancel"        onclick="confirmCancel(false)" style="color:#c0392b;">✕ Cancel Order</button>
-          <button class="btn btn-ghost btn-sm" id="od-btn-cancel-refund" onclick="confirmCancel(true)"  style="color:#c0392b;">✕ Cancel + Refund</button>
+        <div>
+          <button class="btn btn-ghost btn-sm" id="od-btn-cancel" onclick="showRefundPanel(true)" style="color:#c0392b;">✕ Cancel Order</button>
         </div>
       </div>
-      <!-- Digital policy note (shown instead of cancel for digital orders) -->
+
+      <!-- Digital policy note -->
       <div id="od-digital-note" style="display:none;padding:10px 14px;background:#fef9f0;border:1px solid #f0e0b0;font-size:.78rem;color:#7a5a00;line-height:1.6;margin-top:8px;">
         <strong>Digital product — cancellation not available.</strong>
-        The file was delivered at the time of purchase. To process a refund as a goodwill gesture (e.g. duplicate order or genuine dissatisfaction), use <em>Issue Refund</em> above — refunds require manual review before being processed.
+        The file was delivered at the time of purchase. To issue a goodwill refund (e.g. duplicate order or genuine dissatisfaction), use <em>Issue Refund</em> above.
       </div>
+
+      <!-- Inline refund / cancel panel (replaces confirm()/prompt() to avoid INP blocking) -->
+      <div id="od-action-panel" style="display:none;margin-top:12px;padding:16px 18px;background:var(--paper-mid);border:1px solid var(--ink12);">
+        <div style="font-size:.8rem;font-weight:600;color:var(--ink);margin-bottom:12px;" id="od-panel-title"></div>
+
+        <!-- Refund type selector (only for card orders) -->
+        <div id="od-refund-options" style="display:none;margin-bottom:14px;">
+          <div style="display:flex;flex-direction:column;gap:8px;font-size:.82rem;">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+              <input type="radio" name="od-refund-type" value="none" id="od-rt-none"> No refund
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+              <input type="radio" name="od-refund-type" value="full" id="od-rt-full"> Full refund (<span id="od-refund-full-amt"></span>)
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+              <input type="radio" name="od-refund-type" value="amount" id="od-rt-amount" onchange="syncRefundInputs('amount')">
+              Partial — amount: <input type="number" step="0.01" min="0.01" id="od-refund-amount" class="form-input" style="width:100px;display:inline-block;padding:4px 8px;"
+                oninput="document.getElementById('od-rt-amount').checked=true;syncRefundInputs('amount')"> EUR
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+              <input type="radio" name="od-refund-type" value="percent" id="od-rt-percent" onchange="syncRefundInputs('percent')">
+              Partial — <input type="number" step="1" min="1" max="99" id="od-refund-percent" class="form-input" style="width:70px;display:inline-block;padding:4px 8px;"
+                oninput="document.getElementById('od-rt-percent').checked=true;syncRefundInputs('percent')">% → <span id="od-refund-percent-calc" style="color:var(--forest);font-weight:500;"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Bank-transfer note for cancel (no auto-refund possible) -->
+        <div id="od-bank-refund-note" style="display:none;padding:8px 12px;background:#fff8e1;border:1px solid #ffe082;font-size:.76rem;color:#7a5a00;margin-bottom:12px;">
+          Bank transfer payment — no automatic refund. If a refund is owed, arrange it manually and note it here.
+        </div>
+
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;">
+          <button class="btn btn-primary btn-sm" id="od-panel-confirm-btn" onclick="executePanelAction()">Confirm</button>
+          <button class="btn btn-ghost btn-sm" onclick="hideActionPanel()">Go Back</button>
+        </div>
+        <div id="od-panel-msg" style="font-size:.78rem;margin-top:8px;min-height:16px;"></div>
+      </div>
+
       <div id="od-status-msg" style="font-size:.78rem;color:var(--ink60);margin-top:8px;min-height:16px;"></div>
     </div>
 
@@ -356,6 +424,7 @@ function closeDetail() {
 // ── Helpers ──
 
 const DIGITAL_VARIANTS = new Set(['ebook', 'audiobook', 'complete bundle']);
+let _panelMode = null; // 'cancel' | 'refund-only'
 
 function isDigitalOrder(o) {
   return DIGITAL_VARIANTS.has((o?.variant || '').toLowerCase());
@@ -366,16 +435,145 @@ function _refreshActionButtons(o) {
   const isDigital   = isDigitalOrder(o);
   const canRefund   = o.payment_method === 'card' && !!o.payment_intent_id;
 
-  document.getElementById('od-btn-confirm').style.display        = (o.status === 'pending') ? '' : 'none';
-  document.getElementById('od-btn-fulfil').style.display         = (!isCancelled && o.status !== 'fulfilled') ? '' : 'none';
-  document.getElementById('od-btn-resend').style.display         = !isCancelled ? '' : 'none';
-  document.getElementById('od-btn-refund').style.display         = (canRefund && !isCancelled) ? '' : 'none';
-  document.getElementById('od-btn-cancel').style.display         = (!isCancelled && !isDigital) ? '' : 'none';
-  document.getElementById('od-btn-cancel-refund').style.display  = (!isCancelled && !isDigital && canRefund) ? '' : 'none';
-  document.getElementById('od-digital-note').style.display       = (!isCancelled && isDigital) ? '' : 'none';
+  document.getElementById('od-btn-confirm').style.display  = (o.status === 'pending') ? '' : 'none';
+  document.getElementById('od-btn-fulfil').style.display   = (!isCancelled && o.status !== 'fulfilled') ? '' : 'none';
+  document.getElementById('od-btn-resend').style.display   = !isCancelled ? '' : 'none';
+  document.getElementById('od-btn-refund').style.display   = (canRefund && !isCancelled) ? '' : 'none';
+  document.getElementById('od-btn-cancel').style.display   = (!isCancelled && !isDigital) ? '' : 'none';
+  document.getElementById('od-digital-note').style.display = (!isCancelled && isDigital) ? '' : 'none';
+  hideActionPanel();
 }
 
-// ── Status update (confirm / fulfil only — cancel goes via order-actions) ──
+// ── Inline action panel (replaces confirm()/prompt() — avoids INP blocking) ──
+
+function showRefundPanel(isCancelMode) {
+  if (!currentOrder) return;
+  _panelMode = isCancelMode ? 'cancel' : 'refund-only';
+  const o         = currentOrder;
+  const fullAmt   = o.price ? parseFloat(o.price).toFixed(2) : '0.00';
+  const canRefund = o.payment_method === 'card' && !!o.payment_intent_id;
+  const isBank    = o.payment_method === 'bank';
+
+  document.getElementById('od-panel-title').textContent =
+    isCancelMode ? `Cancel order ${o.id} — select refund option:` : `Issue refund for order ${o.id}:`;
+  document.getElementById('od-panel-confirm-btn').textContent = isCancelMode ? 'Confirm Cancellation' : 'Issue Refund';
+  document.getElementById('od-panel-msg').textContent = '';
+  document.getElementById('od-refund-full-amt').textContent = '€ ' + fullAmt;
+  document.getElementById('od-refund-amount').value  = '';
+  document.getElementById('od-refund-percent').value = '';
+  document.getElementById('od-refund-percent-calc').textContent = '';
+
+  // Show refund options only for card orders; show bank note for cancel+bank
+  document.getElementById('od-refund-options').style.display   = canRefund ? '' : 'none';
+  document.getElementById('od-bank-refund-note').style.display = (isCancelMode && isBank) ? '' : 'none';
+
+  // Default selection
+  document.getElementById('od-rt-none').checked = true;
+
+  document.getElementById('od-action-panel').style.display = '';
+  document.getElementById('od-action-panel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function hideActionPanel() {
+  document.getElementById('od-action-panel').style.display = 'none';
+  _panelMode = null;
+}
+
+function syncRefundInputs(changed) {
+  if (!currentOrder) return;
+  const fullAmt = currentOrder.price ? parseFloat(currentOrder.price) : 0;
+  if (changed === 'percent') {
+    const pct = parseFloat(document.getElementById('od-refund-percent').value);
+    if (!isNaN(pct) && pct > 0) {
+      const calc = (fullAmt * pct / 100).toFixed(2);
+      document.getElementById('od-refund-percent-calc').textContent = '€ ' + calc;
+      document.getElementById('od-refund-amount').value = calc;
+    } else {
+      document.getElementById('od-refund-percent-calc').textContent = '';
+    }
+  } else {
+    const amt = parseFloat(document.getElementById('od-refund-amount').value);
+    if (!isNaN(amt) && fullAmt > 0) {
+      const pct = Math.round(amt / fullAmt * 100);
+      document.getElementById('od-refund-percent').value = pct;
+      document.getElementById('od-refund-percent-calc').textContent = '€ ' + amt.toFixed(2);
+    }
+  }
+}
+
+async function executePanelAction() {
+  if (!currentOrder || !_panelMode) return;
+  const o = currentOrder;
+  const msg = document.getElementById('od-panel-msg');
+
+  // Determine refund amount
+  const canRefund  = o.payment_method === 'card' && !!o.payment_intent_id;
+  let refundAmount = null; // null = no refund
+  if (canRefund) {
+    const type = document.querySelector('input[name="od-refund-type"]:checked')?.value || 'none';
+    if (type === 'full') {
+      refundAmount = o.price ? parseFloat(o.price) : null;
+    } else if (type === 'amount') {
+      const v = parseFloat(document.getElementById('od-refund-amount').value);
+      if (isNaN(v) || v <= 0) { msg.textContent = 'Enter a valid amount.'; msg.style.color = '#c0392b'; return; }
+      refundAmount = v;
+    } else if (type === 'percent') {
+      const pct = parseFloat(document.getElementById('od-refund-percent').value);
+      if (isNaN(pct) || pct <= 0 || pct > 100) { msg.textContent = 'Enter a percentage between 1 and 100.'; msg.style.color = '#c0392b'; return; }
+      refundAmount = parseFloat((parseFloat(o.price || 0) * pct / 100).toFixed(2));
+    }
+  }
+
+  msg.textContent = _panelMode === 'cancel' ? 'Processing cancellation…' : 'Issuing refund…';
+  msg.style.color = 'var(--ink60)';
+
+  // Disable button to prevent double-submit
+  const btn = document.getElementById('od-panel-confirm-btn');
+  btn.disabled = true;
+
+  try {
+    if (_panelMode === 'cancel') {
+      const payload = { action: 'cancel', orderId: o.id };
+      if (refundAmount !== null) { payload.refund = true; payload.refundAmount = refundAmount; }
+      const res  = await fetch('/api/order-actions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Cancel failed');
+
+      o.status = 'cancelled';
+      if (refundAmount !== null) o.refund_issued = true;
+      const idx = allOrders.findIndex(x => x.id === o.id);
+      if (idx !== -1) { allOrders[idx].status = 'cancelled'; if (refundAmount !== null) allOrders[idx].refund_issued = true; }
+
+      const badge = document.getElementById('od-status-badge');
+      badge.className = 'status-badge status-cancelled';
+      badge.textContent = 'cancelled';
+      _refreshActionButtons(o);
+
+      const refundMsg = (refundAmount !== null && data.refundIssued) ? ` Refund of € ${refundAmount.toFixed(2)} issued.` : '';
+      document.getElementById('od-status-msg').textContent = 'Order cancelled.' + refundMsg + ' Notifications sent.';
+      document.getElementById('od-status-msg').style.color = 'var(--forest)';
+      renderStats(); updatePendingBadge(); renderTable();
+      showToast('Order cancelled.' + refundMsg);
+
+    } else {
+      if (refundAmount === null || refundAmount <= 0) { msg.textContent = 'Select a refund amount.'; msg.style.color = '#c0392b'; btn.disabled = false; return; }
+      const res  = await fetch('/api/order-actions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'refund', orderId: o.id, amount: refundAmount }) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Refund failed');
+
+      hideActionPanel();
+      document.getElementById('od-status-msg').textContent = `Refund of € ${data.refundAmount} issued. Customer notified.`;
+      document.getElementById('od-status-msg').style.color = 'var(--forest)';
+      showToast(`Refund of € ${data.refundAmount} issued.`);
+    }
+  } catch(err) {
+    msg.textContent = 'Failed: ' + err.message;
+    msg.style.color = '#c0392b';
+  }
+  btn.disabled = false;
+}
+
+// ── Status update (confirm / fulfil) ──
 async function updateStatus(newStatus) {
   if (!currentOrder) return;
   const msg = document.getElementById('od-status-msg');
@@ -394,81 +592,8 @@ async function updateStatus(newStatus) {
 
     msg.textContent = 'Status updated to "' + newStatus + '".';
     msg.style.color = 'var(--forest)';
-    renderStats();
-    updatePendingBadge();
-    renderTable();
+    renderStats(); updatePendingBadge(); renderTable();
     showToast(`Order ${currentOrder.id} → ${newStatus}`);
-  } catch(err) {
-    msg.textContent = 'Failed: ' + err.message;
-    msg.style.color = '#c0392b';
-  }
-}
-
-// ── Cancel (with optional Stripe refund) ──
-async function confirmCancel(withRefund) {
-  if (!currentOrder) return;
-  const label = withRefund ? 'cancel this order and issue a full refund' : 'cancel this order';
-  if (!confirm(`Are you sure you want to ${label}? This cannot be undone.`)) return;
-
-  const msg = document.getElementById('od-status-msg');
-  msg.textContent = withRefund ? 'Cancelling and issuing refund…' : 'Cancelling order…';
-  msg.style.color = 'var(--ink60)';
-
-  try {
-    const res  = await fetch('/api/order-actions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'cancel', orderId: currentOrder.id, refund: withRefund }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Cancel failed');
-
-    currentOrder.status = 'cancelled';
-    if (withRefund) currentOrder.refund_issued = true;
-    const idx = allOrders.findIndex(o => o.id === currentOrder.id);
-    if (idx !== -1) { allOrders[idx].status = 'cancelled'; if (withRefund) allOrders[idx].refund_issued = true; }
-
-    const badge = document.getElementById('od-status-badge');
-    badge.className = 'status-badge status-cancelled';
-    badge.textContent = 'cancelled';
-    _refreshActionButtons(currentOrder);
-
-    const refundMsg = (withRefund && data.refundIssued) ? ' Refund issued.' : '';
-    msg.textContent = 'Order cancelled.' + refundMsg + ' Notifications sent.';
-    msg.style.color = 'var(--forest)';
-    renderStats();
-    updatePendingBadge();
-    renderTable();
-    showToast('Order cancelled.' + refundMsg);
-  } catch(err) {
-    msg.textContent = 'Failed: ' + err.message;
-    msg.style.color = '#c0392b';
-  }
-}
-
-// ── Issue refund without cancelling ──
-async function issueRefund() {
-  if (!currentOrder) return;
-  const fullAmount = currentOrder.price ? parseFloat(currentOrder.price).toFixed(2) : '0.00';
-  const input = prompt(`Issue refund for order ${currentOrder.id}.\n\nEnter refund amount in EUR (full: ${fullAmount}), or cancel:`);
-  if (input === null) return;
-  const amount = parseFloat(input);
-  if (isNaN(amount) || amount <= 0) { alert('Invalid amount.'); return; }
-
-  const msg = document.getElementById('od-status-msg');
-  msg.textContent = 'Issuing refund…'; msg.style.color = 'var(--ink60)';
-
-  try {
-    const res  = await fetch('/api/order-actions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'refund', orderId: currentOrder.id, amount }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Refund failed');
-    msg.textContent = `Refund of € ${data.refundAmount} issued. Customer notified.`;
-    msg.style.color = 'var(--forest)';
-    showToast(`Refund of € ${data.refundAmount} issued.`);
   } catch(err) {
     msg.textContent = 'Failed: ' + err.message;
     msg.style.color = '#c0392b';
@@ -480,51 +605,83 @@ async function resendConfirmation() {
   if (!currentOrder) return;
   const msg = document.getElementById('od-status-msg');
   msg.textContent = 'Resending…'; msg.style.color = 'var(--ink60)';
-
   try {
-    const res  = await fetch('/api/order-actions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'resend', orderId: currentOrder.id }),
-    });
+    const res  = await fetch('/api/order-actions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'resend', orderId: currentOrder.id }) });
     const data = await res.json();
     if (res.ok && data.success) {
       msg.textContent = 'Confirmation resent to ' + currentOrder.email;
       msg.style.color = 'var(--forest)';
       showToast('Confirmation email resent.');
-    } else {
-      throw new Error(data.error || 'Send failed');
-    }
-  } catch(err) {
-    msg.textContent = 'Failed: ' + err.message;
-    msg.style.color = '#c0392b';
-  }
+    } else { throw new Error(data.error || 'Send failed'); }
+  } catch(err) { msg.textContent = 'Failed: ' + err.message; msg.style.color = '#c0392b'; }
 }
 
-// ── Email customer (opens compose in contacts) ──
+// ── Email customer ──
 function emailCustomer() {
   if (!currentOrder) return;
   const o = currentOrder;
   window.location.href = `contacts.html?compose=1&name=${encodeURIComponent([o.first_name, o.last_name].filter(Boolean).join(' '))}&email=${encodeURIComponent(o.email || '')}`;
 }
 
+// ── Stripe balance & payout ──
+async function loadStripeBalance() {
+  const btn = document.getElementById('stripe-refresh-btn');
+  btn.textContent = '…'; btn.disabled = true;
+  try {
+    const res  = await fetch('/api/order-actions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'stripe-balance' }) });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed');
+
+    document.getElementById('stripe-avail').textContent   = '€ ' + (data.available   / 100).toFixed(2);
+    document.getElementById('stripe-pending').textContent = '€ ' + (data.pending      / 100).toFixed(2);
+    document.getElementById('stripe-balance-note').textContent = data.availableRaw > 0 ? 'Available balance is ready to pay out.' : 'No available balance to pay out yet.';
+    document.getElementById('stripe-payout-btn').disabled = data.availableRaw <= 0;
+    document.getElementById('payout-amount-input').placeholder = `Max: € ${(data.availableRaw / 100).toFixed(2)}`;
+    document.getElementById('stripe-balance-card').style.display = '';
+  } catch(e) {
+    document.getElementById('stripe-balance-note').textContent = 'Could not load balance: ' + e.message;
+    document.getElementById('stripe-balance-card').style.display = '';
+  }
+  btn.textContent = '↻ Refresh'; btn.disabled = false;
+}
+
+function showPayoutPanel() {
+  document.getElementById('payout-panel').style.display = '';
+  document.getElementById('payout-msg').textContent = '';
+}
+
+async function executePayout() {
+  const amountInput = document.getElementById('payout-amount-input').value;
+  const amount      = amountInput ? parseFloat(amountInput) : null;
+  const msg         = document.getElementById('payout-msg');
+  if (amount !== null && (isNaN(amount) || amount <= 0)) { msg.textContent = 'Enter a valid amount.'; msg.style.color = '#c0392b'; return; }
+
+  msg.textContent = 'Initiating payout…'; msg.style.color = 'var(--ink60)';
+  try {
+    const res  = await fetch('/api/order-actions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'stripe-payout', amount }) });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Payout failed');
+    msg.textContent = `Payout of € ${data.amount} initiated (ID: ${data.payoutId}). Funds arrive in 1–2 business days.`;
+    msg.style.color = 'var(--forest)';
+    showToast(`Payout of € ${data.amount} initiated.`);
+    setTimeout(loadStripeBalance, 1500);
+  } catch(e) {
+    msg.textContent = 'Failed: ' + e.message;
+    msg.style.color = '#c0392b';
+  }
+}
+
 // ── Export CSV ──
 function exportCSV() {
   const cols = ['id','item_title','variant','price','payment_method','order_type','status','first_name','last_name','email','created_at'];
-  const header = cols.join(',');
-  const rows = allOrders.map(o =>
-    cols.map(c => JSON.stringify(o[c] ?? '')).join(',')
-  );
-  const csv  = [header, ...rows].join('\n');
-  const blob = new Blob([csv], { type: 'text/csv' });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href = url; a.download = `orders-${new Date().toISOString().slice(0,10)}.csv`;
-  a.click(); URL.revokeObjectURL(url);
+  const csv  = [cols.join(','), ...allOrders.map(o => cols.map(c => JSON.stringify(o[c] ?? '')).join(','))].join('\n');
+  const a    = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([csv], { type: 'text/csv' })), download: `orders-${new Date().toISOString().slice(0,10)}.csv` });
+  a.click();
 }
 
 // ── Init ──
 loadOrders();
+loadStripeBalance();
 </script>
 </body>
 </html>
