@@ -373,7 +373,9 @@ module.exports = async function(req, res) {
 
     // Update DB status
     try {
-      await patchOrder(SUP_URL, SUP_KEY, orderId, { status: 'cancelled', refund_issued: refundIssued });
+      const cancelPatch = { status: 'cancelled', refund_issued: refundIssued };
+      if (refundIssued) cancelPatch.refund_amount = parseFloat(refundAmount);
+      await patchOrder(SUP_URL, SUP_KEY, orderId, cancelPatch);
     } catch(e) {
       respond(res, 500, { error: 'DB update failed: ' + e.message });
       return;
@@ -429,8 +431,8 @@ module.exports = async function(req, res) {
       return;
     }
 
-    // Record refund flag in DB
-    try { await patchOrder(SUP_URL, SUP_KEY, orderId, { refund_issued: true }); } catch(_) {}
+    // Record refund in DB
+    try { await patchOrder(SUP_URL, SUP_KEY, orderId, { refund_issued: true, refund_amount: parseFloat(refundAmount) }); } catch(_) {}
 
     // Notify customer
     try {

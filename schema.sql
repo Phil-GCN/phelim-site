@@ -172,8 +172,13 @@ CREATE TABLE IF NOT EXISTS orders (
   last_name           text,
   email               text,
   status              text NOT NULL DEFAULT 'pending', -- 'pending' | 'confirmed' | 'fulfilled' | 'cancelled'
+  refund_issued       boolean DEFAULT false,
+  refund_amount       numeric(8,2),                   -- actual amount refunded (may be partial)
   created_at          timestamptz NOT NULL DEFAULT now()
 );
+-- Migrations (run once if table already exists):
+-- ALTER TABLE orders ADD COLUMN IF NOT EXISTS refund_issued boolean DEFAULT false;
+-- ALTER TABLE orders ADD COLUMN IF NOT EXISTS refund_amount numeric(8,2);
 CREATE INDEX IF NOT EXISTS orders_email_idx      ON orders (email);
 CREATE INDEX IF NOT EXISTS orders_item_id_idx    ON orders (item_id);
 CREATE INDEX IF NOT EXISTS orders_created_at_idx ON orders (created_at DESC);

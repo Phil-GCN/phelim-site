@@ -98,27 +98,11 @@
         <div class="card-title" style="margin:0;">Stripe Balance</div>
         <button class="btn btn-ghost btn-sm" onclick="loadStripeBalance()" id="stripe-refresh-btn">↻ Refresh</button>
       </div>
-      <div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:16px;">
+      <div style="display:flex;gap:28px;flex-wrap:wrap;">
         <div><div style="font-size:.72rem;color:var(--ink30);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;">Available</div><div style="font-size:1.3rem;font-family:var(--serif);color:var(--forest);" id="stripe-avail">—</div></div>
         <div><div style="font-size:.72rem;color:var(--ink30);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;">Pending</div><div style="font-size:1.3rem;font-family:var(--serif);color:var(--ink60);" id="stripe-pending">—</div></div>
-        <div style="margin-left:auto;display:flex;align-items:flex-end;">
-          <button class="btn btn-secondary btn-sm" onclick="showPayoutPanel()" id="stripe-payout-btn">↑ Initiate Payout</button>
-        </div>
       </div>
-      <!-- Payout panel -->
-      <div id="payout-panel" style="display:none;padding:14px;background:var(--paper-mid);border:1px solid var(--ink12);">
-        <div style="font-size:.8rem;color:var(--ink60);margin-bottom:10px;line-height:1.6;">Payouts transfer your Stripe available balance to your connected bank account. <strong>Manual payouts must be enabled</strong> in your Stripe Dashboard (Settings → Payouts). Funds appear within 1–2 business days.</div>
-        <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
-          <div>
-            <label style="font-size:.75rem;color:var(--ink60);display:block;margin-bottom:4px;">Amount (EUR) — leave blank for full available balance</label>
-            <input class="form-input" type="number" step="0.01" min="0.01" id="payout-amount-input" placeholder="e.g. 150.00" style="width:180px;">
-          </div>
-          <button class="btn btn-primary btn-sm" onclick="executePayout()">Confirm Payout</button>
-          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('payout-panel').style.display='none'">Cancel</button>
-        </div>
-        <div id="payout-msg" style="font-size:.78rem;margin-top:8px;min-height:16px;"></div>
-      </div>
-      <div style="font-size:.72rem;color:var(--ink30);margin-top:6px;" id="stripe-balance-note"></div>
+      <div style="font-size:.72rem;color:var(--ink30);margin-top:8px;" id="stripe-balance-note"></div>
     </div>
 
     <!-- Filters -->
@@ -187,6 +171,7 @@
           <div class="order-detail-group"><div class="order-detail-label">Item</div><div class="order-detail-value" id="od-item"></div></div>
           <div class="order-detail-group"><div class="order-detail-label">Format / Variant</div><div class="order-detail-value" id="od-variant"></div></div>
           <div class="order-detail-group"><div class="order-detail-label">Price</div><div class="order-detail-value" id="od-price"></div></div>
+          <div class="order-detail-group" id="od-refund-row" style="display:none;"><div class="order-detail-label">Refund</div><div class="order-detail-value" id="od-refund"></div></div>
           <div class="order-detail-group"><div class="order-detail-label">Payment method</div><div class="order-detail-value" id="od-payment"></div></div>
           <div class="order-detail-group" id="od-stripe-row" style="display:none;"><div class="order-detail-label">Stripe Payment Intent</div><div class="order-detail-value" id="od-stripe"></div></div>
         </div>
@@ -394,6 +379,18 @@ function viewOrder(id) {
   document.getElementById('od-variant').textContent = o.variant || '—';
   document.getElementById('od-price').textContent   = o.price ? '€ ' + parseFloat(o.price).toFixed(2) : '—';
   document.getElementById('od-payment').textContent = o.payment_method === 'bank' ? 'Bank transfer' : 'Card (Stripe)';
+
+  // Refund row — shown when a refund has been issued
+  const refundRow = document.getElementById('od-refund-row');
+  if (o.refund_issued) {
+    refundRow.style.display = '';
+    document.getElementById('od-refund').innerHTML =
+      `<span style="color:#c0392b;font-weight:600;">Issued</span>` +
+      (o.refund_amount ? ` — € ${parseFloat(o.refund_amount).toFixed(2)}` : '') +
+      (o.status === 'cancelled' ? ' · Order cancelled' : '');
+  } else {
+    refundRow.style.display = 'none';
+  }
   document.getElementById('od-status-msg').textContent = '';
 
   // Stripe link
@@ -436,7 +433,8 @@ function _refreshActionButtons(o) {
   const canRefund   = o.payment_method === 'card' && !!o.payment_intent_id;
 
   document.getElementById('od-btn-confirm').style.display  = (o.status === 'pending') ? '' : 'none';
-  document.getElementById('od-btn-fulfil').style.display   = (!isCancelled && o.status !== 'fulfilled') ? '' : 'none';
+  // Digital products are delivered instantly — fulfilment tracking only applies to physical items
+  document.getElementById('od-btn-fulfil').style.display   = (!isCancelled && !isDigital && o.status !== 'fulfilled') ? '' : 'none';
   document.getElementById('od-btn-resend').style.display   = !isCancelled ? '' : 'none';
   document.getElementById('od-btn-refund').style.display   = (canRefund && !isCancelled) ? '' : 'none';
   document.getElementById('od-btn-cancel').style.display   = (!isCancelled && !isDigital) ? '' : 'none';
@@ -632,11 +630,9 @@ async function loadStripeBalance() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Failed');
 
-    document.getElementById('stripe-avail').textContent   = '€ ' + (data.available   / 100).toFixed(2);
-    document.getElementById('stripe-pending').textContent = '€ ' + (data.pending      / 100).toFixed(2);
-    document.getElementById('stripe-balance-note').textContent = data.availableRaw > 0 ? 'Available balance is ready to pay out.' : 'No available balance to pay out yet.';
-    document.getElementById('stripe-payout-btn').disabled = data.availableRaw <= 0;
-    document.getElementById('payout-amount-input').placeholder = `Max: € ${(data.availableRaw / 100).toFixed(2)}`;
+    document.getElementById('stripe-avail').textContent   = '€ ' + (data.available / 100).toFixed(2);
+    document.getElementById('stripe-pending').textContent = '€ ' + (data.pending   / 100).toFixed(2);
+    document.getElementById('stripe-balance-note').textContent = 'Payouts are handled automatically by Stripe. Visit your Stripe Dashboard for payout history.';
     document.getElementById('stripe-balance-card').style.display = '';
   } catch(e) {
     document.getElementById('stripe-balance-note').textContent = 'Could not load balance: ' + e.message;
@@ -645,31 +641,6 @@ async function loadStripeBalance() {
   btn.textContent = '↻ Refresh'; btn.disabled = false;
 }
 
-function showPayoutPanel() {
-  document.getElementById('payout-panel').style.display = '';
-  document.getElementById('payout-msg').textContent = '';
-}
-
-async function executePayout() {
-  const amountInput = document.getElementById('payout-amount-input').value;
-  const amount      = amountInput ? parseFloat(amountInput) : null;
-  const msg         = document.getElementById('payout-msg');
-  if (amount !== null && (isNaN(amount) || amount <= 0)) { msg.textContent = 'Enter a valid amount.'; msg.style.color = '#c0392b'; return; }
-
-  msg.textContent = 'Initiating payout…'; msg.style.color = 'var(--ink60)';
-  try {
-    const res  = await fetch('/api/order-actions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'stripe-payout', amount }) });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Payout failed');
-    msg.textContent = `Payout of € ${data.amount} initiated (ID: ${data.payoutId}). Funds arrive in 1–2 business days.`;
-    msg.style.color = 'var(--forest)';
-    showToast(`Payout of € ${data.amount} initiated.`);
-    setTimeout(loadStripeBalance, 1500);
-  } catch(e) {
-    msg.textContent = 'Failed: ' + e.message;
-    msg.style.color = '#c0392b';
-  }
-}
 
 // ── Export CSV ──
 function exportCSV() {
