@@ -21,7 +21,7 @@ function buildCarousel(){
       : `onclick="window.open('${e.youtube||e.spotify||(window.SITE?.podcastYouTubeUrl||'#')}','_blank')"`;
 
     const watchBtn = ytId
-      ? `<button class="cc-btn" onclick="event.stopPropagation();if(typeof playYouTubeInline==='function')playYouTubeInline('${ytId}','${safeTitle}')">&#9654; Watch here</button>`
+      ? `<button class="cc-btn" onclick="event.stopPropagation();if(typeof playYouTubeInline==='function')playYouTubeInline('${ytId}','${safeTitle}');else window.open('${e.youtube||'#'}','_blank')">&#9654; Watch here</button>`
       : `<button class="cc-btn" onclick="event.stopPropagation();window.open('${e.youtube||(window.SITE?.podcastYouTubeUrl||'#')}','_blank')">&#9654; YouTube ↗</button>`;
     const listenBtn = spEmbed
       ? `<button class="cc-btn outline" onclick="event.stopPropagation();if(typeof setSpotifyEmbed==='function')setSpotifyEmbed('${spEmbed}',null);else window.open('${e.spotify||'#'}','_blank')">&#9654; Spotify</button>`

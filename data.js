@@ -108,13 +108,24 @@ async function loadSiteContent() {
   if (spotifySrc) { const el = document.getElementById('spotify-show-embed'); if (el) el.src = spotifySrc; }
   const appleSrc = _embedSrc(sc.podcastAppleEmbedUrl);
   if (appleSrc) { const el = document.getElementById('apple-podcast-embed'); if (el) el.src = appleSrc; }
-  // Store podcast URLs for podcast.js fallbacks
+  // Store podcast URLs + derived IDs for podcast.js and inline players
+  const ytUrl      = sc.podcastYouTubeUrl || 'https://youtube.com/playlist?list=PLN8CWpJtlQCsy6Z-Yd6B4EuqHpjLMrfdi';
+  const ytListId   = ytUrl.match(/list=([A-Za-z0-9_\-]+)/)?.[1] || 'PLN8CWpJtlQCsy6Z-Yd6B4EuqHpjLMrfdi';
   window.SITE = window.SITE || {};
   Object.assign(window.SITE, {
-    podcastSpotifyUrl:  sc.podcastSpotifyUrl  || 'https://open.spotify.com/show/6yUjD35JA5VRfHzHw2gCX9',
-    podcastYouTubeUrl:  sc.podcastYouTubeUrl  || 'https://youtube.com/playlist?list=PL9fKbOngNj6Ac9wdzaJjxbDua3ZVe4270',
-    podcastAppleUrl:    sc.podcastAppleUrl    || 'https://podcasts.apple.com/us/podcast/future-foundations-building-beyond-borders/id1874863146',
+    podcastSpotifyUrl:       sc.podcastSpotifyUrl || 'https://open.spotify.com/show/6yUjD35JA5VRfHzHw2gCX9',
+    podcastYouTubeUrl:       ytUrl,
+    podcastYouTubePlaylistId: ytListId,
+    podcastAppleUrl:         sc.podcastAppleUrl  || 'https://podcasts.apple.com/us/podcast/future-foundations-building-beyond-borders/id1874863146',
   });
+  // Update the always-visible Full Archive player with the real playlist ID from settings
+  const npFrame = document.getElementById('now-playing-frame');
+  if (npFrame && npFrame.src.includes('PLN8CWpJtlQCsy6Z-Yd6B4EuqHpjLMrfdi')) {
+    npFrame.src = `https://www.youtube.com/embed/videoseries?list=${ytListId}&rel=0`;
+  }
+  // Homepage YouTube playlist embed
+  const hpPlayer = document.getElementById('homepage-yt-player');
+  if (hpPlayer) hpPlayer.src = `https://www.youtube.com/embed/videoseries?list=${ytListId}&rel=0`;
 }
 
 // Extract Spotify episode ID from a full episode URL so we can build the embed URL
@@ -145,20 +156,31 @@ function _renderFeaturedEpisodes() {
         No featured episodes yet. Mark episodes as featured in the portal to curate this section.
       </div>`;
     } else {
-      grid.innerHTML = featured.slice(0, 3).map(e => {
-        const badge = e.tag ? `<div style="position:absolute;top:12px;left:12px;font-size:.65rem;letter-spacing:.12em;text-transform:uppercase;background:rgba(255,255,255,.15);color:#f8f6f1;padding:3px 8px;">${e.tag}</div>` : '';
-        const showLabel = e.externalShow ? `<div style="font-size:.7rem;color:rgba(248,246,241,.5);margin-bottom:4px;letter-spacing:.06em;">Guest: ${e.externalShow}</div>` : '';
+      grid.innerHTML = featured.map(e => {
+        const badge = e.tag ? `<div style="position:absolute;top:10px;left:10px;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;background:rgba(255,255,255,.15);color:#f8f6f1;padding:2px 7px;">${e.tag}</div>` : '';
+        const showLabel = e.externalShow ? `<div style="font-size:.68rem;color:rgba(248,246,241,.5);margin-bottom:4px;">Guest · ${e.externalShow}</div>` : '';
         const ytId = _youtubeVideoId(e.youtube);
+        const safeTitle = e.t.replace(/'/g,"\\'");
         const clickAction = ytId
-          ? `onclick="playYouTubeInline('${ytId}','${e.t.replace(/'/g,"\\'")}')"`
-          : `onclick="window.open('${e.spotify || e.youtube || (window.SITE?.podcastSpotifyUrl||'#')}','_blank')"`;
+          ? `onclick="typeof playFeaturedYouTube==='function'&&playFeaturedYouTube('${ytId}','${safeTitle}')"`
+          : `onclick="window.open('${e.spotify||e.youtube||(window.SITE?.podcastSpotifyUrl||'#')}','_blank')"`;
         return `<div class="fep-card" ${clickAction}>
-          <div class="fep-thumb" style="background:${e.bg};">${badge}<div class="fep-thumb-label">${e.t.split(' ').slice(0,4).join(' ')}…</div><div class="fep-play">▶</div></div>
+          <div class="fep-thumb" style="background:${e.bg};position:relative;">${badge}<div class="fep-play" style="position:absolute;bottom:10px;right:10px;">▶</div></div>
           ${showLabel}
           ${e.tag ? `<div class="fep-num">${e.tag}</div>` : ''}
           <div class="fep-title">${e.t}</div>
         </div>`;
       }).join('');
+      // Init scroll: show/hide nav buttons, display first 3 cards
+      setTimeout(() => {
+        const allCards = [...grid.querySelectorAll('.fep-card')];
+        if (allCards.length > 3) {
+          document.getElementById('fep-prev-btn').style.display = '';
+          document.getElementById('fep-next-btn').style.display = '';
+          allCards.forEach((c, i) => { c.style.display = i < 3 ? '' : 'none'; });
+          document.getElementById('fep-prev-btn').style.opacity = '0.3';
+        }
+      }, 0);
     }
   }
 
@@ -190,71 +212,43 @@ function _renderFeaturedEpisodes() {
 }
 
 function _renderLatestEpisodes() {
-  const eps = (window.EPS || []).slice(0, 4);
-  if (!eps.length) return;
+  const eps = window.EPS || [];
+  // Homepage player — build regardless of whether we have portal episodes yet
+  const homePod = document.getElementById('homepage-pod-featured');
+  if (!homePod) return;
 
-  // Homepage: try YouTube playlist embed first (most natural "latest episodes" experience)
-  const ytPlaylistUrl = window.SITE?.podcastYouTubeUrl || '';
-  const playlistId    = ytPlaylistUrl.match(/list=([A-Za-z0-9_\-]+)/)?.[1];
-  const homePod       = document.getElementById('homepage-pod-featured');
+  const listId = window.SITE?.podcastYouTubePlaylistId || 'PLN8CWpJtlQCsy6Z-Yd6B4EuqHpjLMrfdi';
+  const section = homePod.closest('section') || homePod.parentElement;
+  if (!section) return;
 
-  if (homePod && playlistId) {
-    // Replace the whole latest-episodes section with an embedded YouTube playlist
-    const section = homePod.closest('.pod-section') || homePod.closest('section') || homePod.parentElement;
-    if (section) {
-      section.innerHTML = `
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start;">
-          <div>
-            <iframe id="homepage-yt-player"
-              src="https://www.youtube.com/embed/videoseries?list=${playlistId}&rel=0"
-              width="100%" height="315" frameborder="0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowfullscreen style="border-radius:4px;display:block;"></iframe>
-          </div>
-          <div>
-            <div style="font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink30);margin-bottom:12px;">Future Foundations · Latest</div>
-            <div id="homepage-ep-list" style="display:flex;flex-direction:column;gap:0;"></div>
-          </div>
-        </div>`;
-      // Render clickable episode list
-      const listEl = document.getElementById('homepage-ep-list');
-      if (listEl) {
-        listEl.innerHTML = eps.map(e => {
-          const ytId = _youtubeVideoId(e.youtube);
-          const clickAction = ytId
-            ? `onclick="document.getElementById('homepage-yt-player').src='https://www.youtube.com/embed/${ytId}?autoplay=1&rel=0'"`
-            : `onclick="window.open('${e.youtube||e.spotify||(window.SITE?.podcastYouTubeUrl||'#')}','_blank')"`;
-          return `<div class="mini-ep" style="cursor:pointer;padding:10px 0;border-bottom:1px solid var(--ink12);" ${clickAction}>
-            <div class="mini-ep-title" style="font-size:.85rem;color:var(--ink);line-height:1.4;">${e.t}</div>
-            ${e.tag ? `<div class="mini-ep-tag" style="font-size:.7rem;color:var(--ink30);margin-top:2px;">${e.tag}</div>` : ''}
-          </div>`;
-        }).join('');
-      }
-      return;
-    }
-  }
+  // Build: full-width player on top, horizontal episode strip below
+  section.innerHTML = `
+    <div style="margin-bottom:12px;">
+      <iframe id="homepage-yt-player"
+        src="https://www.youtube.com/embed/videoseries?list=${listId}&rel=0"
+        width="100%" height="380" frameborder="0"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowfullscreen style="border-radius:4px;display:block;"></iframe>
+    </div>
+    <div id="homepage-ep-strip" style="display:flex;gap:12px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;scrollbar-width:thin;"></div>`;
 
-  // Fallback: update original elements from portal data
-  const featCard = document.getElementById('homepage-pod-featured');
-  if (featCard && eps[0]) {
-    const e = eps[0];
-    const ytId = _youtubeVideoId(e.youtube);
-    featCard.innerHTML = `
-      <div class="pod-meta" style="font-size:.72rem;color:var(--ink30);margin-bottom:6px;letter-spacing:.06em;text-transform:uppercase;">Latest episode</div>
-      <div class="pod-eptitle">${e.t}</div>
-      <p class="pod-desc">${e.d || ''}</p>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;">
-        <button class="btn btn-dark btn-sm" onclick="window.open('${e.youtube||(window.SITE?.podcastYouTubeUrl||'#')}','_blank')">▶ Watch</button>
-        <button class="btn btn-outline btn-sm" onclick="window.open('${e.spotify||(window.SITE?.podcastSpotifyUrl||'#')}','_blank')">Listen</button>
+  // Populate horizontal strip from portal episodes (if any)
+  const strip = document.getElementById('homepage-ep-strip');
+  if (strip && eps.length) {
+    strip.innerHTML = eps.map(e => {
+      const ytId = _youtubeVideoId(e.youtube);
+      const listParam = `&list=${listId}`;
+      const clickAction = ytId
+        ? `onclick="(function(){var p=document.getElementById('homepage-yt-player');if(p)p.src='https://www.youtube.com/embed/${ytId}?autoplay=1&rel=0${listParam}'})()"`
+        : `onclick="window.open('${e.youtube||e.spotify||(window.SITE?.podcastYouTubeUrl||'#')}','_blank')"`;
+      return `<div style="flex-shrink:0;width:180px;cursor:pointer;" ${clickAction}>
+        <div style="height:100px;background:${e.bg};display:flex;align-items:center;justify-content:center;margin-bottom:6px;border-radius:3px;position:relative;">
+          <span style="font-size:1.4rem;color:rgba(248,246,241,.7);">▶</span>
+          ${e.tag ? `<div style="position:absolute;bottom:5px;left:5px;font-size:.58rem;letter-spacing:.08em;text-transform:uppercase;background:rgba(0,0,0,.35);color:#f8f6f1;padding:1px 5px;">${e.tag}</div>` : ''}
+        </div>
+        <div style="font-size:.78rem;color:var(--ink);line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${e.t}</div>
       </div>`;
-  }
-  const miniList = document.getElementById('homepage-pod-mini-list');
-  if (miniList) {
-    miniList.innerHTML = eps.slice(1).map(e => `
-      <div class="mini-ep" style="cursor:pointer;" onclick="window.open('${e.youtube||e.spotify||(window.SITE?.podcastSpotifyUrl||'#')}','_blank')">
-        <div class="mini-ep-title">${e.t}</div>
-        ${e.tag ? `<div class="mini-ep-tag">${e.tag}</div>` : ''}
-      </div>`).join('');
+    }).join('');
   }
 }
 
