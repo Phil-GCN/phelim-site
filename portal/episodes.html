@@ -107,6 +107,24 @@
           <input class="form-input" id="ep-youtube" type="url" placeholder="https://youtube.com/watch?v=...">
         </div>
       </div>
+      <div class="form-group" style="display:flex;align-items:flex-start;gap:10px;">
+        <input type="checkbox" id="ep-featured" style="margin-top:3px;flex-shrink:0;">
+        <label for="ep-featured" class="form-label" style="cursor:pointer;">Feature this episode (shows in "Episodes worth your time" and "Start Here" sections)</label>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Tag / badge</label>
+          <input class="form-input" id="ep-tag" type="text" placeholder="e.g. Start here, Long-term thinking">
+        </div>
+        <div class="form-group">
+          <label class="form-label">External show (if guest appearance)</label>
+          <input class="form-input" id="ep-ext-show" type="text" placeholder="e.g. The Tim Ferriss Show">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">External show URL</label>
+        <input class="form-input" id="ep-ext-url" type="url" placeholder="https://...">
+      </div>
       <div class="form-group">
         <label class="form-label">Thumbnail Background Colour</label>
         <input class="form-input" id="ep-color" type="color" value="#1a3028" style="height:40px;padding:4px;">
@@ -150,6 +168,10 @@ const EP_FIELDS = {
   spotify_url: 'ep-spotify',
   youtube_url: 'ep-youtube',
   bg_color: 'ep-color',
+  featured: 'ep-featured',
+  tag:      'ep-tag',
+  external_show: 'ep-ext-show',
+  external_show_url: 'ep-ext-url',
 };
 
 async function initEpisodes() {
@@ -196,6 +218,10 @@ function editEpisodeRow(id) {
   document.getElementById(EP_FIELDS.spotify_url).value = e.spotify_url || '';
   document.getElementById(EP_FIELDS.youtube_url).value = e.youtube_url || '';
   document.getElementById(EP_FIELDS.bg_color).value    = e.bg_color || '#1a3028';
+  document.getElementById(EP_FIELDS.featured).checked  = !!e.featured;
+  document.getElementById(EP_FIELDS.tag).value          = e.tag || '';
+  document.getElementById(EP_FIELDS.external_show).value     = e.external_show || '';
+  document.getElementById(EP_FIELDS.external_show_url).value = e.external_show_url || '';
   showEpisodeForm();
 }
 
@@ -222,10 +248,12 @@ function showEpisodeForm() {
 function cancelEpisode() {
   editingEpId = null;
   document.getElementById('ep-form-title').textContent = 'New Episode';
-  ['ep-num','ep-title','ep-desc','ep-spotify','ep-youtube'].forEach(id => {
+  ['ep-num','ep-title','ep-desc','ep-spotify','ep-youtube','ep-tag','ep-ext-show','ep-ext-url'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
   });
   document.getElementById('ep-color').value = '#1a3028';
+  const featEl = document.getElementById('ep-featured');
+  if (featEl) featEl.checked = false;
   document.getElementById('episode-form').style.display = 'none';
 }
 
@@ -242,8 +270,12 @@ async function saveEpisode() {
     pillar:      document.getElementById(EP_FIELDS.pillar).value,
     spotify_url: document.getElementById(EP_FIELDS.spotify_url).value.trim(),
     youtube_url: document.getElementById(EP_FIELDS.youtube_url).value.trim(),
-    bg_color:    document.getElementById(EP_FIELDS.bg_color).value,
-    updated_at:  new Date().toISOString(),
+    bg_color:          document.getElementById(EP_FIELDS.bg_color).value,
+    featured:          document.getElementById(EP_FIELDS.featured).checked,
+    tag:               document.getElementById(EP_FIELDS.tag).value.trim(),
+    external_show:     document.getElementById(EP_FIELDS.external_show).value.trim(),
+    external_show_url: document.getElementById(EP_FIELDS.external_show_url).value.trim(),
+    updated_at:        new Date().toISOString(),
   };
 
   const btn = document.querySelector('#episode-form .btn-primary');

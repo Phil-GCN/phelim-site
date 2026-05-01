@@ -31,10 +31,14 @@ async function loadLiveArticles() {
 async function loadLiveEpisodes() {
   const rows = await fetchFromDB('episodes');
   if (rows && rows.length) {
-    window.EPS = rows.map(r => ({ n: r.number, t: r.title, d: r.description, bg: r.bg_color || '#1a3028', spotify: r.spotify_url, youtube: r.youtube_url }));
+    window.EPS = rows
+      .map(r => ({ n: r.number, t: r.title, d: r.description, bg: r.bg_color || '#1a3028', spotify: r.spotify_url, youtube: r.youtube_url, featured: r.featured || false, tag: r.tag || '', externalShow: r.external_show || '', externalShowUrl: r.external_show_url || '' }))
+      .sort((a, b) => parseInt(b.n) - parseInt(a.n));
     // Rebuild carousel if it's visible
-    const carousel = document.getElementById('podcast-carousel');
-    if (carousel) buildCarousel();
+    const track = document.getElementById('car-track');
+    if (track) buildCarousel();
+    _renderFeaturedEpisodes();
+    _renderLatestEpisodes();
   }
 }
 
@@ -71,6 +75,101 @@ async function loadSiteContent() {
     if (photoSlot) {
       photoSlot.innerHTML = `<img src="${sc.portraitPhoto}" alt="Phelim Ekwebe" style="width:100%;height:100%;object-fit:cover;display:block;">`;
     }
+  }
+
+  // Podcast platform URLs — update all links and embeds
+  const podcastUrlMap = {
+    'spotify-show':     sc.podcastSpotifyUrl,
+    'youtube-playlist': sc.podcastYouTubeUrl,
+    'apple-show':       sc.podcastAppleUrl,
+  };
+  Object.entries(podcastUrlMap).forEach(([key, url]) => {
+    if (!url) return;
+    document.querySelectorAll(`[data-podcast-url="${key}"]`).forEach(el => {
+      if (el.tagName === 'A') el.href = url;
+      else if (el.tagName === 'BUTTON') el.onclick = () => window.open(url, '_blank');
+    });
+  });
+  if (sc.podcastSpotifyEmbedUrl) {
+    const el = document.getElementById('spotify-show-embed');
+    if (el) el.src = sc.podcastSpotifyEmbedUrl;
+  }
+  if (sc.podcastAppleEmbedUrl) {
+    const el = document.getElementById('apple-podcast-embed');
+    if (el) el.src = sc.podcastAppleEmbedUrl;
+  }
+  // Store podcast URLs for podcast.js fallbacks
+  window.SITE = window.SITE || {};
+  Object.assign(window.SITE, {
+    podcastSpotifyUrl:  sc.podcastSpotifyUrl  || 'https://open.spotify.com/show/6yUjD35JA5VRfHzHw2gCX9',
+    podcastYouTubeUrl:  sc.podcastYouTubeUrl  || 'https://youtube.com/playlist?list=PL9fKbOngNj6Ac9wdzaJjxbDua3ZVe4270',
+    podcastAppleUrl:    sc.podcastAppleUrl    || 'https://podcasts.apple.com/us/podcast/future-foundations-building-beyond-borders/id1874863146',
+  });
+}
+
+function _renderFeaturedEpisodes() {
+  const eps = window.EPS || [];
+  const featured = eps.filter(e => e.featured);
+  if (!featured.length) return; // leave hardcoded fallback
+
+  // "Episodes worth your time" grid (podcast.html)
+  const grid = document.getElementById('featured-episodes-grid');
+  if (grid) {
+    grid.innerHTML = featured.slice(0, 3).map(e => {
+      const badge = e.tag ? `<div style="position:absolute;top:12px;left:12px;font-size:.65rem;letter-spacing:.12em;text-transform:uppercase;background:rgba(255,255,255,.15);color:#f8f6f1;padding:3px 8px;">${e.tag}</div>` : '';
+      const showLabel = e.externalShow ? `<div style="font-size:.7rem;color:rgba(248,246,241,.5);margin-bottom:4px;letter-spacing:.06em;">Guest: ${e.externalShow}</div>` : '';
+      const listenBtn = e.spotify ? `onclick="window.open('${e.spotify}','_blank')"` : `onclick="window.open(window.SITE?.podcastSpotifyUrl||'#','_blank')"`;
+      return `<div style="flex:1;min-width:240px;max-width:340px;background:${e.bg};padding:28px 24px;position:relative;cursor:pointer;" ${listenBtn}>
+        ${badge}
+        ${showLabel}
+        <div style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:rgba(248,246,241,.45);margin-bottom:8px;">Ep. ${e.n}</div>
+        <div style="font-family:var(--serif);font-size:1.05rem;color:#f8f6f1;line-height:1.4;margin-bottom:10px;">${e.t}</div>
+        <div style="font-size:.78rem;color:rgba(248,246,241,.6);line-height:1.6;">${e.d}</div>
+      </div>`;
+    }).join('');
+  }
+
+  // "Start Here" recommended list (podcast.html)
+  const recList = document.getElementById('recommended-episodes-list');
+  if (recList) {
+    const recs = featured.length >= 3 ? featured.slice(0, 4) : eps.slice(0, 4);
+    recList.innerHTML = recs.map(e => {
+      const badge = e.tag ? `<span style="display:inline-block;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;border:1px solid rgba(38,61,51,.25);padding:2px 7px;color:var(--ink60);margin-left:8px;">${e.tag}</span>` : '';
+      return `<div class="rec-ep-row" style="display:flex;align-items:center;gap:14px;padding:10px 0;border-bottom:1px solid var(--ink12);cursor:pointer;" onclick="window.open('${e.spotify || e.youtube || (window.SITE?.podcastSpotifyUrl||'#')}','_blank')">
+        <div style="width:36px;height:36px;background:${e.bg};display:flex;align-items:center;justify-content:center;font-size:.68rem;color:rgba(248,246,241,.7);flex-shrink:0;">${e.n}</div>
+        <div style="flex:1;font-size:.84rem;color:var(--ink);line-height:1.4;">${e.t}${badge}</div>
+      </div>`;
+    }).join('');
+  }
+}
+
+function _renderLatestEpisodes() {
+  const eps = (window.EPS || []).slice(0, 4); // most recent 4 (already sorted desc by loadLiveEpisodes)
+  if (!eps.length) return;
+
+  // Homepage featured pod card
+  const featCard = document.getElementById('homepage-pod-featured');
+  if (featCard && eps[0]) {
+    const e = eps[0];
+    featCard.innerHTML = `
+      <div class="pod-ep-num">Episode ${e.n}</div>
+      <div class="pod-ep-title">${e.t}</div>
+      <p class="pod-ep-desc">${e.d}</p>
+      <div class="pod-ep-actions">
+        <button class="btn btn-dark btn-sm" onclick="window.open('${e.youtube || (window.SITE?.podcastYouTubeUrl||'#')}','_blank')">Watch on YouTube</button>
+        <button class="btn btn-outline btn-sm" onclick="window.open('${e.spotify || (window.SITE?.podcastSpotifyUrl||'#')}','_blank')">Listen on Spotify</button>
+      </div>`;
+  }
+
+  // Homepage mini episode list (next 3)
+  const miniList = document.getElementById('homepage-pod-mini-list');
+  if (miniList && eps.length > 1) {
+    miniList.innerHTML = eps.slice(1, 4).map(e => `
+      <div class="pod-mini-ep" onclick="window.open('${e.spotify || e.youtube || (window.SITE?.podcastSpotifyUrl||'#')}','_blank')">
+        <div class="pme-num">Ep. ${e.n}</div>
+        <div class="pme-title">${e.t}</div>
+        ${e.tag ? `<div class="pme-tag">${e.tag}</div>` : ''}
+      </div>`).join('');
   }
 }
 

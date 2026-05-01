@@ -170,6 +170,36 @@
       <span id="route-status" style="font-size:.78rem;color:var(--ink60);margin-left:10px;"></span>
     </div>
 
+    <!-- Podcast Platforms -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header">
+        <div class="card-title">Podcast Platforms</div>
+        <div style="font-size:.78rem;color:var(--ink30);">Update these when your channel or show URLs change. They propagate everywhere on the site automatically.</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Spotify show URL</label>
+        <input class="form-input" id="s-podcast-spotify-url" type="url" placeholder="https://open.spotify.com/show/...">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Spotify embed URL</label>
+        <input class="form-input" id="s-podcast-spotify-embed" type="url" placeholder="https://open.spotify.com/embed/show/...">
+      </div>
+      <div class="form-group">
+        <label class="form-label">YouTube playlist / channel URL</label>
+        <input class="form-input" id="s-podcast-youtube-url" type="url" placeholder="https://youtube.com/playlist?list=...">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Apple Podcasts show URL</label>
+        <input class="form-input" id="s-podcast-apple-url" type="url" placeholder="https://podcasts.apple.com/...">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Apple Podcasts embed URL</label>
+        <input class="form-input" id="s-podcast-apple-embed" type="url" placeholder="https://embed.podcasts.apple.com/...">
+      </div>
+      <button class="btn btn-primary" onclick="savePodcastUrls()">Save Platform URLs</button>
+      <span id="podcast-url-status" style="font-size:.78rem;color:var(--ink60);margin-left:10px;"></span>
+    </div>
+
     <!-- Email Reply Templates -->
     <div class="card" style="margin-bottom:20px;">
       <div class="card-header">
@@ -380,6 +410,26 @@ async function saveSetting(section) {
   }
 }
 
+async function savePodcastUrls() {
+  const obj = {
+    podcastSpotifyUrl:    document.getElementById('s-podcast-spotify-url').value.trim(),
+    podcastSpotifyEmbedUrl: document.getElementById('s-podcast-spotify-embed').value.trim(),
+    podcastYouTubeUrl:    document.getElementById('s-podcast-youtube-url').value.trim(),
+    podcastAppleUrl:      document.getElementById('s-podcast-apple-url').value.trim(),
+    podcastAppleEmbedUrl: document.getElementById('s-podcast-apple-embed').value.trim(),
+  };
+  const status = document.getElementById('podcast-url-status');
+  try {
+    await DB.setSiteContent(obj);
+    status.textContent = 'Saved ✓';
+    showToast('Podcast platform URLs saved.');
+  } catch(e) {
+    status.textContent = 'Saved locally only';
+    showToast('Saved locally — check DB connection.');
+  }
+  setTimeout(() => { status.textContent = ''; }, 3000);
+}
+
 async function saveRouting() {
   const obj = {
     routeDefault:     document.getElementById('route-default').value.trim(),
@@ -472,6 +522,11 @@ async function initContactAndRouting() {
     set('route-writing',     'routeWriting');
     set('route-partnership', 'routePartnership');
     set('route-noreply',     'routeNoreply');
+    set('s-podcast-spotify-url',    'podcastSpotifyUrl');
+    set('s-podcast-spotify-embed',  'podcastSpotifyEmbedUrl');
+    set('s-podcast-youtube-url',    'podcastYouTubeUrl');
+    set('s-podcast-apple-url',      'podcastAppleUrl');
+    set('s-podcast-apple-embed',    'podcastAppleEmbedUrl');
   } catch(_) {}
 }
 initContactAndRouting();

@@ -15,8 +15,8 @@ function buildCarousel(){
         <div class="cc-title">${e.t}</div>
         <p class="cc-desc">${e.d}</p>
         <div class="cc-actions">
-          ${e.youtube ? `<button class="cc-btn" onclick="window.open('${e.youtube}','_blank')">&#9654; Watch</button>` : `<button class="cc-btn" onclick="window.open('https://youtube.com/playlist?list=PL9fKbOngNj6Ac9wdzaJjxbDua3ZVe4270','_blank')">&#9654; Watch</button>`}
-          ${e.spotify ? `<button class="cc-btn outline" onclick="window.open('${e.spotify}','_blank')">Listen</button>` : `<button class="cc-btn outline" onclick="window.open('https://open.spotify.com/show/6yUjD35JA5VRfHzHw2gCX9','_blank')">Listen</button>`}
+          ${e.youtube ? `<button class="cc-btn" onclick="window.open('${e.youtube}','_blank')">&#9654; Watch</button>` : `<button class="cc-btn" onclick="window.open(window.SITE?.podcastYouTubeUrl || 'https://youtube.com/playlist?list=PL9fKbOngNj6Ac9wdzaJjxbDua3ZVe4270','_blank')">&#9654; Watch</button>`}
+          ${e.spotify ? `<button class="cc-btn outline" onclick="window.open('${e.spotify}','_blank')">Listen</button>` : `<button class="cc-btn outline" onclick="window.open(window.SITE?.podcastSpotifyUrl || 'https://open.spotify.com/show/6yUjD35JA5VRfHzHw2gCX9','_blank')">Listen</button>`}
         </div>
       </div>
     </div>`).join('');

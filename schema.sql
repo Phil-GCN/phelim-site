@@ -35,6 +35,12 @@ CREATE TABLE IF NOT EXISTS episodes (
   updated_at  timestamptz NOT NULL DEFAULT now()
 );
 
+-- Add columns (run once if table already exists):
+ALTER TABLE episodes ADD COLUMN IF NOT EXISTS featured boolean DEFAULT false;
+ALTER TABLE episodes ADD COLUMN IF NOT EXISTS tag text;
+ALTER TABLE episodes ADD COLUMN IF NOT EXISTS external_show text;
+ALTER TABLE episodes ADD COLUMN IF NOT EXISTS external_show_url text;
+
 -- ─────────────────────────────────────────────
 -- Books
 -- ─────────────────────────────────────────────
