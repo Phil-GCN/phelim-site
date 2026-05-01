@@ -168,11 +168,18 @@
           <button class="btn btn-secondary btn-sm" id="od-btn-confirm"   onclick="updateStatus('confirmed')">✓ Confirm</button>
           <button class="btn btn-secondary btn-sm" id="od-btn-fulfil"    onclick="updateStatus('fulfilled')">📦 Mark Fulfilled</button>
           <button class="btn btn-secondary btn-sm" id="od-btn-resend"    onclick="resendConfirmation()">↻ Resend Confirmation</button>
+          <button class="btn btn-secondary btn-sm" id="od-btn-refund"    onclick="issueRefund()">↩ Issue Refund</button>
           <button class="btn btn-secondary btn-sm" id="od-btn-email"     onclick="emailCustomer()">✉ Email Customer</button>
         </div>
         <div style="display:flex;gap:8px;">
-          <button class="btn btn-ghost btn-sm" id="od-btn-cancel" onclick="updateStatus('cancelled')" style="color:#c0392b;">✕ Cancel Order</button>
+          <button class="btn btn-ghost btn-sm" id="od-btn-cancel"        onclick="confirmCancel(false)" style="color:#c0392b;">✕ Cancel Order</button>
+          <button class="btn btn-ghost btn-sm" id="od-btn-cancel-refund" onclick="confirmCancel(true)"  style="color:#c0392b;">✕ Cancel + Refund</button>
         </div>
+      </div>
+      <!-- Digital policy note (shown instead of cancel for digital orders) -->
+      <div id="od-digital-note" style="display:none;padding:10px 14px;background:#fef9f0;border:1px solid #f0e0b0;font-size:.78rem;color:#7a5a00;line-height:1.6;margin-top:8px;">
+        <strong>Digital product — cancellation not available.</strong>
+        The file was delivered at the time of purchase. To process a refund as a goodwill gesture (e.g. duplicate order or genuine dissatisfaction), use <em>Issue Refund</em> above — refunds require manual review before being processed.
       </div>
       <div id="od-status-msg" style="font-size:.78rem;color:var(--ink60);margin-top:8px;min-height:16px;"></div>
     </div>
@@ -334,9 +341,7 @@ function viewOrder(id) {
   const badge = document.getElementById('od-status-badge');
   badge.className = `status-badge status-${o.status || 'pending'}`;
   badge.textContent = o.status || 'pending';
-  document.getElementById('od-btn-confirm').style.display = (o.status === 'pending')   ? '' : 'none';
-  document.getElementById('od-btn-fulfil').style.display  = (o.status !== 'fulfilled' && o.status !== 'cancelled') ? '' : 'none';
-  document.getElementById('od-btn-cancel').style.display  = (o.status !== 'cancelled') ? '' : 'none';
+  _refreshActionButtons(o);
 
   // renderTable handles DOM placement (detach → rebuild → re-inject)
   renderTable();
@@ -348,7 +353,29 @@ function closeDetail() {
   renderTable(); // renderTable restores detail to portal-main when currentOrder is null
 }
 
-// ── Status update ──
+// ── Helpers ──
+
+const DIGITAL_VARIANTS = new Set(['ebook', 'audiobook', 'complete bundle']);
+
+function isDigitalOrder(o) {
+  return DIGITAL_VARIANTS.has((o?.variant || '').toLowerCase());
+}
+
+function _refreshActionButtons(o) {
+  const isCancelled = o.status === 'cancelled';
+  const isDigital   = isDigitalOrder(o);
+  const canRefund   = o.payment_method === 'card' && !!o.payment_intent_id;
+
+  document.getElementById('od-btn-confirm').style.display        = (o.status === 'pending') ? '' : 'none';
+  document.getElementById('od-btn-fulfil').style.display         = (!isCancelled && o.status !== 'fulfilled') ? '' : 'none';
+  document.getElementById('od-btn-resend').style.display         = !isCancelled ? '' : 'none';
+  document.getElementById('od-btn-refund').style.display         = (canRefund && !isCancelled) ? '' : 'none';
+  document.getElementById('od-btn-cancel').style.display         = (!isCancelled && !isDigital) ? '' : 'none';
+  document.getElementById('od-btn-cancel-refund').style.display  = (!isCancelled && !isDigital && canRefund) ? '' : 'none';
+  document.getElementById('od-digital-note').style.display       = (!isCancelled && isDigital) ? '' : 'none';
+}
+
+// ── Status update (confirm / fulfil only — cancel goes via order-actions) ──
 async function updateStatus(newStatus) {
   if (!currentOrder) return;
   const msg = document.getElementById('od-status-msg');
@@ -357,19 +384,13 @@ async function updateStatus(newStatus) {
   try {
     await DB.patch('orders', currentOrder.id, { status: newStatus });
     currentOrder.status = newStatus;
-    // Update in allOrders array
     const idx = allOrders.findIndex(o => o.id === currentOrder.id);
     if (idx !== -1) allOrders[idx].status = newStatus;
 
-    // Update badge in detail panel
     const badge = document.getElementById('od-status-badge');
     badge.className = `status-badge status-${newStatus}`;
     badge.textContent = newStatus;
-
-    // Update action button visibility
-    document.getElementById('od-btn-confirm').style.display  = (newStatus === 'pending')   ? '' : 'none';
-    document.getElementById('od-btn-fulfil').style.display   = (newStatus !== 'fulfilled' && newStatus !== 'cancelled') ? '' : 'none';
-    document.getElementById('od-btn-cancel').style.display   = (newStatus !== 'cancelled') ? '' : 'none';
+    _refreshActionButtons(currentOrder);
 
     msg.textContent = 'Status updated to "' + newStatus + '".';
     msg.style.color = 'var(--forest)';
@@ -383,6 +404,77 @@ async function updateStatus(newStatus) {
   }
 }
 
+// ── Cancel (with optional Stripe refund) ──
+async function confirmCancel(withRefund) {
+  if (!currentOrder) return;
+  const label = withRefund ? 'cancel this order and issue a full refund' : 'cancel this order';
+  if (!confirm(`Are you sure you want to ${label}? This cannot be undone.`)) return;
+
+  const msg = document.getElementById('od-status-msg');
+  msg.textContent = withRefund ? 'Cancelling and issuing refund…' : 'Cancelling order…';
+  msg.style.color = 'var(--ink60)';
+
+  try {
+    const res  = await fetch('/api/order-actions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'cancel', orderId: currentOrder.id, refund: withRefund }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Cancel failed');
+
+    currentOrder.status = 'cancelled';
+    if (withRefund) currentOrder.refund_issued = true;
+    const idx = allOrders.findIndex(o => o.id === currentOrder.id);
+    if (idx !== -1) { allOrders[idx].status = 'cancelled'; if (withRefund) allOrders[idx].refund_issued = true; }
+
+    const badge = document.getElementById('od-status-badge');
+    badge.className = 'status-badge status-cancelled';
+    badge.textContent = 'cancelled';
+    _refreshActionButtons(currentOrder);
+
+    const refundMsg = (withRefund && data.refundIssued) ? ' Refund issued.' : '';
+    msg.textContent = 'Order cancelled.' + refundMsg + ' Notifications sent.';
+    msg.style.color = 'var(--forest)';
+    renderStats();
+    updatePendingBadge();
+    renderTable();
+    showToast('Order cancelled.' + refundMsg);
+  } catch(err) {
+    msg.textContent = 'Failed: ' + err.message;
+    msg.style.color = '#c0392b';
+  }
+}
+
+// ── Issue refund without cancelling ──
+async function issueRefund() {
+  if (!currentOrder) return;
+  const fullAmount = currentOrder.price ? parseFloat(currentOrder.price).toFixed(2) : '0.00';
+  const input = prompt(`Issue refund for order ${currentOrder.id}.\n\nEnter refund amount in EUR (full: ${fullAmount}), or cancel:`);
+  if (input === null) return;
+  const amount = parseFloat(input);
+  if (isNaN(amount) || amount <= 0) { alert('Invalid amount.'); return; }
+
+  const msg = document.getElementById('od-status-msg');
+  msg.textContent = 'Issuing refund…'; msg.style.color = 'var(--ink60)';
+
+  try {
+    const res  = await fetch('/api/order-actions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'refund', orderId: currentOrder.id, amount }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Refund failed');
+    msg.textContent = `Refund of € ${data.refundAmount} issued. Customer notified.`;
+    msg.style.color = 'var(--forest)';
+    showToast(`Refund of € ${data.refundAmount} issued.`);
+  } catch(err) {
+    msg.textContent = 'Failed: ' + err.message;
+    msg.style.color = '#c0392b';
+  }
+}
+
 // ── Resend confirmation email ──
 async function resendConfirmation() {
   if (!currentOrder) return;
@@ -390,10 +482,10 @@ async function resendConfirmation() {
   msg.textContent = 'Resending…'; msg.style.color = 'var(--ink60)';
 
   try {
-    const res  = await fetch('/api/resend-confirmation', {
+    const res  = await fetch('/api/order-actions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ orderId: currentOrder.id }),
+      body: JSON.stringify({ action: 'resend', orderId: currentOrder.id }),
     });
     const data = await res.json();
     if (res.ok && data.success) {
