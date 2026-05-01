@@ -36,6 +36,14 @@ module.exports = async function(req, res) {
     'Prefer': 'return=representation',
   };
 
+  // ── GET stripe-config (folded here to save a serverless function slot) ──
+  if (req.method === 'GET' && req.query?.table === 'stripe-config') {
+    const pk = process.env.STRIPE_PUBLISHABLE_KEY;
+    if (!pk) { respond(res, 500, { error: 'STRIPE_PUBLISHABLE_KEY not configured' }); return; }
+    respond(res, 200, { publishableKey: pk });
+    return;
+  }
+
   // ── GET ──
   if (req.method === 'GET') {
     const { table, id, filter } = req.query || {};

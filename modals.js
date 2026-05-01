@@ -393,7 +393,7 @@ async function _initStripe() {
 
     // Create the Stripe instance once; reuse on subsequent opens
     if (!_stripe) {
-      const cfgRes = await fetch('/api/stripe-config');
+      const cfgRes = await fetch('/api/db?table=stripe-config');
       if (!cfgRes.ok) throw new Error('Stripe config unavailable');
       const { publishableKey } = await cfgRes.json();
       if (!publishableKey) throw new Error('No publishable key returned');

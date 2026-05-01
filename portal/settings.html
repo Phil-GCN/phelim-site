@@ -178,11 +178,12 @@
       </div>
 
       <div class="tpl-tab-bar">
-        <button class="tpl-tab active" onclick="switchTpl('speaking')">Speaking</button>
-        <button class="tpl-tab" onclick="switchTpl('podcast')">Podcast</button>
-        <button class="tpl-tab" onclick="switchTpl('writing')">Writing</button>
-        <button class="tpl-tab" onclick="switchTpl('partnership')">Partnership</button>
-        <button class="tpl-tab" onclick="switchTpl('general')">General</button>
+        <button class="tpl-tab active" data-tpl="speaking" onclick="switchTpl('speaking')">Speaking</button>
+        <button class="tpl-tab" data-tpl="podcast" onclick="switchTpl('podcast')">Podcast</button>
+        <button class="tpl-tab" data-tpl="writing" onclick="switchTpl('writing')">Writing</button>
+        <button class="tpl-tab" data-tpl="partnership" onclick="switchTpl('partnership')">Partnership</button>
+        <button class="tpl-tab" data-tpl="general" onclick="switchTpl('general')">General</button>
+        <button class="tpl-tab" data-tpl="order_confirmation" onclick="switchTpl('order_confirmation')">Order Confirmation</button>
       </div>
 
       <div id="tpl-editor">
@@ -293,6 +294,12 @@ const TPL_DEFAULTS = {
     body:    'I read every message personally and respond to general enquiries within 3–5 business days. Whether you have a question about the podcast, a reaction to an essay, or simply want to start a conversation — I will get back to you.',
     closing: 'Thank you again for reaching out.',
   },
+  order_confirmation: {
+    heading: 'Your order is confirmed',
+    intro:   'Dear {name},\n\nThank you for your purchase. Your order has been received and confirmed.',
+    body:    'Your order details are included below. For digital formats, your download link is available in this email and will remain active at any time. For physical copies, you will receive a separate shipping notification once your order is dispatched.',
+    closing: 'Thank you for being part of what we are building.',
+  },
 };
 
 let activeTpl = 'speaking';
@@ -304,7 +311,7 @@ function getSavedTemplates() {
 function switchTpl(type) {
   activeTpl = type;
   document.querySelectorAll('.tpl-tab').forEach(t =>
-    t.classList.toggle('active', t.textContent.toLowerCase() === type)
+    t.classList.toggle('active', t.dataset.tpl === type)
   );
   const saved   = getSavedTemplates()[type] || {};
   const def     = TPL_DEFAULTS[type];
