@@ -149,6 +149,36 @@
       </div>
       <button class="btn btn-primary" onclick="saveContent('branding')">Save Branding</button>
     </div>
+
+    <!-- PODCAST PLATFORMS -->
+    <div class="card" style="margin-top:20px;">
+      <div class="card-header">
+        <div class="card-title">Podcast Platforms</div>
+        <div style="font-size:.78rem;color:var(--ink30);">Update when your channel or show URLs change — propagates to every link and embed on the site automatically. You can paste either a bare URL or the full embed code from Spotify / Apple.</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Spotify show URL</label>
+        <input class="form-input" id="sc-podcast-spotify-url" type="url" placeholder="https://open.spotify.com/show/...">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Spotify embed <span style="color:var(--ink30);font-weight:400;">(paste the embed code or just the embed URL)</span></label>
+        <textarea class="form-textarea" id="sc-podcast-spotify-embed" style="min-height:60px;font-size:.78rem;" placeholder="https://open.spotify.com/embed/show/... or paste full &lt;iframe&gt; embed code"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">YouTube playlist / channel URL</label>
+        <input class="form-input" id="sc-podcast-youtube-url" type="url" placeholder="https://youtube.com/playlist?list=...">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Apple Podcasts show URL</label>
+        <input class="form-input" id="sc-podcast-apple-url" type="url" placeholder="https://podcasts.apple.com/...">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Apple Podcasts embed <span style="color:var(--ink30);font-weight:400;">(paste the embed code or just the embed URL)</span></label>
+        <textarea class="form-textarea" id="sc-podcast-apple-embed" style="min-height:60px;font-size:.78rem;" placeholder="https://embed.podcasts.apple.com/... or paste full &lt;iframe&gt; embed code"></textarea>
+      </div>
+      <button class="btn btn-primary" onclick="savePodcastPlatforms()">Save Platform URLs</button>
+      <span id="podcast-platform-status" style="font-size:.78rem;color:var(--ink60);margin-left:10px;"></span>
+    </div>
   </main>
 
 </div>
@@ -198,7 +228,10 @@ async function loadContentFromDB() {
     const map = { heroHeading:'sc-hero-heading', heroEyebrow:'sc-hero-eyebrow', heroSub:'sc-hero-sub',
                   aboutP1:'sc-about-p1', aboutP2:'sc-about-p2',
                   speakingHeading:'sc-speaking-heading', speakingIntro:'sc-speaking-intro', speakingNote:'sc-speaking-note',
-                  footerCopy:'sc-footer-copy' };
+                  footerCopy:'sc-footer-copy',
+                  podcastSpotifyUrl:'sc-podcast-spotify-url', podcastSpotifyEmbedUrl:'sc-podcast-spotify-embed',
+                  podcastYouTubeUrl:'sc-podcast-youtube-url', podcastAppleUrl:'sc-podcast-apple-url',
+                  podcastAppleEmbedUrl:'sc-podcast-apple-embed' };
     Object.entries(sc).forEach(([key, value]) => {
       if (!value) return;
       saved[key] = value;
@@ -233,6 +266,27 @@ window.saveContent = async function(section) {
   }
   _origSaveContent(section);
 };
+
+async function savePodcastPlatforms() {
+  const g = id => document.getElementById(id)?.value.trim() || '';
+  const obj = {
+    podcastSpotifyUrl:    g('sc-podcast-spotify-url'),
+    podcastSpotifyEmbedUrl: g('sc-podcast-spotify-embed'),
+    podcastYouTubeUrl:    g('sc-podcast-youtube-url'),
+    podcastAppleUrl:      g('sc-podcast-apple-url'),
+    podcastAppleEmbedUrl: g('sc-podcast-apple-embed'),
+  };
+  const status = document.getElementById('podcast-platform-status');
+  try {
+    await DB.setSiteContent(obj);
+    status.textContent = 'Saved ✓';
+    showToast('Podcast platform URLs saved.');
+  } catch(e) {
+    status.textContent = 'Saved locally only';
+    showToast('Saved locally — check DB connection.');
+  }
+  setTimeout(() => { status.textContent = ''; }, 3000);
+}
 </script>
 
 <script>

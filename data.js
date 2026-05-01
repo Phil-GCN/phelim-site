@@ -90,14 +90,17 @@ async function loadSiteContent() {
       else if (el.tagName === 'BUTTON') el.onclick = () => window.open(url, '_blank');
     });
   });
-  if (sc.podcastSpotifyEmbedUrl) {
-    const el = document.getElementById('spotify-show-embed');
-    if (el) el.src = sc.podcastSpotifyEmbedUrl;
-  }
-  if (sc.podcastAppleEmbedUrl) {
-    const el = document.getElementById('apple-podcast-embed');
-    if (el) el.src = sc.podcastAppleEmbedUrl;
-  }
+  // Extract src URL from a value that may be a bare URL or a full <iframe ...> HTML string
+  const _embedSrc = val => {
+    if (!val) return null;
+    const t = val.trim();
+    if (t.startsWith('<')) { const m = t.match(/\bsrc="([^"]+)"/); return m ? m[1] : null; }
+    return t;
+  };
+  const spotifySrc = _embedSrc(sc.podcastSpotifyEmbedUrl);
+  if (spotifySrc) { const el = document.getElementById('spotify-show-embed'); if (el) el.src = spotifySrc; }
+  const appleSrc = _embedSrc(sc.podcastAppleEmbedUrl);
+  if (appleSrc) { const el = document.getElementById('apple-podcast-embed'); if (el) el.src = appleSrc; }
   // Store podcast URLs for podcast.js fallbacks
   window.SITE = window.SITE || {};
   Object.assign(window.SITE, {
@@ -109,33 +112,34 @@ async function loadSiteContent() {
 
 function _renderFeaturedEpisodes() {
   const eps = window.EPS || [];
+  if (!eps.length) return;
   const featured = eps.filter(e => e.featured);
-  if (!featured.length) return; // leave hardcoded fallback
 
-  // "Episodes worth your time" grid (podcast.html)
+  // "Episodes worth your time" grid — use featured if any, else first 3 from archive
+  const gridEps = featured.length ? featured.slice(0, 3) : eps.slice(0, 3);
   const grid = document.getElementById('featured-episodes-grid');
   if (grid) {
-    grid.innerHTML = featured.slice(0, 3).map(e => {
+    grid.innerHTML = gridEps.map(e => {
       const badge = e.tag ? `<div style="position:absolute;top:12px;left:12px;font-size:.65rem;letter-spacing:.12em;text-transform:uppercase;background:rgba(255,255,255,.15);color:#f8f6f1;padding:3px 8px;">${e.tag}</div>` : '';
       const showLabel = e.externalShow ? `<div style="font-size:.7rem;color:rgba(248,246,241,.5);margin-bottom:4px;letter-spacing:.06em;">Guest: ${e.externalShow}</div>` : '';
-      const listenBtn = e.spotify ? `onclick="window.open('${e.spotify}','_blank')"` : `onclick="window.open(window.SITE?.podcastSpotifyUrl||'#','_blank')"`;
-      return `<div style="flex:1;min-width:240px;max-width:340px;background:${e.bg};padding:28px 24px;position:relative;cursor:pointer;" ${listenBtn}>
-        ${badge}
+      const href = e.spotify || e.youtube || (window.SITE?.podcastSpotifyUrl || '#');
+      return `<div class="fep-card" style="cursor:pointer;" onclick="window.open('${href}','_blank')">
+        <div class="fep-thumb" style="background:${e.bg};">${badge}<div class="fep-thumb-label">Ep. ${e.n}</div><div class="fep-play">▶</div></div>
         ${showLabel}
-        <div style="font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:rgba(248,246,241,.45);margin-bottom:8px;">Ep. ${e.n}</div>
-        <div style="font-family:var(--serif);font-size:1.05rem;color:#f8f6f1;line-height:1.4;margin-bottom:10px;">${e.t}</div>
-        <div style="font-size:.78rem;color:rgba(248,246,241,.6);line-height:1.6;">${e.d}</div>
+        <div class="fep-num">Episode ${e.n}${e.tag ? ' · ' + e.tag : ''}</div>
+        <div class="fep-title">${e.t}</div>
       </div>`;
     }).join('');
   }
 
-  // "Start Here" recommended list (podcast.html)
+  // "Start Here" recommended list — use featured if any, else first 4 from archive
+  const recEps = featured.length ? featured.slice(0, 4) : eps.slice(0, 4);
   const recList = document.getElementById('recommended-episodes-list');
   if (recList) {
-    const recs = featured.length >= 3 ? featured.slice(0, 4) : eps.slice(0, 4);
-    recList.innerHTML = recs.map(e => {
+    recList.innerHTML = recEps.map(e => {
       const badge = e.tag ? `<span style="display:inline-block;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;border:1px solid rgba(38,61,51,.25);padding:2px 7px;color:var(--ink60);margin-left:8px;">${e.tag}</span>` : '';
-      return `<div class="rec-ep-row" style="display:flex;align-items:center;gap:14px;padding:10px 0;border-bottom:1px solid var(--ink12);cursor:pointer;" onclick="window.open('${e.spotify || e.youtube || (window.SITE?.podcastSpotifyUrl||'#')}','_blank')">
+      const href = e.spotify || e.youtube || (window.SITE?.podcastSpotifyUrl || '#');
+      return `<div class="rec-ep-row" style="display:flex;align-items:center;gap:14px;padding:10px 0;border-bottom:1px solid var(--ink12);cursor:pointer;" onclick="window.open('${href}','_blank')">
         <div style="width:36px;height:36px;background:${e.bg};display:flex;align-items:center;justify-content:center;font-size:.68rem;color:rgba(248,246,241,.7);flex-shrink:0;">${e.n}</div>
         <div style="flex:1;font-size:.84rem;color:var(--ink);line-height:1.4;">${e.t}${badge}</div>
       </div>`;
