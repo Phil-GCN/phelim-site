@@ -175,30 +175,51 @@
     </div>
   </section>
 
-  <!-- 5. ALL EPISODES — YouTube playlist + horizontal scrollable episode cards below -->
+  <!-- 5. ALL EPISODES — tab switcher: Watch (YouTube) | Listen (Spotify) -->
   <section class="pod-all-eps">
     <div class="container">
       <div class="sec-top" style="margin-bottom:24px;">
         <div class="eyebrow">Full Archive</div>
         <h2 style="margin-top:12px;">Every conversation, every idea</h2>
-        <p style="max-width:460px;margin-top:7px;font-size:.87rem;">The complete Future Foundations library — every episode, in the order they were built. Start anywhere. Each one stands alone.</p>
+        <p style="max-width:460px;margin-top:7px;font-size:.87rem;">The complete Future Foundations library. Choose how you want to experience it — watch the full video episodes or follow the audio show.</p>
       </div>
-      <!-- YouTube playlist embed — always visible; card clicks load specific video -->
-      <div id="now-playing-wrap" style="margin-bottom:24px;">
+      <!-- Tab switcher -->
+      <div style="display:flex;gap:0;margin-bottom:20px;border:1px solid var(--ink12);width:fit-content;">
+        <button id="arc-tab-yt" onclick="switchArchiveTab('yt')"
+          style="padding:10px 22px;font-size:.78rem;letter-spacing:.06em;text-transform:uppercase;border:none;cursor:pointer;background:var(--forest);color:var(--paper);transition:all .2s;">▶ Watch — YouTube</button>
+        <button id="arc-tab-sp" onclick="switchArchiveTab('sp')"
+          style="padding:10px 22px;font-size:.78rem;letter-spacing:.06em;text-transform:uppercase;border:none;cursor:pointer;background:transparent;color:var(--ink60);transition:all .2s;">♪ Listen — Spotify</button>
+      </div>
+
+      <!-- YouTube player + episode cards (default visible) -->
+      <div id="arc-yt-wrap">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:12px;">
-          <div id="now-playing-title" style="font-size:.78rem;color:var(--ink30);letter-spacing:.06em;text-transform:uppercase;flex:1;">Full Podcast Playlist</div>
+          <div id="now-playing-title" style="font-size:.78rem;color:var(--ink30);letter-spacing:.06em;text-transform:uppercase;flex:1;">Full Video Playlist</div>
           <a id="now-playing-yt-link" href="https://youtube.com/playlist?list=PLN8CWpJtlQCsy6Z-Yd6B4EuqHpjLMrfdi" target="_blank" style="font-size:.72rem;color:var(--ink30);text-decoration:none;white-space:nowrap;">Open on YouTube ↗</a>
           <button id="np-toggle-btn" onclick="toggleNowPlaying()" style="flex-shrink:0;padding:4px 10px;font-size:.72rem;border:1px solid var(--ink12);background:transparent;cursor:pointer;white-space:nowrap;">▼ Minimise</button>
         </div>
-        <div id="now-playing-inner">
+        <div id="now-playing-inner" style="margin-bottom:20px;">
           <iframe id="now-playing-frame" width="100%" height="420" frameborder="0"
             src="https://www.youtube.com/embed/videoseries?list=PLN8CWpJtlQCsy6Z-Yd6B4EuqHpjLMrfdi&rel=0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowfullscreen style="border-radius:4px;display:block;"></iframe>
         </div>
+        <!-- Episode cards for video navigation (from portal, clicking loads video) -->
+        <div id="archive-cards-outer" style="display:flex;gap:14px;overflow-x:auto;padding-bottom:10px;-webkit-overflow-scrolling:touch;scrollbar-width:thin;"></div>
       </div>
-      <!-- Horizontal scrollable episode cards from portal (ORDER BY sort_order ASC) -->
-      <div id="archive-cards-outer" style="display:flex;gap:14px;overflow-x:auto;padding-bottom:10px;-webkit-overflow-scrolling:touch;scrollbar-width:thin;"></div>
+
+      <!-- Spotify show embed (hidden by default; shows full episode list from channel) -->
+      <div id="arc-sp-wrap" style="display:none;">
+        <iframe id="archive-spotify-frame"
+          src="https://open.spotify.com/embed/show/6yUjD35JA5VRfHzHw2gCX9?utm_source=generator"
+          width="100%" height="452" frameBorder="0"
+          allowfullscreen allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+          loading="lazy" style="border-radius:8px;display:block;"></iframe>
+        <div style="margin-top:12px;font-size:.78rem;color:var(--ink60);">
+          Follow the show on Spotify to get notified of every new episode.
+          <a id="arc-spotify-ext-link" href="https://open.spotify.com/show/6yUjD35JA5VRfHzHw2gCX9" target="_blank" style="color:var(--forest);text-decoration:none;margin-left:6px;">Open in Spotify ↗</a>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -251,6 +272,19 @@
   <script src="modals.js"></script>
   <script src="podcast.js"></script>
 <script>
+  // ── Full Archive: switch between YouTube (video) and Spotify (audio) ──
+  window.switchArchiveTab = function(tab) {
+    const ytWrap = document.getElementById('arc-yt-wrap');
+    const spWrap = document.getElementById('arc-sp-wrap');
+    const ytBtn  = document.getElementById('arc-tab-yt');
+    const spBtn  = document.getElementById('arc-tab-sp');
+    const isYt   = tab === 'yt';
+    if (ytWrap) ytWrap.style.display = isYt ? '' : 'none';
+    if (spWrap) spWrap.style.display = isYt ? 'none' : '';
+    if (ytBtn) { ytBtn.style.background = isYt ? 'var(--forest)' : 'transparent'; ytBtn.style.color = isYt ? 'var(--paper)' : 'var(--ink60)'; }
+    if (spBtn) { spBtn.style.background = isYt ? 'transparent' : '#1DB954'; spBtn.style.color = isYt ? 'var(--ink60)' : '#fff'; }
+  };
+
   // ── Pillars strip: expand / collapse ──
   window.togglePillars = function() {
     const body = document.getElementById('pillars-body');

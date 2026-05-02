@@ -130,24 +130,32 @@ async function loadSiteContent() {
     podcastYouTubePlaylistId: ytListId,
     podcastAppleUrl:         sc.podcastAppleUrl  || 'https://podcasts.apple.com/us/podcast/future-foundations-building-beyond-borders/id1874863146',
   });
-  // YouTube Playlist Embed — user can paste full <iframe> code from YouTube Share → Embed
+  // YouTube Playlist Embed — only override the player if the user has explicitly pasted an embed code
+  // (not derived from podcastYouTubeUrl to avoid overriding with a wrong playlist ID)
   const ytEmbedRaw = sc.podcastYouTubePlaylistEmbed;
   const ytEmbedSrc = ytEmbedRaw ? _embedSrc(ytEmbedRaw) : null;
-  const effectiveYtSrc = ytEmbedSrc || `https://www.youtube.com/embed/videoseries?list=${ytListId}&rel=0`;
-  window.SITE.podcastYouTubeEmbedSrc = effectiveYtSrc;
-
-  // Update Full Archive player and Homepage player (rec-player-frame stays as Spotify show by default)
-  ['now-playing-frame', 'homepage-yt-player'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.src = effectiveYtSrc;
-  });
+  if (ytEmbedSrc) {
+    window.SITE.podcastYouTubeEmbedSrc = ytEmbedSrc;
+    ['now-playing-frame', 'homepage-yt-player'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.src = ytEmbedSrc;
+    });
+  }
+  // Update Full Archive YouTube external link
+  const npYtLink = document.getElementById('now-playing-yt-link');
+  if (npYtLink) npYtLink.href = ytUrl;
   // Update homepage external YouTube link
   const ytExtLink = document.getElementById('homepage-yt-ext-link');
   if (ytExtLink) ytExtLink.href = ytUrl;
-  // Update recommended section: left player defaults to Spotify show embed
+  // Spotify show embed — update Recommended section player + Full Archive Spotify player
   if (spotifyShowId) {
+    const showEmbedSrc2 = `https://open.spotify.com/embed/show/${spotifyShowId}?utm_source=generator`;
     const recFrame = document.getElementById('rec-player-frame');
-    if (recFrame) recFrame.src = `https://open.spotify.com/embed/show/${spotifyShowId}?utm_source=generator`;
+    if (recFrame) recFrame.src = showEmbedSrc2;
+    const arcSpFrame = document.getElementById('archive-spotify-frame');
+    if (arcSpFrame) arcSpFrame.src = showEmbedSrc2;
+    const arcSpLink = document.getElementById('arc-spotify-ext-link');
+    if (arcSpLink) arcSpLink.href = window.SITE.podcastSpotifyUrl || `https://open.spotify.com/show/${spotifyShowId}`;
   }
 }
 
@@ -333,19 +341,18 @@ function _renderLatestEpisodes() {
   const extLink = document.getElementById('homepage-yt-ext-link');
   if (extLink) extLink.href = ytExtUrl;
 
-  // Right column: 3 most recent episodes (ORDER BY sort_order ASC, LIMIT 3)
+  // Right column: up to 3 episodes that have YouTube URLs (so all clicks load inline — no new tab)
   const eps  = window.EPS || [];
   const mini = document.getElementById('homepage-pod-mini-list');
   if (!mini || !eps.length) return;
-  const recent = eps.slice(0, 3);
+  const recent = eps.filter(e => _youtubeVideoId(e.youtube)).slice(0, 3);
+  if (!recent.length) return;
   mini.innerHTML = recent.map((e) => {
     const ytId     = _youtubeVideoId(e.youtube);
-    const thumbSrc = ytId ? `https://img.youtube.com/vi/${ytId}/mqdefault.jpg` : (e.thumbnail || '');
-    const clickAction = ytId
-      ? `onclick="(function(){var p=document.getElementById('homepage-yt-player');if(p)p.src='https://www.youtube.com/embed/${ytId}?autoplay=1&list=${ytListId}&rel=0';})()" style="cursor:pointer;"`
-      : `onclick="window.open('${e.youtube||e.spotify||'#'}','_blank')" style="cursor:pointer;"`;
-    return `<div ${clickAction} style="display:flex;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--ink08);">
-      <div style="${thumbSrc?`background-image:url(${thumbSrc});background-size:cover;background-position:center;`:`background:${e.bg};`}width:68px;height:46px;flex-shrink:0;border-radius:2px;"></div>
+    const thumbSrc = `https://img.youtube.com/vi/${ytId}/mqdefault.jpg`;
+    return `<div onclick="(function(){var p=document.getElementById('homepage-yt-player');if(p)p.src='https://www.youtube.com/embed/${ytId}?autoplay=1&list=${ytListId}&rel=0';})()"
+      style="display:flex;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--ink08);cursor:pointer;">
+      <img src="${thumbSrc}" style="width:68px;height:46px;object-fit:cover;flex-shrink:0;border-radius:2px;" loading="lazy">
       <div style="flex:1;min-width:0;">
         <div style="font-size:.82rem;color:var(--ink);font-weight:500;line-height:1.35;margin-bottom:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${e.t}</div>
         <div style="font-size:.72rem;color:var(--ink60);display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;">${e.d||''}</div>
