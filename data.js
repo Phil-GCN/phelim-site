@@ -47,7 +47,6 @@ async function loadLiveEpisodes() {
     if (track) buildCarousel();
     _renderFeaturedEpisodes();
     _renderRecommendedEpisodes();
-    _renderArchiveCards();
     _renderLatestEpisodes();
   }
 }
@@ -66,8 +65,9 @@ async function loadSiteContent() {
   set('sc-live-about-p2', sc.aboutP2);
 
   // Hero (index.html)
-  set('sc-live-hero-heading', sc.heroHeading);
-  set('sc-live-hero-sub', sc.heroSub);
+  // Use innerHTML so <br> and <em> formatting is preserved
+  if (sc.heroHeading) { const el = document.getElementById('sc-live-hero-heading'); if (el) el.innerHTML = sc.heroHeading; }
+  if (sc.heroSub)     { const el = document.getElementById('sc-live-hero-sub');     if (el) el.innerHTML = sc.heroSub; }
 
   // Speaking
   setText('sc-live-speaking-heading', sc.speakingHeading);
@@ -298,33 +298,6 @@ function _renderRecommendedEpisodes() {
         <div style="margin-top:3px;">${badge}${e.duration?`<span style="font-size:.62rem;color:var(--ink30);margin-left:4px;">${e.duration}</span>`:''}</div>
       </div>
       <div style="font-size:.9rem;color:var(--ink30);flex-shrink:0;padding-left:6px;">▶</div>
-    </div>`;
-  }).join('');
-}
-
-// ── Full Archive: horizontal scrollable episode cards below the YouTube player ──
-function _renderArchiveCards() {
-  const outer = document.getElementById('archive-cards-outer');
-  if (!outer) return;
-  const eps = window.EPS || [];
-  if (!eps.length) return;
-  const listId = window.SITE?.podcastYouTubePlaylistId || 'PLN8CWpJtlQCsy6Z-Yd6B4EuqHpjLMrfdi';
-  outer.innerHTML = eps.map((e) => {
-    const ytId     = _youtubeVideoId(e.youtube);
-    const thumbSrc = ytId ? `https://img.youtube.com/vi/${ytId}/mqdefault.jpg` : (e.thumbnail || '');
-    const safeTitle = e.t.replace(/'/g, "\\'");
-    const badge = e.youtube
-      ? `<span style="background:#FF0000;color:#fff;font-size:.52rem;font-weight:700;padding:1px 5px;border-radius:2px;">▶ YT</span>`
-      : e.spotify ? `<span style="background:#1DB954;color:#fff;font-size:.52rem;font-weight:700;padding:1px 5px;border-radius:2px;">♪ SP</span>` : '';
-    const clickAction = ytId
-      ? `onclick="typeof playYouTubeInline==='function'&&playYouTubeInline('${ytId}','${safeTitle}')"`
-      : `onclick="window.open('${e.spotify||e.youtube||'#'}','_blank')"`;
-    return `<div class="arc-card" ${clickAction}>
-      <div style="${thumbSrc?`background-image:url(${thumbSrc});background-size:cover;background-position:center;`:`background:${e.bg};`}width:100%;aspect-ratio:16/9;"></div>
-      <div style="padding:8px 10px 10px;">
-        <div style="font-size:.78rem;color:var(--ink);line-height:1.3;margin-bottom:5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${e.t}</div>
-        <div>${badge}${e.duration?`<span style="font-size:.7rem;color:var(--ink60);margin-left:4px;">${e.duration}</span>`:''}</div>
-      </div>
     </div>`;
   }).join('');
 }
