@@ -190,7 +190,8 @@ function _episodeCard(e, idx, opts = {}) {
     ? `style="background-image:url(${thumbSrc});background-size:cover;background-position:center;background-color:${e.bg};"`
     : `style="background:${e.bg};"`;
 
-  const descHtml = e.d ? `<div class="fep-desc">${e.d}</div>` : '';
+  // Two desc nodes: clamped stays in flow (preserves height), overlay floats on hover
+  const descHtml = e.d ? `<div class="fep-desc-clamp">${e.d}</div><div class="fep-desc-overlay">${e.d}</div>` : '';
 
   return `<div class="fep-card ${opts.extraClass||''}" ${clickAction} style="${opts.cardStyle||''}">
     <div class="fep-thumb" ${thumbInner}>
@@ -321,52 +322,36 @@ function _renderArchiveCards() {
 }
 
 function _renderLatestEpisodes() {
-  const featCard = document.getElementById('homepage-pod-featured');
-  if (!featCard) return;
-
-  // Homepage always uses YouTube playlist embed (no Spotify)
+  // Update player src without replacing the iframe element (it lives in index.html HTML)
   const ytListId = window.SITE?.podcastYouTubePlaylistId || 'PLN8CWpJtlQCsy6Z-Yd6B4EuqHpjLMrfdi';
   const ytSrc    = window.SITE?.podcastYouTubeEmbedSrc
     || `https://www.youtube.com/embed/videoseries?list=${ytListId}&rel=0`;
   const ytExtUrl = window.SITE?.podcastYouTubeUrl
     || `https://youtube.com/playlist?list=${ytListId}`;
-
-  featCard.innerHTML = `<iframe id="homepage-yt-player"
-    src="${ytSrc}"
-    width="100%" height="100%" frameborder="0"
-    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-    allowfullscreen style="border-radius:4px;display:block;width:100%;height:100%;min-height:280px;"></iframe>`;
-  featCard.style.cssText = '';
-
-  // Update external YouTube link if present
+  const ytPlayer = document.getElementById('homepage-yt-player');
+  if (ytPlayer) ytPlayer.src = ytSrc;
   const extLink = document.getElementById('homepage-yt-ext-link');
   if (extLink) extLink.href = ytExtUrl;
 
   // Right column: 3 most recent episodes (ORDER BY sort_order ASC, LIMIT 3)
-  const eps = window.EPS || [];
+  const eps  = window.EPS || [];
   const mini = document.getElementById('homepage-pod-mini-list');
-  if (mini && eps.length) {
-    const recent = eps.slice(0, 3);
-    mini.innerHTML = recent.map((e) => {
-      const ytId     = _youtubeVideoId(e.youtube);
-      const thumbSrc = ytId ? `https://img.youtube.com/vi/${ytId}/mqdefault.jpg` : (e.thumbnail || '');
-      const badge = e.youtube
-        ? `<span style="background:#FF0000;color:#fff;font-size:.52rem;font-weight:700;padding:1px 5px;border-radius:2px;">▶ YT</span>`
-        : e.spotify ? `<span style="background:#1DB954;color:#fff;font-size:.52rem;font-weight:700;padding:1px 5px;border-radius:2px;">♪ SP</span>` : '';
-      const safeTitle = e.t.replace(/'/g, "\\'");
-      const clickAction = ytId
-        ? `onclick="(function(){var p=document.getElementById('homepage-yt-player');if(p)p.src='https://www.youtube.com/embed/${ytId}?autoplay=1&list=${ytListId}&rel=0';})()" style="cursor:pointer;"`
-        : `onclick="window.open('${e.youtube||e.spotify||'#'}','_blank')" style="cursor:pointer;"`;
-      return `<div ${clickAction} style="display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px solid var(--ink08);">
-        <div style="${thumbSrc?`background-image:url(${thumbSrc});background-size:cover;background-position:center;`:`background:${e.bg};`}width:64px;height:44px;flex-shrink:0;border-radius:2px;"></div>
-        <div style="flex:1;min-width:0;">
-          <div style="font-size:.8rem;color:var(--ink);line-height:1.35;margin-bottom:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${e.t}</div>
-          <div style="font-size:.7rem;color:var(--ink60);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:4px;">${e.d||''}</div>
-          <div>${badge}${e.duration?`<span style="font-size:.66rem;color:var(--ink30);margin-left:4px;">${e.duration}</span>`:''}</div>
-        </div>
-      </div>`;
-    }).join('');
-  }
+  if (!mini || !eps.length) return;
+  const recent = eps.slice(0, 3);
+  mini.innerHTML = recent.map((e) => {
+    const ytId     = _youtubeVideoId(e.youtube);
+    const thumbSrc = ytId ? `https://img.youtube.com/vi/${ytId}/mqdefault.jpg` : (e.thumbnail || '');
+    const clickAction = ytId
+      ? `onclick="(function(){var p=document.getElementById('homepage-yt-player');if(p)p.src='https://www.youtube.com/embed/${ytId}?autoplay=1&list=${ytListId}&rel=0';})()" style="cursor:pointer;"`
+      : `onclick="window.open('${e.youtube||e.spotify||'#'}','_blank')" style="cursor:pointer;"`;
+    return `<div ${clickAction} style="display:flex;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--ink08);">
+      <div style="${thumbSrc?`background-image:url(${thumbSrc});background-size:cover;background-position:center;`:`background:${e.bg};`}width:68px;height:46px;flex-shrink:0;border-radius:2px;"></div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:.82rem;color:var(--ink);font-weight:500;line-height:1.35;margin-bottom:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${e.t}</div>
+        <div style="font-size:.72rem;color:var(--ink60);display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;">${e.d||''}</div>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 // Books: load from Supabase and update checkout modal + all displayed book cards

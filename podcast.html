@@ -24,11 +24,15 @@
   <style>
     .car-card { transition: transform 0.25s ease; }
     .car-card:hover { transform: scale(1.03); }
-    /* Featured episode cards — uniform height, description clamp with hover reveal */
-    .fep-card { cursor:pointer; display:flex; flex-direction:column; }
-    .fep-card-body { flex:1; padding:10px 0 8px; display:flex; flex-direction:column; overflow:hidden; }
-    .fep-desc { font-size:.78rem; color:var(--ink60); line-height:1.5; margin-top:4px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
-    .fep-card:hover .fep-desc { -webkit-line-clamp:unset; overflow:visible; background:var(--paper); position:relative; z-index:2; padding:2px 0; }
+    /* Featured episode cards — uniform height; hover shows description as floating overlay */
+    .fep-card { cursor:pointer; display:flex; flex-direction:column; position:relative; }
+    .fep-card-body { flex:1; padding:10px 0 8px; display:flex; flex-direction:column; overflow:visible; position:relative; }
+    /* Clamped version: sits in normal flow to hold the card height, hidden text on hover */
+    .fep-desc-clamp { font-size:.78rem; color:var(--ink60); line-height:1.5; margin-top:4px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+    .fep-card:hover .fep-desc-clamp { visibility:hidden; }
+    /* Overlay version: floats absolute, not in flow, only appears on hover */
+    .fep-desc-overlay { display:none; position:absolute; left:0; right:0; top:0; background:var(--paper,#f8f6f1); border:1px solid var(--ink12); border-radius:2px; padding:8px 10px; box-shadow:0 4px 20px rgba(0,0,0,.13); z-index:30; font-size:.78rem; color:var(--ink60); line-height:1.6; }
+    .fep-card:hover .fep-desc-overlay { display:block; }
     /* Recommended episode rows */
     .rec-ep-row { display:flex; gap:10px; align-items:center; padding:8px; cursor:pointer; border:1px solid transparent; border-radius:2px; transition:background .15s; }
     .rec-ep-row:hover { background:var(--forest-faint); border-color:var(--ink12); }
@@ -88,15 +92,22 @@
     </div></div>
   </section>
 
-  <!-- 2. PILLARS -->
+  <!-- 2. PILLARS — collapsible strip -->
   <div class="pod-pillars-strip">
     <div class="container">
-      <div class="eyebrow" style="margin-bottom:4px;">The Three Pillars</div>
-      <p style="font-size:.87rem;color:var(--ink60);max-width:520px;margin-top:6px;">Every episode touches one or more of three core pillars that define the Future Foundations philosophy.</p>
-      <div class="pillars-row">
-        <div class="pillar-item"><div class="pillar-item-tag">LIVE</div><h3>Live Intentionally</h3><p style="font-size:.83rem;">The decisions, habits, and structures that shape the quality of your everyday life.</p></div>
-        <div class="pillar-item"><div class="pillar-item-tag">EARN</div><h3>Earn with Purpose</h3><p style="font-size:.83rem;">Building financial intelligence, multi-jurisdiction planning, and long-term wealth foundations.</p></div>
-        <div class="pillar-item"><div class="pillar-item-tag">GROW</div><h3>Grow with Systems</h3><p style="font-size:.83rem;">The mindsets, environments, and frameworks that compound personal and professional growth over time.</p></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;cursor:pointer;" onclick="togglePillars()">
+        <div>
+          <div class="eyebrow" style="margin-bottom:4px;">The Three Pillars</div>
+          <p style="font-size:.87rem;color:var(--ink60);max-width:520px;margin-top:6px;">Every episode touches one or more of three core pillars that define the Future Foundations philosophy.</p>
+        </div>
+        <button id="pillars-toggle-btn" style="flex-shrink:0;padding:6px 14px;font-size:.75rem;letter-spacing:.06em;border:1px solid var(--ink12);background:transparent;cursor:pointer;white-space:nowrap;">+ Expand</button>
+      </div>
+      <div id="pillars-body" style="display:none;margin-top:20px;">
+        <div class="pillars-row">
+          <div class="pillar-item"><div class="pillar-item-tag">LIVE</div><h3>Live Intentionally</h3><p style="font-size:.83rem;">The decisions, habits, and structures that shape the quality of your everyday life.</p></div>
+          <div class="pillar-item"><div class="pillar-item-tag">EARN</div><h3>Earn with Purpose</h3><p style="font-size:.83rem;">Building financial intelligence, multi-jurisdiction planning, and long-term wealth foundations.</p></div>
+          <div class="pillar-item"><div class="pillar-item-tag">GROW</div><h3>Grow with Systems</h3><p style="font-size:.83rem;">The mindsets, environments, and frameworks that compound personal and professional growth over time.</p></div>
+        </div>
       </div>
     </div>
   </div>
@@ -240,6 +251,16 @@
   <script src="modals.js"></script>
   <script src="podcast.js"></script>
 <script>
+  // ── Pillars strip: expand / collapse ──
+  window.togglePillars = function() {
+    const body = document.getElementById('pillars-body');
+    const btn  = document.getElementById('pillars-toggle-btn');
+    if (!body) return;
+    const open = body.style.display === 'none' || body.style.display === '';
+    body.style.display = open ? '' : 'none';
+    if (btn) btn.textContent = open ? '− Collapse' : '+ Expand';
+  };
+
   // ── Recommended section: load a specific episode into the left player ──
   window.setRecommendedPlayer = function(embedSrc, title, rowEl) {
     const frame = document.getElementById('rec-player-frame');
