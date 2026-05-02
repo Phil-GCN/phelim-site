@@ -198,8 +198,10 @@ function _episodeCard(e, idx, opts = {}) {
     ? `style="background-image:url(${thumbSrc});background-size:cover;background-position:center;background-color:${e.bg};"`
     : `style="background:${e.bg};"`;
 
-  // Two desc nodes: clamped stays in flow (preserves height), overlay floats on hover
-  const descHtml = e.d ? `<div class="fep-desc-clamp">${e.d}</div><div class="fep-desc-overlay">${e.d}</div>` : '';
+  // Clamped desc holds card height; overlay is a direct child of fep-card (not fep-card-body)
+  // so it's positioned relative to the card itself and anchored to its bottom edge
+  const descClamp   = e.d ? `<div class="fep-desc-clamp">${e.d}</div>` : '';
+  const descOverlay = e.d ? `<div class="fep-desc-overlay"><div class="fep-desc-overlay-title">${e.t}</div>${e.d}</div>` : '';
 
   return `<div class="fep-card ${opts.extraClass||''}" ${clickAction} style="${opts.cardStyle||''}">
     <div class="fep-thumb" ${thumbInner}>
@@ -207,10 +209,11 @@ function _episodeCard(e, idx, opts = {}) {
     </div>
     <div class="fep-card-body">
       <div class="fep-title">${e.t}</div>
-      ${descHtml}
+      ${descClamp}
       ${e.externalShow ? `<div style="font-size:.7rem;color:var(--ink30);margin-top:3px;">Guest · ${e.externalShow}</div>` : ''}
       <div style="margin-top:auto;padding-top:7px;">${platformBadge}${duration}</div>
     </div>
+    ${descOverlay}
   </div>`;
 }
 
