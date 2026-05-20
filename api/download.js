@@ -1,17 +1,16 @@
 // Vercel Serverless Function: download
 // Serves a digital file (eBook PDF or Audiobook) for a verified order.
 //
-// GET /api/download?orderId=PE-xxx&type=ebook|audiobook
+// GET /api/download?token=XXX
 //
-// Security model: the order ID is used as the access token.
-//   - Order IDs are PE-YYYYMMDD-XXXX (hard to guess, brand-scoped)
-//   - We verify: order exists, order status is not cancelled, variant matches type
-//   - No authentication required — link in email is the credential
+// Security model: 
+//   - A unique, single-use, expiring token is generated for each download.
+//   - The token is stored in the `download_tokens` table.
+//   - The token is used to retrieve the file from Supabase Storage.
 //
 // Requires: SUPABASE_URL, SUPABASE_SERVICE_KEY
 
 module.exports = async function(req, res) {
-  // Only GET
   if (req.method !== 'GET') {
     res.status(405).json({ error: 'Method not allowed' });
     return;
@@ -25,108 +24,94 @@ module.exports = async function(req, res) {
     return;
   }
 
-  // Sanitise inputs
-  const orderId = (typeof req.query.orderId === 'string' ? req.query.orderId : '')
-    .replace(/[^\w\-]/g, '').slice(0, 50);
-  const type = (typeof req.query.type === 'string' ? req.query.type : '').toLowerCase().trim();
+  const token = (typeof req.query.token === 'string' ? req.query.token : '').trim();
 
-  if (!orderId) {
-    res.status(400).send('Missing orderId');
-    return;
-  }
-  if (!['ebook', 'audiobook'].includes(type)) {
-    res.status(400).send('type must be "ebook" or "audiobook"');
+  if (!token) {
+    res.status(400).send('Missing token');
     return;
   }
 
-  // 1. Fetch the order
-  let order;
+  // 1. Fetch the token data
+  let tokenData;
   try {
     const r = await fetch(
-      `${SUP_URL}/rest/v1/orders?id=eq.${encodeURIComponent(orderId)}&select=id,status,variant,item_id,item_title,email&limit=1`,
+      `${SUP_URL}/rest/v1/download_tokens?token=eq.${encodeURIComponent(token)}&select=*,order:orders!inner(id,status,variant,item_id,item_title)&limit=1`,
       { headers: { apikey: SUP_KEY, Authorization: `Bearer ${SUP_KEY}` } }
     );
     const rows = await r.json();
     if (!r.ok || !rows.length) {
-      res.status(404).send('Order not found');
+      res.status(404).send('Invalid or expired token');
       return;
     }
-    order = rows[0];
+    tokenData = rows[0];
   } catch (e) {
     res.status(500).send('Database error');
     return;
   }
 
-  // 2. Check order is valid
-  if (order.status === 'cancelled') {
-    res.status(403).send('This order has been cancelled');
+  // 2. Check token expiry
+  if (new Date(tokenData.expires_at) < new Date()) {
+    res.status(403).send('This download link has expired. Please request a new one.');
     return;
   }
 
-  // 3. Verify the requested type matches the purchased variant
-  const variantLower = (order.variant || '').toLowerCase();
-  const allowedForEbook     = variantLower === 'ebook' || variantLower === 'complete bundle';
-  const allowedForAudiobook = variantLower === 'audiobook' || variantLower === 'complete bundle';
-
-  if (type === 'ebook' && !allowedForEbook) {
-    res.status(403).send('This order does not include an eBook');
-    return;
-  }
-  if (type === 'audiobook' && !allowedForAudiobook) {
-    res.status(403).send('This order does not include an Audiobook');
-    return;
+  // 3. Delete the token to prevent reuse
+  try {
+    await fetch(
+      `${SUP_URL}/rest/v1/download_tokens?token=eq.${encodeURIComponent(token)}`,
+      { method: 'DELETE', headers: { apikey: SUP_KEY, Authorization: `Bearer ${SUP_KEY}` } }
+    );
+  } catch (e) {
+    console.warn(`Failed to delete token ${token}:`, e.message);
   }
 
-  // 4. Fetch the file from the books table
-  let fileData, fileName, mimeType;
+  // 4. Fetch the book data
+  let bookData;
   try {
     const r = await fetch(
-      `${SUP_URL}/rest/v1/books?id=eq.${encodeURIComponent(order.item_id)}&select=pdf_data,pdf_name,audio_data,audio_name&limit=1`,
+      `${SUP_URL}/rest/v1/books?id=eq.${encodeURIComponent(tokenData.order.item_id)}&select=pdf_storage_path,audio_storage_path&limit=1`,
       { headers: { apikey: SUP_KEY, Authorization: `Bearer ${SUP_KEY}` } }
     );
     const rows = await r.json();
     if (!r.ok || !rows.length) {
-      res.status(404).send('File not found for this title');
+      res.status(404).send('Book data not found for this order');
       return;
     }
-    const book = rows[0];
-
-    if (type === 'ebook') {
-      fileData = book.pdf_data   || null;
-      fileName = book.pdf_name   || 'ebook.pdf';
-      mimeType = 'application/pdf';
-    } else {
-      fileData = book.audio_data || null;
-      fileName = book.audio_name || 'audiobook.mp3';
-      // Detect mime from extension
-      const ext = fileName.split('.').pop().toLowerCase();
-      mimeType = ext === 'm4b' || ext === 'm4a' ? 'audio/mp4' : 'audio/mpeg';
-    }
+    bookData = rows[0];
   } catch (e) {
-    res.status(500).send('Database error fetching file');
+    res.status(500).send('Database error fetching book data');
     return;
   }
 
-  if (!fileData) {
-    res.status(404).send('File not yet available for download — please check back soon or contact support');
+  const storagePath = tokenData.file_type === 'ebook' ? bookData.pdf_storage_path : bookData.audio_storage_path;
+
+  if (!storagePath) {
+    res.status(404).send('File not found in storage. Please contact support.');
     return;
   }
 
-  // 5. Strip data URL prefix and convert base64 → Buffer
-  const base64 = fileData.replace(/^data:[^;]+;base64,/, '');
-  let buffer;
+  // 5. Generate a signed URL for the file in Supabase Storage
+  let signedUrl;
   try {
-    buffer = Buffer.from(base64, 'base64');
+    const r = await fetch(
+      `${SUP_URL}/storage/v1/object/sign/${storagePath}`,
+      {
+        method: 'POST',
+        headers: { apikey: SUP_KEY, Authorization: `Bearer ${SUP_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ expiresIn: 60 })
+      }
+    );
+    const data = await r.json();
+    if (!r.ok) {
+        throw new Error(data.message || 'Failed to sign URL');
+    }
+    signedUrl = `${SUP_URL}/storage/v1${data.signedURL}`;
   } catch (e) {
-    res.status(500).send('File encoding error');
+    res.status(500).send('Could not generate download link.');
     return;
   }
 
-  // 6. Send the file as a download
-  const safeFileName = fileName.replace(/[^a-zA-Z0-9.\-_]/g, '_');
-  res.setHeader('Content-Type', mimeType);
-  res.setHeader('Content-Disposition', `attachment; filename="${safeFileName}"`);
-  res.setHeader('Content-Length', buffer.length);
-  res.setHeader('Cache-Control', 'private, no-cache');
-  res.status(200).send(buffer);
+  // 6. Redirect the user to the signed URL
+  res.setHeader('Location', signedUrl);
+  res.status(302).send('Redirecting to download...');
 };

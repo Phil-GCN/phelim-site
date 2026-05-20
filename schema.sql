@@ -45,23 +45,21 @@ ALTER TABLE episodes ADD COLUMN IF NOT EXISTS external_show_url text;
 -- Books
 -- ─────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS books (
-  id                text PRIMARY KEY,           -- short key e.g. 'btl', 'bs'
-  title             text NOT NULL,
-  subtitle          text,
-  description       text,
-  cover_color       text,                       -- CSS color for book cover
-  format_options    text,                       -- e.g. 'Hardcover · Paperback · eBook'
-  price             text,                       -- default/display price
-  price_hardcover   text,
-  price_paperback   text,
-  price_ebook       text,
-  price_audiobook   text,
-  pdf_data          text,                       -- base64 data URL of eBook PDF (delivered on eBook orders)
-  pdf_name          text,                       -- original filename e.g. 'built-to-last.pdf'
-  audio_data        text,                       -- base64 data URL of audiobook file (delivered on Audiobook orders)
-  audio_name        text,                       -- original filename e.g. 'built-to-last.mp3'
-  cover_data        text,                       -- base64 data URL of cover image
-  cover_name        text,
+  id                  text PRIMARY KEY,           -- short key e.g. 'btl', 'bs'
+  title               text NOT NULL,
+  subtitle            text,
+  description         text,
+  cover_color         text,                       -- CSS color for book cover
+  format_options      text,                       -- e.g. 'Hardcover · Paperback · eBook'
+  price               text,                       -- default/display price
+  price_hardcover     text,
+  price_paperback     text,
+  price_ebook         text,
+  price_audiobook     text,
+  pdf_storage_path    text,                       -- path in Supabase Storage
+  audio_storage_path  text,                       -- path in Supabase Storage
+  cover_data          text,                       -- base64 data URL of cover image
+  cover_name          text,
   mode              text NOT NULL DEFAULT 'preorder', -- 'preorder' | 'live'
   stock_status      text NOT NULL DEFAULT 'preorder', -- 'preorder' | 'available' | 'sold_out'
   status            text NOT NULL DEFAULT 'draft',    -- 'draft' | 'published'
@@ -182,6 +180,35 @@ CREATE TABLE IF NOT EXISTS orders (
   refund_amount       numeric(8,2),                   -- actual amount refunded (may be partial)
   created_at          timestamptz NOT NULL DEFAULT now()
 );
+
+-- ── Book orders (deprecated) ──
+create table if not exists book_orders (
+  id             text primary key,
+  book_id        text,
+  book_title     text,
+  format         text,
+  price          text,
+  first_name     text,
+  last_name      text,
+  email          text,
+  payment_method text default 'card',
+  order_type     text default 'preorder',
+  status         text default 'pending',
+  created_at     timestamptz default now()
+);
+
+-- ─────────────────────────────────────────────
+-- Download Tokens
+-- ─────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS download_tokens (
+  token       text PRIMARY KEY,
+  order_id    text NOT NULL,
+  file_type   text NOT NULL,
+  expires_at  timestamptz NOT NULL,
+  FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
+);
+
+
 -- Migrations (run once if table already exists):
 -- ALTER TABLE orders ADD COLUMN IF NOT EXISTS refund_issued boolean DEFAULT false;
 -- ALTER TABLE orders ADD COLUMN IF NOT EXISTS refund_amount numeric(8,2);
@@ -205,6 +232,8 @@ ALTER TABLE newsletter_sends       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sent_messages          ENABLE ROW LEVEL SECURITY;
 ALTER TABLE message_threads        ENABLE ROW LEVEL SECURITY;
 ALTER TABLE orders                 ENABLE ROW LEVEL SECURITY;
+ALTER TABLE download_tokens        ENABLE ROW LEVEL SECURITY;
+ALTER TABLE book_orders            ENABLE ROW LEVEL SECURITY;
 
 -- Public SELECT policy for books (so the public site can read via /api/db)
 CREATE POLICY "public read books" ON books FOR SELECT USING (true);

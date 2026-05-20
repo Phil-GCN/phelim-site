@@ -34,23 +34,23 @@ create table if not exists episodes (
 
 -- ── Books ──
 create table if not exists books (
-  id               text primary key,
-  title            text not null,
-  subtitle         text,
-  book_num         integer,
-  mode             text default 'preorder',
-  pub_date         text,
-  price            text,
-  stripe_hardcover text,
-  stripe_ebook     text,
-  stripe_audio     text,
-  description      text,
-  cover_data       text,
-  cover_name       text,
-  pdf_data         text,
-  pdf_name         text,
-  created_at       timestamptz default now(),
-  updated_at       timestamptz default now()
+  id                  text primary key,
+  title               text not null,
+  subtitle            text,
+  book_num            integer,
+  mode                text default 'preorder',
+  pub_date            text,
+  price               text,
+  stripe_hardcover    text,
+  stripe_ebook        text,
+  stripe_audio        text,
+  description         text,
+  cover_data          text,
+  cover_name          text,
+  pdf_storage_path    text,
+  audio_storage_path  text,
+  created_at          timestamptz default now(),
+  updated_at          timestamptz default now()
 );
 
 -- ── Site content (key-value store) ──
@@ -92,9 +92,16 @@ create table if not exists message_threads (
 );
 create index if not exists message_threads_submission_id on message_threads(submission_id);
 
+-- ── Download Tokens ──
+create table if not exists download_tokens (
+  token       text primary key,
+  order_id    text not null,
+  file_type   text not null,
+  expires_at  timestamptz not null,
+  foreign key (order_id) references orders(id) on delete cascade
+);
+
 -- ── Row Level Security ──
--- Allow all operations (portal is protected by its own password auth).
--- Lock this down when proper Supabase Auth is added.
 alter table articles        enable row level security;
 alter table episodes        enable row level security;
 alter table books           enable row level security;
@@ -102,14 +109,12 @@ alter table site_content    enable row level security;
 alter table email_templates enable row level security;
 alter table sent_messages   enable row level security;
 alter table message_threads enable row level security;
+alter table download_tokens enable row level security;
 
--- Service role bypasses RLS automatically.
--- Anon role (public site read) — only articles and episodes need public read.
 create policy "public read articles"  on articles        for select using (status = 'published');
 create policy "public read episodes"  on episodes        for select using (true);
 create policy "public read books"     on books           for select using (true);
 create policy "public read content"   on site_content    for select using (true);
--- All writes go through the service-key proxy (db.js function) — no anon write needed.
 
 -- ══════════════════════════════════════════════════════
 -- MIGRATION v2 — run these ALTER statements if you

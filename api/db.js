@@ -13,6 +13,8 @@ const ALLOWED_TABLES = new Set([
   'newsletter_sends', 'book_orders', 'orders',
 ]);
 
+const ALLOWED_OPS = new Set(['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'like', 'ilike', 'in', 'is']);
+
 module.exports = async function(req, res) {
   if (req.method === 'OPTIONS') {
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -57,7 +59,9 @@ module.exports = async function(req, res) {
 
     if (filter) {
       const [col, op, val] = filter.split(':');
-      if (col && op && val) params.set(col, `${op}.${val}`);
+      if (col && op && val && /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(col) && ALLOWED_OPS.has(op)) {
+        params.set(col, `${op}.${val}`);
+      }
     }
 
     if (['articles','episodes','sent_messages','message_threads','submissions'].includes(table)) {

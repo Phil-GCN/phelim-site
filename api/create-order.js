@@ -1,17 +1,14 @@
+
 // Vercel Serverless Function: create-order
 // Generic order handler for any sellable item in the catalog.
 //
 // POST /api/create-order
-// Body: { firstName, lastName, email, itemId, itemTitle, variant,
+// Body: { firstName, lastName, email, itemId, variant,
 //         paymentMethod, orderType, paymentIntentId? }
 // Requires: RESEND_API_KEY, SUPABASE_URL, SUPABASE_SERVICE_KEY, STRIPE_SECRET_KEY
 // Optional: NOTIFY_EMAIL, SENDER_EMAIL
 
-const CATALOG = {
-  btl: { title: 'Built to Last',   type: 'book', variants: { Hardcover: '24.99', Paperback: '14.99', eBook: '9.99' } },
-  bs:  { title: 'Beyond Survival', type: 'book', variants: { Hardcover: '22.99', Paperback: '12.99', eBook: '8.99' } },
-};
-
+const crypto = require('crypto');
 
 async function getItemFromDB(itemId, supUrl, supKey) {
   if (!supUrl || !supKey) return null;
@@ -101,7 +98,7 @@ function buildEmailWrapper({ colour, eyebrow, heading, content, closing, sigHtml
 </table></body></html>`;
 }
 
-function buildDownloadBlock(orderId, variant) {
+function buildDownloadBlock({ variant, ebookToken, audiobookToken }) {
   const v = (variant || '').toLowerCase();
   const isBundle    = v === 'complete bundle';
   const isEbook     = v === 'ebook'     || isBundle;
@@ -109,29 +106,31 @@ function buildDownloadBlock(orderId, variant) {
   if (!isEbook && !isAudiobook) return '';
 
   const base = 'https://phelim.me';
-  const ebookBtn = isEbook
-    ? `<a href="${base}/api/download?orderId=${encodeURIComponent(orderId)}&type=ebook"
+  const ebookBtn = (isEbook && ebookToken)
+    ? `<a href="${base}/api/download?token=${ebookToken}"
          style="display:inline-block;background:#263d33;color:#f8f6f1;text-decoration:none;padding:12px 26px;font-size:13px;letter-spacing:.04em;margin-right:10px;margin-bottom:8px;">
         ↓ Download eBook (PDF)
        </a>` : '';
-  const audioBtn = isAudiobook
-    ? `<a href="${base}/api/download?orderId=${encodeURIComponent(orderId)}&type=audiobook"
+  const audioBtn = (isAudiobook && audiobookToken)
+    ? `<a href="${base}/api/download?token=${audiobookToken}"
          style="display:inline-block;background:#263d33;color:#f8f6f1;text-decoration:none;padding:12px 26px;font-size:13px;letter-spacing:.04em;margin-bottom:8px;">
         ↓ Download Audiobook
        </a>` : '';
 
+  if (!ebookBtn && !audioBtn) return '';
+
   return `
     <div style="background:#f7f5f0;border:1px solid #e8e4dd;border-left:3px solid #263d33;padding:20px 22px;margin:20px 0;">
       <p style="margin:0 0 12px;font-size:13px;font-weight:600;color:#263d33;letter-spacing:.03em;text-transform:uppercase;">Your download is ready</p>
-      <p style="margin:0 0 16px;font-size:13px;color:#555;line-height:1.6;">Click below to download your file. Keep this email — the link is tied to your order and works any time.</p>
+      <p style="margin:0 0 16px;font-size:13px;color:#555;line-height:1.6;">Click below to download your file. This link is unique to your order and expires in 24 hours. A new link can be requested at any time.</p>
       <div style="display:flex;flex-wrap:wrap;gap:8px;">
         ${ebookBtn}${audioBtn}
       </div>
-      <p style="margin:12px 0 0;font-size:11px;color:#999;line-height:1.5;">If a button doesn't work, copy and paste the link into your browser. Links are unique to your order.</p>
+      <p style="margin:12px 0 0;font-size:11px;color:#999;line-height:1.5;">If a button doesn't work, copy and paste the link into your browser. Links are unique and single-use.</p>
     </div>`;
 }
 
-function buildConfirmationEmail({ firstName, itemTitle, itemType, variant, price, orderId, orderType, paymentMethod, sigHtml }) {
+function buildConfirmationEmail({ firstName, itemTitle, itemType, variant, price, orderId, orderType, paymentMethod, sigHtml, ebookToken, audiobookToken }) {
   const isPreorder = orderType !== 'purchase';
   const eyebrow    = isPreorder ? 'Order Confirmed — Pre-order' : 'Order Confirmed';
   const heading    = `Your ${isPreorder ? 'pre-order' : 'order'} for ${itemTitle} is confirmed`;
@@ -142,7 +141,7 @@ function buildConfirmationEmail({ firstName, itemTitle, itemType, variant, price
        </div>`
     : '';
 
-  const downloadBlock = !isPreorder ? buildDownloadBlock(orderId, variant) : '';
+  const downloadBlock = !isPreorder ? buildDownloadBlock({ variant, ebookToken, audiobookToken }) : '';
 
   const content = `
     <p style="margin:0 0 18px;font-size:15px;color:#444;line-height:1.7;">Dear ${firstName},</p>
@@ -227,7 +226,6 @@ module.exports = async function(req, res) {
   const lastName        = sanitize(body.lastName  || '');
   const email           = sanitize(body.email);
   const itemId          = sanitize(body.itemId);
-  const itemTitle       = sanitize(body.itemTitle);
   const variant         = sanitize(body.variant   || 'Standard');
   const paymentMethod   = sanitize(body.paymentMethod || 'card');
   const orderType       = sanitize(body.orderType || 'preorder');
@@ -238,11 +236,9 @@ module.exports = async function(req, res) {
   if (!['card','bank'].includes(paymentMethod))    { respond(res, 400, { error: 'Invalid paymentMethod' }); return; }
   if (!['preorder','purchase'].includes(orderType)){ respond(res, 400, { error: 'Invalid orderType' }); return; }
 
-  let catalogItem = CATALOG[itemId];
-  if (!catalogItem) {
-    catalogItem = await getItemFromDB(itemId, SUP_URL, SUP_KEY);
-    if (!catalogItem) { respond(res, 400, { error: `Item "${itemId}" is not in the catalog` }); return; }
-  }
+  const catalogItem = await getItemFromDB(itemId, SUP_URL, SUP_KEY);
+  if (!catalogItem) { respond(res, 400, { error: `Item "${itemId}" is not in the catalog` }); return; }
+  
   if (!catalogItem.variants[variant]) { respond(res, 400, { error: `Unknown variant "${variant}" for this item` }); return; }
 
   let finalPrice  = catalogItem.variants[variant];
@@ -260,11 +256,7 @@ module.exports = async function(req, res) {
     orderStatus = 'confirmed';
   }
 
-  const resolvedTitle = itemTitle || catalogItem.title;
-  // Order ID format: PE-YYYYMMDD-XXXX
-  //   PE   = Phelim Ekwebe (brand prefix — easy to identify in email/DB)
-  //   DATE = order date (staff can tell at a glance when the order was placed)
-  //   XXXX = 4 alphanumeric chars from timestamp base-36 (collision-resistant within a day)
+  const resolvedTitle = catalogItem.title;
   const now     = new Date();
   const datePart = now.getFullYear().toString() +
     String(now.getMonth() + 1).padStart(2, '0') +
@@ -274,7 +266,7 @@ module.exports = async function(req, res) {
 
   if (SUP_URL && SUP_KEY) {
     try {
-      await fetch(`${SUP_URL}/rest/v1/orders`, {
+      const dbResponse = await fetch(`${SUP_URL}/rest/v1/orders`, {
         method:  'POST',
         headers: { apikey: SUP_KEY, Authorization: `Bearer ${SUP_KEY}`, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
         body:    JSON.stringify({
@@ -285,15 +277,62 @@ module.exports = async function(req, res) {
           email, status: orderStatus,
         }),
       });
-    } catch(e) { console.warn('Order DB save failed:', e.message); }
+       if (!dbResponse.ok) {
+        const errorBody = await dbResponse.text();
+        console.error('Order DB save failed:', errorBody);
+        respond(res, 500, { error: 'Failed to save order to the database.' });
+        return;
+      }
+    } catch(e) {
+       console.error('Order DB save failed with exception:', e.message);
+       respond(res, 500, { error: 'An exception occurred while saving the order.' });
+       return;
+    }
   }
 
   const sc      = (SUP_URL && SUP_KEY) ? await getSiteContent(SUP_URL, SUP_KEY) : null;
   const sigHtml = buildSignature(sc);
   const errors  = [];
+  const downloadTokens = {};
+  const isPurchase = orderType === 'purchase';
 
-  // Digital files are now served via /api/download?orderId=...&type=ebook|audiobook
-  // The confirmation email contains a download button — no attachment needed.
+  if (isPurchase && SUP_URL && SUP_KEY) {
+    const v = (variant || '').toLowerCase();
+    const isEbook = v === 'ebook' || v === 'complete bundle';
+    const isAudiobook = v === 'audiobook' || v === 'complete bundle';
+
+    const expires_at = new Date();
+    expires_at.setHours(expires_at.getHours() + 24);
+
+    const tokensToInsert = [];
+
+    if (isEbook) {
+      const token = crypto.randomBytes(20).toString('hex');
+      downloadTokens.ebook = token;
+      tokensToInsert.push({ token, order_id: orderId, file_type: 'ebook', expires_at: expires_at.toISOString() });
+    }
+    if (isAudiobook) {
+      const token = crypto.randomBytes(20).toString('hex');
+      downloadTokens.audiobook = token;
+      tokensToInsert.push({ token, order_id: orderId, file_type: 'audiobook', expires_at: expires_at.toISOString() });
+    }
+
+    if (tokensToInsert.length > 0) {
+      try {
+        const tokenResponse = await fetch(`${SUP_URL}/rest/v1/download_tokens`, {
+          method: 'POST',
+          headers: { apikey: SUP_KEY, Authorization: `Bearer ${SUP_KEY}`, 'Content-Type': 'application/json', Prefer: 'return=representation' },
+          body: JSON.stringify(tokensToInsert),
+        });
+        if (!tokenResponse.ok) {
+          const errorBody = await tokenResponse.json();
+          errors.push(`critical: failed to create download tokens for order ${orderId}: ${JSON.stringify(errorBody)}`);
+        }
+      } catch (e) {
+        errors.push(`critical: exception creating download tokens for ${orderId}: ${e.message}`);
+      }
+    }
+  }
 
   try {
     await sendEmail(RESEND_KEY, {
@@ -301,7 +340,7 @@ module.exports = async function(req, res) {
       to:          email,
       replyTo:     NOTIFY,
       subject:     `Order confirmed: ${resolvedTitle} — ${orderId}`,
-      html:        buildConfirmationEmail({ firstName, itemTitle: resolvedTitle, itemType, variant, price: finalPrice, orderId, orderType, paymentMethod, sigHtml }),
+      html:        buildConfirmationEmail({ firstName, itemTitle: resolvedTitle, itemType, variant, price: finalPrice, orderId, orderType, paymentMethod, sigHtml, ebookToken: downloadTokens.ebook, audiobookToken: downloadTokens.audiobook }),
     });
   } catch(e) { errors.push('confirmation: ' + e.message); }
 
@@ -315,7 +354,10 @@ module.exports = async function(req, res) {
     });
   } catch(e) { errors.push('notification: ' + e.message); }
 
-  if (errors.length === 2) { respond(res, 500, { error: errors.join('; ') }); return; }
+  if (errors.length) { 
+      console.warn(`Order ${orderId} completed but with email errors:`, errors.join('; '));
+  }
+  
   respond(res, 200, { success: true, orderId });
 };
 
