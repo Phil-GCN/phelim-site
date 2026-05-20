@@ -15,20 +15,26 @@ function togglePillars() {
 }
 
 async function loadEpisodes() {
-  const episodes = window.EPS || [];
-  const recommended = episodes.filter(e => e.is_recommended);
-  const featured = episodes.filter(e => e.is_featured);
+  try {
+    const response = await fetch('/api/db?table=episodes');
+    const episodes = await response.json();
 
-  if (recommended.length) {
-    populateRecommended(recommended);
-  }
+    const recommended = episodes.filter(e => e.is_recommended);
+    const featured = episodes.filter(e => e.featured);
 
-  if (featured.length) {
-    populateFeatured(featured);
-  }
+    if (recommended.length) {
+      populateRecommended(recommended);
+    }
 
-  if (episodes.length) {
-    populateFullArchiveCarousel(episodes);
+    if (featured.length) {
+      populateFeatured(featured);
+    }
+
+    if (episodes.length) {
+      populateFullArchiveCarousel(episodes);
+    }
+  } catch (error) {
+    console.error('Error loading episodes:', error);
   }
 }
 
@@ -37,15 +43,15 @@ function populateRecommended(episodes) {
   if (!list) return;
 
   list.innerHTML = episodes.map(e => {
-    const spMatch = e.spotify?.match(/episode\/([A-Za-z0-9]+)/);
+    const spMatch = e.spotify_url?.match(/episode\/([A-Za-z0-9]+)/);
     const spEmbed = spMatch ? `https://open.spotify.com/embed/episode/${spMatch[1]}?utm_source=generator` : null;
-    const safeTitle = (e.t || '').replace(/'/g, "\\'");
-    const platform = e.youtube ? 'YouTube' : e.spotify ? 'Spotify' : '';
+    const safeTitle = (e.title || '').replace(/'/g, "\\'");
+    const platform = e.youtube_url ? 'YouTube' : e.spotify_url ? 'Spotify' : '';
 
-    return `<div class="rec-ep-row" onclick="setRecommendedPlayer('${spEmbed || e.youtube}', '${safeTitle}', '${platform}', this)">
-        <div class="rec-ep-thumb" style="background-image: url('${e.thumbnail || ''}'); background-color: ${e.bg || '#000'};"></div>
+    return `<div class="rec-ep-row" onclick="setRecommendedPlayer('${spEmbed || e.youtube_url}', '${safeTitle}', '${platform}', this)">
+        <div class="rec-ep-thumb" style="background-image: url('${e.thumbnail_url || ''}'); background-color: ${e.bg_color || '#000'};"></div>
         <div class="rec-ep-info">
-            <div class="rec-ep-title">${e.t}</div>
+            <div class="rec-ep-title">${e.title}</div>
             <div class="rec-ep-platform">${platform}</div>
         </div>
       </div>`;
@@ -53,10 +59,10 @@ function populateRecommended(episodes) {
   
   if (episodes.length) {
     const firstEp = episodes[0];
-    const spMatch = firstEp.spotify?.match(/episode\/([A-Za-z0-9]+)/);
+    const spMatch = firstEp.spotify_url?.match(/episode\/([A-Za-z0-9]+)/);
     const spEmbed = spMatch ? `https://open.spotify.com/embed/episode/${spMatch[1]}?utm_source=generator` : null;
-    const platform = firstEp.youtube ? 'YouTube' : firstEp.spotify ? 'Spotify' : '';
-    setRecommendedPlayer(spEmbed || firstEp.youtube, firstEp.t, platform, list.firstChild);
+    const platform = firstEp.youtube_url ? 'YouTube' : firstEp.spotify_url ? 'Spotify' : '';
+    setRecommendedPlayer(spEmbed || firstEp.youtube_url, firstEp.title, platform, list.firstChild);
   }
 }
 
@@ -65,15 +71,15 @@ function populateFeatured(episodes) {
   if (!carousel) return;
 
   carousel.innerHTML = episodes.map(e => {
-    const link = e.youtube || e.spotify || '#';
+    const link = e.youtube_url || e.spotify_url || '#';
     return `<div class="fep-card" onclick="window.open('${link}', '_blank')">
-        <div class="fep-thumb" style="background-image: url('${e.thumbnail || ''}'); background-color: ${e.bg || '#000'};">
+        <div class="fep-thumb" style="background-image: url('${e.thumbnail_url || ''}'); background-color: ${e.bg_color || '#000'};">
           <div class="fep-play">&#9654;</div>
         </div>
         <div class="fep-card-body">
-          <div class="fep-num">Episode ${e.n}</div>
-          <div class="fep-title">${e.t}</div>
-          <div class="fep-desc-clamp">${e.d || ''}</div>
+          <div class="fep-num">Episode ${e.number}</div>
+          <div class="fep-title">${e.title}</div>
+          <div class="fep-desc-clamp">${e.description || ''}</div>
         </div>
       </div>`;
   }).join('');
@@ -84,7 +90,7 @@ function populateFullArchiveCarousel(episodes) {
     if (!carousel) return;
 
     carousel.innerHTML = episodes.slice(0, 10).map(e => {
-        const ytMatch = e.youtube?.match(/(?:v=|youtu\.be\/|embed\/)([A-Za-z0-9_\-]{11})/);
+        const ytMatch = e.youtube_url?.match(/(?:v=|youtu\.be\/|embed\/)([A-Za-z0-9_\-]{11})/);
         const ytId = ytMatch ? ytMatch[1] : null;
         if (!ytId) return '';
 
@@ -93,8 +99,8 @@ function populateFullArchiveCarousel(episodes) {
               <div class="fep-play">&#9654;</div>
             </div>
             <div class="fep-card-body">
-              <div class="fep-num">Episode ${e.n}</div>
-              <div class="fep-title">${e.t}</div>
+              <div class="fep-num">Episode ${e.number}</div>
+              <div class="fep-title">${e.title}</div>
             </div>
           </div>`;
     }).join('');
