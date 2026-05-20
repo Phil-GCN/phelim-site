@@ -1,67 +1,105 @@
-/* phelim.me — podcast carousel */
+/* phelim.me — Podcast Page JS */
 
-// ═══ CAROUSEL ═══
-let carActive=0,isDrag=false,_dragSetup=false;
-function buildCarousel(){
-  const track=document.getElementById('car-track');
-  const dots=document.getElementById('car-dots');
-  if(!track)return;
-  const eps = window.EPS || [];
-  track.innerHTML=eps.map((e,i)=>{
-    // Extract IDs for inline playback
-    const ytMatch  = e.youtube?.match(/(?:v=|youtu\.be\/|embed\/)([A-Za-z0-9_\-]{11})/);
-    const ytId     = ytMatch ? ytMatch[1] : null;
-    const spMatch  = e.spotify?.match(/episode\/([A-Za-z0-9]+)/);
-    const spEmbed  = spMatch ? `https://open.spotify.com/embed/episode/${spMatch[1]}?utm_source=generator` : null;
-    const safeTitle = (e.t||'').replace(/'/g,"\\'");
+document.addEventListener('DOMContentLoaded', () => {
+  loadEpisodes();
+});
 
-    // Primary action: play YouTube inline if available; else open externally
-    const cardClick = ytId
-      ? `onclick="if(typeof playYouTubeInline==='function')playYouTubeInline('${ytId}','${safeTitle}')"`
-      : `onclick="window.open('${e.youtube||e.spotify||(window.SITE?.podcastYouTubeUrl||'#')}','_blank')"`;
+async function loadEpisodes() {
+  // Assuming episodes are loaded from a data source like a JSON file or an API
+  // For this example, I'll use the existing window.EPS data if available
+  const episodes = window.EPS || [];
 
-    const watchBtn = ytId
-      ? `<button class="cc-btn" onclick="event.stopPropagation();if(typeof playYouTubeInline==='function')playYouTubeInline('${ytId}','${safeTitle}');else window.open('${e.youtube||'#'}','_blank')">&#9654; Watch here</button>`
-      : `<button class="cc-btn" onclick="event.stopPropagation();window.open('${e.youtube||(window.SITE?.podcastYouTubeUrl||'#')}','_blank')">&#9654; YouTube ↗</button>`;
-    const listenBtn = spEmbed
-      ? `<button class="cc-btn outline" onclick="event.stopPropagation();if(typeof setSpotifyEmbed==='function')setSpotifyEmbed('${spEmbed}',null);else window.open('${e.spotify||'#'}','_blank')">&#9654; Spotify</button>`
-      : `<button class="cc-btn outline" onclick="event.stopPropagation();window.open('${e.spotify||(window.SITE?.podcastSpotifyUrl||'#')}','_blank')">Listen ↗</button>`;
+  const recommended = episodes.filter(e => e.is_recommended);
+  const featured = episodes.filter(e => e.is_featured);
 
-    return `<div class="car-card" ${cardClick}>
-      <div class="cc-thumb" style="background:${e.bg}"><div class="cc-thumb-lbl">${e.t.split(' ').slice(0,5).join(' ')}…</div><div class="cc-play">&#9654;</div></div>
-      <div class="cc-body">
-        <div class="cc-title">${e.t}</div>
-        <p class="cc-desc">${e.d||''}</p>
-        <div class="cc-actions">${watchBtn}${listenBtn}</div>
-      </div>
-    </div>`;
+  if (recommended.length) {
+    populateRecommended(recommended);
+  }
+
+  if (featured.length) {
+    populateFeatured(featured);
+  }
+}
+
+function populateRecommended(episodes) {
+  const list = document.getElementById('rec-ep-list');
+  if (!list) return;
+
+  list.innerHTML = episodes.map(e => {
+    const spMatch = e.spotify?.match(/episode\/([A-Za-z0-9]+)/);
+    const spEmbed = spMatch ? `https://open.spotify.com/embed/episode/${spMatch[1]}?utm_source=generator` : null;
+    const safeTitle = (e.t || '').replace(/'/g, "\\'");
+
+    return `<div class="rec-ep-row" onclick="setRecommendedPlayer('${spEmbed}', '${safeTitle}', this)">
+        <div class="sli-num">${e.n}</div>
+        <div class="sli-title">${e.t}</div>
+      </div>`;
   }).join('');
-  if(dots)dots.innerHTML=eps.map((_,i)=>`<div class="car-dot${i===0?' active':''}"></div>`).join('');
-  setupDrag();scrollCar();
 }
-function carMove(dir){
-  const track=document.getElementById('car-track');if(!track)return;
-  const eps = window.EPS || [];
-  const cardW=296;
-  const cur=parseFloat(track.style.transform?.replace('translateX(',''))||0;
-  const newT=Math.min(0,Math.max(-(eps.length-3)*cardW,cur+(dir<0?cardW:-cardW)));
-  track.style.transform=`translateX(${newT}px)`;
+
+function populateFeatured(episodes) {
+  const grid = document.getElementById('featured-episodes-grid');
+  if (!grid) return;
+
+  grid.innerHTML = episodes.map(e => {
+    const ytMatch = e.youtube?.match(/(?:v=|youtu\.be\/|embed\/)([A-Za-z0-9_\-]{11})/);
+    const ytId = ytMatch ? ytMatch[1] : null;
+    const spMatch = e.spotify?.match(/episode\/([A-Za-z0-9]+)/);
+    const spEmbed = spMatch ? `https://open.spotify.com/embed/episode/${spMatch[1]}?utm_source=generator` : null;
+    const safeTitle = (e.t || '').replace(/'/g, "\\'");
+
+    const cardClick = ytId
+      ? `onclick="playFeaturedYouTube('${ytId}', '${safeTitle}')"`
+      : spEmbed
+      ? `onclick="playFeaturedSpotify('${spEmbed}', '${safeTitle}')"`
+      : '';
+
+    return `<div class="fep-card" ${cardClick}>
+        <div class="fep-thumb" style="background-image: url('${e.thumbnail || ''}'); background-color: ${e.bg || '#000'};">
+          <div class="fep-play">&#9654;</div>
+        </div>
+        <div class="fep-card-body">
+          <div class="fep-num">Episode ${e.n}</div>
+          <div class="fep-title">${e.t}</div>
+          <div class="fep-desc-clamp">${e.d || ''}</div>
+        </div>
+      </div>`;
+  }).join('');
 }
-function scrollCar(){
-  const track=document.getElementById('car-track');if(!track)return;
-  const cards=track.querySelectorAll('.car-card');if(!cards[carActive])return;
-  const oRect=track.parentElement.getBoundingClientRect();
-  const cRect=cards[carActive].getBoundingClientRect();
-  const curT=parseFloat(track.style.transform?.replace('translateX(',''))||0;
-  track.style.transform=`translateX(${Math.min(0,curT-(cRect.left-oRect.left)+40)}px)`;
+
+function setRecommendedPlayer(embedSrc, title, rowEl) {
+  const frame = document.getElementById('rec-player-frame');
+  if (frame) frame.src = embedSrc;
+  const label = document.getElementById('rec-player-title');
+  if (label) label.textContent = title ? 'Now playing: ' + title : '';
+  document.querySelectorAll('.rec-ep-row').forEach(r => r.classList.remove('rec-ep-active'));
+  if (rowEl) rowEl.classList.add('rec-ep-active');
 }
-function setupDrag(){
-  const track=document.getElementById('car-track');if(!track||_dragSetup)return;_dragSetup=true;
-  let sX=0,sT=0;
-  track.addEventListener('mousedown',e=>{isDrag=false;sX=e.clientX;sT=parseFloat(track.style.transform?.replace('translateX(',''))||0;track.classList.add('dragging');document.addEventListener('mousemove',onM);document.addEventListener('mouseup',onU);});
-  function onM(e){const dx=e.clientX-sX;if(Math.abs(dx)>5)isDrag=true;if(isDrag)track.style.transform=`translateX(${sT+dx}px)`;}
-  function onU(e){track.classList.remove('dragging');document.removeEventListener('mousemove',onM);document.removeEventListener('mouseup',onU);if(isDrag){const dx=e.clientX-sX;if(Math.abs(dx)>60)carMove(dx<0?1:-1);setTimeout(()=>isDrag=false,50);}};
-  track.addEventListener('touchstart',e=>{sX=e.touches[0].clientX;sT=parseFloat(track.style.transform?.replace('translateX(',''))||0;isDrag=false;},{passive:true});
-  track.addEventListener('touchmove',e=>{const dx=e.touches[0].clientX-sX;if(Math.abs(dx)>5)isDrag=true;if(isDrag)track.style.transform=`translateX(${sT+dx}px)`;},{passive:true});
-  track.addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-sX;if(Math.abs(dx)>60)carMove(dx<0?1:-1);setTimeout(()=>isDrag=false,50);});
+
+function playFeaturedYouTube(videoId, title) {
+  const frame = document.getElementById('fep-player-frame');
+  const wrap = document.getElementById('fep-player-wrap');
+  const label = document.getElementById('fep-player-title');
+  if (!frame) return;
+  frame.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`;
+  if (label) label.textContent = title || '';
+  wrap.style.display = '';
+  wrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function playFeaturedSpotify(embedSrc, title) {
+  const frame = document.getElementById('fep-player-frame');
+  const wrap = document.getElementById('fep-player-wrap');
+  const label = document.getElementById('fep-player-title');
+  if (!frame) return;
+  frame.src = embedSrc;
+  if (label) label.textContent = title || '';
+  wrap.style.display = '';
+  wrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function closeFepPlayer() {
+  const frame = document.getElementById('fep-player-frame');
+  if (frame) frame.src = '';
+  document.getElementById('fep-player-wrap').style.display = 'none';
 }

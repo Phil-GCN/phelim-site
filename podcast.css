@@ -1,0 +1,136 @@
+/* Podcast Page Styles */
+
+.pod-hero .eyebrow {
+  color: rgba(248, 246, 241, .4);
+}
+
+.pod-show-art-sub {
+  margin-top: 5px;
+}
+
+.pod-pillars {
+  padding: 64px 0;
+  background: var(--paper-mid);
+  text-align: center;
+}
+
+.pod-pillars .sec-top p {
+  max-width: 460px;
+  margin: 8px auto 0;
+  font-size: .87rem;
+}
+
+.rec-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+  align-items: start;
+}
+
+#rec-player-frame {
+  border-radius: 8px;
+  display: block;
+}
+
+#rec-player-title {
+  font-size: .72rem;
+  color: var(--ink30);
+  margin-top: 8px;
+  letter-spacing: .04em;
+  min-height: 1.2em;
+}
+
+.rec-ep-list-label {
+  font-size: .68rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--ink30);
+  margin-bottom: 12px;
+}
+
+#rec-ep-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 380px;
+  overflow-y: auto;
+}
+
+#fep-player-wrap {
+  margin-bottom: 20px;
+  border: 1px solid var(--ink12);
+  padding: 16px;
+}
+
+#fep-player-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  gap: 12px;
+}
+
+#fep-player-title {
+  font-family: var(--serif);
+  font-size: .95rem;
+  color: var(--ink);
+  flex: 1;
+}
+
+#fep-player-header button {
+  flex-shrink: 0;
+  padding: 6px 14px;
+  font-size: .78rem;
+  border: 1px solid var(--ink);
+  background: transparent;
+  cursor: pointer;
+}
+
+#fep-player-frame {
+  border-radius: 4px;
+  display: block;
+}
+
+#featured-episodes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.archive-header {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+
+#now-playing-yt-link {
+  font-size: .72rem;
+  color: var(--ink30);
+  text-decoration: none;
+}
+
+#now-playing-frame {
+  border-radius: 4px;
+  display: block;
+}
+
+.apple-embed-section {
+  background: var(--paper-dark);
+  padding: 40px 0;
+}
+
+.apple-embed-section .eyebrow {
+  margin-bottom: 14px;
+}
+
+#apple-podcast-embed {
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  border-radius: 8px;
+}
+
+.pod-guest .eyebrow {
+  color: rgba(248, 246, 241, .4);
+  margin-bottom: 10px;
+}
