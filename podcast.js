@@ -2,13 +2,20 @@
 
 document.addEventListener('DOMContentLoaded', () => {
   loadEpisodes();
+  setupCarousels();
 });
 
-async function loadEpisodes() {
-  // Assuming episodes are loaded from a data source like a JSON file or an API
-  // For this example, I'll use the existing window.EPS data if available
-  const episodes = window.EPS || [];
+function togglePillars() {
+  const strip = document.querySelector('.pod-pillars-strip');
+  const content = document.getElementById('pod-pillars-content');
+  if (!strip || !content) return;
 
+  const isOpen = strip.classList.toggle('open');
+  content.style.display = isOpen ? 'block' : 'none';
+}
+
+async function loadEpisodes() {
+  const episodes = window.EPS || [];
   const recommended = episodes.filter(e => e.is_recommended);
   const featured = episodes.filter(e => e.is_featured);
 
@@ -18,6 +25,10 @@ async function loadEpisodes() {
 
   if (featured.length) {
     populateFeatured(featured);
+  }
+
+  if (episodes.length) {
+    populateFullArchiveCarousel(episodes);
   }
 }
 
@@ -29,32 +40,33 @@ function populateRecommended(episodes) {
     const spMatch = e.spotify?.match(/episode\/([A-Za-z0-9]+)/);
     const spEmbed = spMatch ? `https://open.spotify.com/embed/episode/${spMatch[1]}?utm_source=generator` : null;
     const safeTitle = (e.t || '').replace(/'/g, "\\'");
+    const platform = e.youtube ? 'YouTube' : e.spotify ? 'Spotify' : '';
 
-    return `<div class="rec-ep-row" onclick="setRecommendedPlayer('${spEmbed}', '${safeTitle}', this)">
-        <div class="sli-num">${e.n}</div>
-        <div class="sli-title">${e.t}</div>
+    return `<div class="rec-ep-row" onclick="setRecommendedPlayer('${spEmbed || e.youtube}', '${safeTitle}', '${platform}', this)">
+        <div class="rec-ep-thumb" style="background-image: url('${e.thumbnail || ''}'); background-color: ${e.bg || '#000'};"></div>
+        <div class="rec-ep-info">
+            <div class="rec-ep-title">${e.t}</div>
+            <div class="rec-ep-platform">${platform}</div>
+        </div>
       </div>`;
   }).join('');
+  
+  if (episodes.length) {
+    const firstEp = episodes[0];
+    const spMatch = firstEp.spotify?.match(/episode\/([A-Za-z0-9]+)/);
+    const spEmbed = spMatch ? `https://open.spotify.com/embed/episode/${spMatch[1]}?utm_source=generator` : null;
+    const platform = firstEp.youtube ? 'YouTube' : firstEp.spotify ? 'Spotify' : '';
+    setRecommendedPlayer(spEmbed || firstEp.youtube, firstEp.t, platform, list.firstChild);
+  }
 }
 
 function populateFeatured(episodes) {
-  const grid = document.getElementById('featured-episodes-grid');
-  if (!grid) return;
+  const carousel = document.getElementById('featured-episodes-carousel');
+  if (!carousel) return;
 
-  grid.innerHTML = episodes.map(e => {
-    const ytMatch = e.youtube?.match(/(?:v=|youtu\.be\/|embed\/)([A-Za-z0-9_\-]{11})/);
-    const ytId = ytMatch ? ytMatch[1] : null;
-    const spMatch = e.spotify?.match(/episode\/([A-Za-z0-9]+)/);
-    const spEmbed = spMatch ? `https://open.spotify.com/embed/episode/${spMatch[1]}?utm_source=generator` : null;
-    const safeTitle = (e.t || '').replace(/'/g, "\\'");
-
-    const cardClick = ytId
-      ? `onclick="playFeaturedYouTube('${ytId}', '${safeTitle}')"`
-      : spEmbed
-      ? `onclick="playFeaturedSpotify('${spEmbed}', '${safeTitle}')"`
-      : '';
-
-    return `<div class="fep-card" ${cardClick}>
+  carousel.innerHTML = episodes.map(e => {
+    const link = e.youtube || e.spotify || '#';
+    return `<div class="fep-card" onclick="window.open('${link}', '_blank')">
         <div class="fep-thumb" style="background-image: url('${e.thumbnail || ''}'); background-color: ${e.bg || '#000'};">
           <div class="fep-play">&#9654;</div>
         </div>
@@ -67,39 +79,93 @@ function populateFeatured(episodes) {
   }).join('');
 }
 
-function setRecommendedPlayer(embedSrc, title, rowEl) {
+function populateFullArchiveCarousel(episodes) {
+    const carousel = document.getElementById('full-archive-carousel');
+    if (!carousel) return;
+
+    carousel.innerHTML = episodes.slice(0, 10).map(e => {
+        const ytMatch = e.youtube?.match(/(?:v=|youtu\.be\/|embed\/)([A-Za-z0-9_\-]{11})/);
+        const ytId = ytMatch ? ytMatch[1] : null;
+        if (!ytId) return '';
+
+        return `<div class="fep-card" onclick="playInArchivePlayer('${ytId}')">
+            <div class="fep-thumb" style="background-image: url('https://i.ytimg.com/vi/${ytId}/hqdefault.jpg'); background-color: #000;">
+              <div class="fep-play">&#9654;</div>
+            </div>
+            <div class="fep-card-body">
+              <div class="fep-num">Episode ${e.n}</div>
+              <div class="fep-title">${e.t}</div>
+            </div>
+          </div>`;
+    }).join('');
+}
+
+function setRecommendedPlayer(src, title, platform, rowEl) {
   const frame = document.getElementById('rec-player-frame');
-  if (frame) frame.src = embedSrc;
-  const label = document.getElementById('rec-player-title');
-  if (label) label.textContent = title ? 'Now playing: ' + title : '';
+  const titleEl = document.getElementById('rec-player-title');
+  const platformEl = document.getElementById('rec-player-platform');
+  if (!frame || !titleEl || !platformEl) return;
+
+  if (platform === 'YouTube') {
+      const ytMatch = src.match(/(?:v=|youtu\.be\/|embed\/)([A-Za-z0-9_\-]{11})/);
+      if(ytMatch) frame.src = `https://www.youtube.com/embed/${ytMatch[1]}`;
+  } else {
+      frame.src = src;
+  }
+
+  titleEl.textContent = title;
+  platformEl.textContent = platform;
+
   document.querySelectorAll('.rec-ep-row').forEach(r => r.classList.remove('rec-ep-active'));
   if (rowEl) rowEl.classList.add('rec-ep-active');
 }
 
-function playFeaturedYouTube(videoId, title) {
-  const frame = document.getElementById('fep-player-frame');
-  const wrap = document.getElementById('fep-player-wrap');
-  const label = document.getElementById('fep-player-title');
-  if (!frame) return;
-  frame.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`;
-  if (label) label.textContent = title || '';
-  wrap.style.display = '';
-  wrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+function playInArchivePlayer(videoId) {
+    const frame = document.getElementById('full-archive-player');
+    if(frame) {
+        frame.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`;
+        frame.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
 }
 
-function playFeaturedSpotify(embedSrc, title) {
-  const frame = document.getElementById('fep-player-frame');
-  const wrap = document.getElementById('fep-player-wrap');
-  const label = document.getElementById('fep-player-title');
-  if (!frame) return;
-  frame.src = embedSrc;
-  if (label) label.textContent = title || '';
-  wrap.style.display = '';
-  wrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-}
+function setupCarousels() {
+    const archiveCarousel = document.getElementById('full-archive-carousel');
+    if (archiveCarousel) {
+        const prevBtn = document.getElementById('archive-prev');
+        const nextBtn = document.getElementById('archive-next');
+        const dotsContainer = document.getElementById('archive-dots');
+        let cardWidth = 316; // card width + gap
 
-function closeFepPlayer() {
-  const frame = document.getElementById('fep-player-frame');
-  if (frame) frame.src = '';
-  document.getElementById('fep-player-wrap').style.display = 'none';
+        const updateDots = () => {
+            if (!dotsContainer) return;
+            const page = Math.round(archiveCarousel.scrollLeft / cardWidth);
+            const dots = dotsContainer.children;
+            for (let i = 0; i < dots.length; i++) {
+                dots[i].classList.toggle('active', i === page);
+            }
+        }
+
+        if (prevBtn && nextBtn) {
+            prevBtn.addEventListener('click', () => {
+                archiveCarousel.scrollBy({ left: -cardWidth, behavior: 'smooth' });
+            });
+            nextBtn.addEventListener('click', () => {
+                archiveCarousel.scrollBy({ left: cardWidth, behavior: 'smooth' });
+            });
+        }
+        
+        if (dotsContainer) {
+          const numCards = archiveCarousel.children.length;
+          for (let i = 0; i < numCards; i++) {
+              const dot = document.createElement('div');
+              dot.classList.add('car-dot');
+              dot.addEventListener('click', () => {
+                  archiveCarousel.scrollTo({ left: i * cardWidth, behavior: 'smooth' })
+              });
+              dotsContainer.appendChild(dot);
+          }
+          archiveCarousel.addEventListener('scroll', updateDots);
+          updateDots();
+        }
+    }
 }

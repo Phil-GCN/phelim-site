@@ -72,13 +72,21 @@
   </section>
 
   <!-- 2. PILLARS -->
-  <section class="pod-pillars">
+  <div class="pod-pillars-strip" onclick="togglePillars()">
     <div class="container">
-      <div class="sec-top">
+      <div class="pps-inner">
         <div class="eyebrow">Philosophy</div>
-        <h2>Three Core Pillars</h2>
-        <p>Every episode touches one or more of these pillars that define the Future Foundations philosophy.</p>
+        <div class="pillar-preview-grid">
+          <div class="pillar-preview-item"><span>LIVE</span> Live Intentionally</div>
+          <div class="pillar-preview-item"><span>EARN</span> Earn with Purpose</div>
+          <div class="pillar-preview-item"><span>GROW</span> Grow with Systems</div>
+        </div>
+        <div class="pps-arrow">↓</div>
       </div>
+    </div>
+  </div>
+  <section id="pod-pillars-content" class="pod-pillars" style="display:none;">
+    <div class="container">
       <div class="pillars-row">
         <div class="pillar-item"><div class="pillar-item-tag">LIVE</div><h3>Live Intentionally</h3><p>The decisions, habits, and structures that shape the quality of your everyday life.</p></div>
         <div class="pillar-item"><div class="pillar-item-tag">EARN</div><h3>Earn with Purpose</h3><p>Building financial intelligence, multi-jurisdiction planning, and long-term wealth foundations.</p></div>
@@ -86,6 +94,7 @@
       </div>
     </div>
   </section>
+
 
   <!-- 3. RECOMMENDED EPISODES -->
   <section class="pod-start">
@@ -96,9 +105,12 @@
         <p>The episodes that have resonated most — hand-picked as entry points into the thinking behind Future Foundations. Click any episode on the right to play it.</p>
       </div>
       <div class="rec-two-col">
-        <div>
+        <div class="rec-player-area">
           <iframe id="rec-player-frame" src="https://open.spotify.com/embed/show/6yUjD35JA5VRfHzHw2gCX9?utm_source=generator" width="100%" height="352" frameBorder="0" allowfullscreen allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
-          <div id="rec-player-title"></div>
+          <div id="rec-player-info">
+            <div id="rec-player-title"></div>
+            <div id="rec-player-platform"></div>
+          </div>
         </div>
         <div>
           <div class="rec-ep-list-label">Recommended episodes</div>
@@ -116,14 +128,9 @@
         <h2>Episodes worth your time</h2>
         <p>Conversations that go beyond the surface — each one a framework you can actually use. Click any card to watch or listen.</p>
       </div>
-      <div id="fep-player-wrap" style="display:none;">
-        <div id="fep-player-header">
-          <div id="fep-player-title"></div>
-          <button onclick="closeFepPlayer()">✕ Close player</button>
-        </div>
-        <iframe id="fep-player-frame" width="100%" height="420" src="" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+      <div class="carousel-outer">
+        <div class="carousel-track" id="featured-episodes-carousel"></div>
       </div>
-      <div id="featured-episodes-grid"></div>
     </div>
   </section>
 
@@ -138,7 +145,15 @@
       <div class="archive-header">
         <a id="now-playing-yt-link" href="https://youtube.com/playlist?list=PLN8CWpJtlQCsy6Z-Yd6B4EuqHpjLMrfdi" target="_blank">Open full playlist on YouTube ↗</a>
       </div>
-      <iframe id="now-playing-frame" width="100%" height="500" frameborder="0" src="https://www.youtube.com/embed/videoseries?list=PLN8CWpJtlQCsy6Z-Yd6B4EuqHpjLMrfdi&rel=0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+      <iframe id="full-archive-player" width="100%" height="500" frameborder="0" src="https://www.youtube.com/embed/videoseries?list=PLN8CWpJtlQCsy6Z-Yd6B4EuqHpjLMrfdi&rel=0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+      <div class="carousel-outer">
+        <div class="carousel-track" id="full-archive-carousel"></div>
+        <div class="car-nav">
+            <button class="car-btn" id="archive-prev">←</button>
+            <div class="car-dots" id="archive-dots"></div>
+            <button class="car-btn" id="archive-next">→</button>
+        </div>
+      </div>
     </div>
   </section>
 
